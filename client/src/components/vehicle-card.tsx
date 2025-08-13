@@ -27,9 +27,13 @@ interface VehicleCardProps {
 
 export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  
+  console.log(`VehicleCard ${vehicle.id} render:`, { isGalleryOpen, galleryLength: vehicle.gallery?.length });
 
   const handleImageClick = () => {
+    console.log("Image clicked - gallery data:", vehicle.gallery?.length);
     if (vehicle.gallery && vehicle.gallery.length > 0) {
+      console.log("Setting gallery open");
       setIsGalleryOpen(true);
     }
   };
