@@ -257,7 +257,7 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
           <Textarea
             id={`notes-${vehicleTitle}`}
             rows={3}
-            placeholder="np. prośba o wózek paletowy, załadunek rampą..."
+            placeholder="np. Wskaż adres dostawy (sprawdź FAQ)"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue resize-none"

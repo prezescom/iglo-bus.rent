@@ -40,6 +40,19 @@ export default function Footer() {
                   +48 530 410 504
                 </a>
               </p>
+              <p>
+                Adres:{" "}
+                <a 
+                  href="https://www.google.com/maps/search/?api=1&query=Gliwicka+15b,+44-178+Przyszowice"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand-blue hover:underline cursor-pointer"
+                  data-testid="footer-address"
+                  title="Otwórz w Google Maps"
+                >
+                  Gliwicka 15b, 44-178 Przyszowice
+                </a>
+              </p>
             </div>
           </div>
           
