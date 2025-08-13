@@ -23,6 +23,9 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  // Get today's date in YYYY-MM-DD format for min date validation
+  const today = new Date().toISOString().split('T')[0];
+
   // Calculate rental cost based on dates and pricing structure
   const rentalCalculation = useMemo(() => {
     if (!dateFrom || !dateTo) return null;
@@ -98,6 +101,29 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
       return;
     }
 
+    // Validate dates are not in the past
+    const selectedFromDate = new Date(dateFrom);
+    const selectedToDate = new Date(dateTo);
+    const todayDate = new Date(today);
+
+    if (selectedFromDate < todayDate) {
+      toast({
+        title: "Błąd",
+        description: "Data rozpoczęcia nie może być w przeszłości.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (selectedToDate <= selectedFromDate) {
+      toast({
+        title: "Błąd",
+        description: "Data zakończenia musi być późniejsza niż data rozpoczęcia.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!email.includes("@")) {
       toast({
         title: "Błąd",
@@ -144,6 +170,7 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
                 id={`date-from-${vehicleTitle}`}
                 type="date"
                 value={dateFrom}
+                min={today}
                 onChange={(e) => setDateFrom(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue"
                 data-testid="input-date-from"
@@ -161,6 +188,7 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
                 id={`date-to-${vehicleTitle}`}
                 type="date"
                 value={dateTo}
+                min={dateFrom || today}
                 onChange={(e) => setDateTo(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue"
                 data-testid="input-date-to"
