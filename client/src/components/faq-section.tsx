@@ -8,11 +8,11 @@ import {
 const faqs = [
   {
     question: "Czy są limity kilometrów?",
-    answer: "Standardowo brak limitu na terenie PL (uczciwe użytkowanie). Możemy ustalić stawkę z limitem km i tańszą dobą — zapytaj w wiadomości.",
+    answer: "Standardowo limit wynosi 300km na dobę. Ważne, że przy dłuższym najmie, limity dzienne podlegają sumowaniu tj. w 10 dni możesz przejechać nawet 3000km w ramach umowy.",
   },
   {
     question: "Czy auto utrzyma -20°C na postoju?",
-    answer: "Tak, pojazdy mają agregat z podtrzymaniem z gniazda 230V. Zakres pracy: -20°C…+20°C w zależności od ładunku i warunków.",
+    answer: "Tak, pojazdy mają agregat z podtrzymaniem z gniazda 230V. Zakres pracy: -20°C do +20°C w zależności od ładunku i warunków.",
   },
   {
     question: "Co z serwisem w trakcie najmu?",
@@ -20,7 +20,11 @@ const faqs = [
   },
   {
     question: "Jakie dokumenty są potrzebne?",
-    answer: "Prawo jazdy kat. B, dowód osobisty i dokument firmy (dla B2B). Szczegóły przy rezerwacji.",
+    answer: "Prawo jazdy kat. B, dowód osobisty i aplikacja mobywatel dla potwierdzenia tożsamości. Szczegóły przy rezerwacji.",
+  },
+  {
+    question: "Co można wozić, a czego nie",
+    answer: "Możesz wozić wszystkie towary wymagające kontrolowanej temperatury OPRÓCZ świeżych lub wędzonych ryb, kiszonek, innych ładunków pozostawiających itensywny zapach lub mogących uszkodzić zabudowę (np. słona woda).",
   },
 ];
 
