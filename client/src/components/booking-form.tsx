@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Calendar, Mail } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Calendar, Mail, Calculator } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,15 +8,83 @@ import { useToast } from "@/hooks/use-toast";
 
 interface BookingFormProps {
   vehicleTitle: string;
+  pricing: Array<{
+    period: string;
+    price: string;
+    highlighted?: boolean;
+  }>;
 }
 
-export default function BookingForm({ vehicleTitle }: BookingFormProps) {
+export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps) {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  // Calculate rental cost based on dates and pricing structure
+  const rentalCalculation = useMemo(() => {
+    if (!dateFrom || !dateTo) return null;
+
+    const startDate = new Date(dateFrom);
+    const endDate = new Date(dateTo);
+    
+    if (endDate <= startDate) return null;
+
+    const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (days <= 0) return null;
+
+    // Extract numeric prices and determine which tier applies
+    let dailyRate = 0;
+    let tierUsed = "";
+
+    if (days >= 30) {
+      // Monthly pricing - find the monthly rate
+      const monthlyPricing = pricing.find(p => p.period.includes("30+") || p.period.includes("miesięcznie"));
+      if (monthlyPricing) {
+        const monthlyPrice = parseInt(monthlyPricing.price.replace(/[^\d]/g, ''));
+        dailyRate = Math.round(monthlyPrice / 30); // Convert monthly to daily
+        tierUsed = monthlyPricing.period;
+      }
+    } else if (days >= 15) {
+      const tier = pricing.find(p => p.period.includes("15–29"));
+      if (tier) {
+        dailyRate = parseInt(tier.price.replace(/[^\d]/g, ''));
+        tierUsed = tier.period;
+      }
+    } else if (days >= 8) {
+      const tier = pricing.find(p => p.period.includes("8–14"));
+      if (tier) {
+        dailyRate = parseInt(tier.price.replace(/[^\d]/g, ''));
+        tierUsed = tier.period;
+      }
+    } else if (days >= 4) {
+      const tier = pricing.find(p => p.period.includes("4–7"));
+      if (tier) {
+        dailyRate = parseInt(tier.price.replace(/[^\d]/g, ''));
+        tierUsed = tier.period;
+      }
+    } else {
+      const tier = pricing.find(p => p.period.includes("1–3"));
+      if (tier) {
+        dailyRate = parseInt(tier.price.replace(/[^\d]/g, ''));
+        tierUsed = tier.period;
+      }
+    }
+
+    if (dailyRate === 0) return null;
+
+    const totalCost = dailyRate * days;
+
+    return {
+      days,
+      dailyRate,
+      totalCost,
+      tierUsed
+    };
+  }, [dateFrom, dateTo, pricing]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,6 +170,38 @@ export default function BookingForm({ vehicleTitle }: BookingFormProps) {
             </div>
           </div>
         </div>
+
+        {/* Rental Calculator */}
+        {rentalCalculation && (
+          <div className="bg-brand-light border border-brand-blue/20 rounded-xl p-4 space-y-3" data-testid="rental-calculator">
+            <div className="flex items-center gap-2 text-brand-blue">
+              <Calculator className="h-4 w-4" />
+              <span className="font-semibold text-sm">Kalkulator wynajmu</span>
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-slate-600">Liczba dni:</span>
+                <div className="font-bold text-brand-dark">{rentalCalculation.days} dni</div>
+              </div>
+              <div>
+                <span className="text-slate-600">Stawka (tier: {rentalCalculation.tierUsed}):</span>
+                <div className="font-bold text-brand-blue">{rentalCalculation.dailyRate} zł/doba</div>
+              </div>
+            </div>
+            <div className="border-t border-brand-blue/20 pt-3">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-brand-dark">Szacowany koszt:</span>
+                <div className="text-right">
+                  <div className="text-xl font-bold text-brand-blue">{rentalCalculation.totalCost.toLocaleString()} zł</div>
+                  <div className="text-xs text-slate-500">netto</div>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              * Kalkulacja orientacyjna. Ostateczną stawkę potwierdzimy e-mailem po sprawdzeniu dostępności.
+            </p>
+          </div>
+        )}
         
         <div>
           <Label htmlFor={`email-${vehicleTitle}`} className="text-sm font-medium text-brand-dark">

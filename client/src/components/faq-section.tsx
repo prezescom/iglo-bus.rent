@@ -26,6 +26,11 @@ const faqs = [
     question: "Co można wozić, a czego nie",
     answer: "Możesz wozić wszystkie towary wymagające kontrolowanej temperatury OPRÓCZ świeżych lub wędzonych ryb, kiszonek, innych ładunków pozostawiających itensywny zapach lub mogących uszkodzić zabudowę (np. słona woda).",
   },
+  {
+    question: "Kaucja",
+    answer: "Kaucję wpłacasz kartą. Proponujemy preautoryzację karty kredytowej, dzięki czemu nie blokujesz swoich środków potrzebnych do prowadzenia działalności. Kaucja zwracana jest po bezproblemowym zakończeniu wynajmu, zwykle w przeciągu 1-3 dni.",
+  },
+  
 ];
 
 export default function FaqSection() {

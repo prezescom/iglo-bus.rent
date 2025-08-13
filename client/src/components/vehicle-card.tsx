@@ -114,7 +114,7 @@ export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
           assistance na terenie PL. Kaucja zwrotna wg umowy.
         </p>
 
-        <BookingForm vehicleTitle={vehicle.title} />
+        <BookingForm vehicleTitle={vehicle.title} pricing={vehicle.pricing} />
       </div>
     </div>
   );
