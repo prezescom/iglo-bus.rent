@@ -52,27 +52,30 @@ export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
           </span>
         </div>
         
-        <div className="mb-4 rounded-xl overflow-hidden bg-slate-50 relative group">
+        <div 
+          className={`mb-4 rounded-xl overflow-hidden bg-slate-50 relative group ${
+            vehicle.gallery && vehicle.gallery.length > 0 ? "cursor-pointer" : ""
+          }`}
+          onClick={(e) => {
+            console.log("Container clicked!", e);
+            handleImageClick();
+          }}
+          data-testid={`vehicle-image-${vehicle.id}`}
+        >
           <img 
             src={vehicle.image} 
             alt={vehicle.alt}
-            className={`w-full h-48 object-cover transition-all ${
-              vehicle.gallery && vehicle.gallery.length > 0 
-                ? "cursor-pointer hover:scale-105" 
-                : ""
-            }`}
-            onClick={handleImageClick}
-            data-testid={`vehicle-image-${vehicle.id}`}
+            className="w-full h-48 object-cover transition-all hover:scale-105"
           />
           {vehicle.gallery && vehicle.gallery.length > 0 && (
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center pointer-events-none">
               <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-full p-2">
                 <Camera className="h-5 w-5 text-brand-blue" />
               </div>
             </div>
           )}
           {vehicle.gallery && vehicle.gallery.length > 0 && (
-            <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
+            <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full pointer-events-none">
               +{vehicle.gallery.length} zdjęć
             </div>
           )}
