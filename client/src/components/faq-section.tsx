@@ -23,15 +23,15 @@ const faqs = [
     answer: "Prawo jazdy kat. B, dowód osobisty i aplikacja mobywatel dla potwierdzenia tożsamości. Szczegóły przy rezerwacji.",
   },
   {
-    question: "Co można wozić, a czego nie",
+    question: "Co można wozić, a czego nie?",
     answer: "Możesz wozić wszystkie towary wymagające kontrolowanej temperatury OPRÓCZ świeżych lub wędzonych ryb, kiszonek, innych ładunków pozostawiających itensywny zapach lub mogących uszkodzić zabudowę (np. słona woda).",
   },
   {
-    question: "Kaucja",
+    question: "Jak wnieść kaucję?",
     answer: "Kaucję wpłacasz kartą. Proponujemy preautoryzację karty kredytowej, dzięki czemu nie blokujesz swoich środków potrzebnych do prowadzenia działalności. Kaucja zwracana jest po bezproblemowym zakończeniu wynajmu, zwykle w przeciągu 1-3 dni.",
   },
   {
-    question: "Odbiór i zwrot samochodu",
+    question: "Gdzie mogę odebrać i zwrócić samochód?",
     answer: "Standardowo odbiór oraz zwrot samochodu odbywa się w siedzibie wypożyczalni - Gliwicka 15b, Przyszowice. Przy wynajmie na ponad 23dni, przywieziemy samochód pod wskazany adres na terenie województwa śląskiego. Wynajmując na ponad 90dni, przywieziemy samochód pod wskazany adres na terenie całego kraju. W innych przypadkach naliczamy opłatę 5zł/km.",
   },  
 ];

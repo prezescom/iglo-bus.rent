@@ -110,8 +110,7 @@ export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
         </div>
 
         <p className="text-xs text-slate-500 leading-relaxed bg-slate-50 p-3 rounded-lg">
-          Zakres temperatur (-20°C do +20°C), rejestrator temperatur, agregat z podtrzymaniem na 230V, kamera cofania, Android Ay
-          assistance na terenie PL. Kaucja zwrotna wg umowy.
+          Zakres temperatur (-20°C do +20°C), rejestrator temperatur, agregat z podtrzymaniem na 230V, kamera cofania, Android Auto,          assistance na terenie PL. Kaucja zwrotna wg umowy.
         </p>
 
         <BookingForm vehicleTitle={vehicle.title} pricing={vehicle.pricing} />
