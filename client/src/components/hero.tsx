@@ -6,7 +6,7 @@ export default function Hero() {
       <div className="grid lg:grid-cols-2 gap-12 items-center">
         <div className="space-y-6 animate-fade-in">
           <h1 className="text-4xl lg:text-5xl font-bold leading-tight text-brand-dark">
-            Chłodnie i mroźnie na wynajem — 
+            Mroźnie na wynajem
             <span className="text-brand-blue whitespace-nowrap">-20°C do +20°C</span>
           </h1>
           <p className="text-lg text-slate-600 leading-relaxed">
