@@ -50,7 +50,7 @@ export default function BookingForm({ vehicleTitle }: BookingFormProps) {
       notes ? `Uwagi: ${notes}` : null,
     ].filter(Boolean).join('\n'));
     
-    const mailtoLink = `mailto:contact@iglo-bus.rent?subject=${subject}&body=${body}`;
+    const mailtoLink = `mailto:kontakt@iglo-bus.rent?subject=${subject}&body=${body}`;
     window.location.href = mailtoLink;
 
     toast({
@@ -147,7 +147,7 @@ export default function BookingForm({ vehicleTitle }: BookingFormProps) {
             {isLoading ? "Otwieranie klienta e-mail..." : "Wyślij zapytanie"}
           </Button>
           <p className="text-xs text-slate-500 text-center">
-            Zapytanie trafi na <span className="font-medium">contact@iglo-bus.rent</span>
+            Zapytanie trafi na <span className="font-medium">kontakt@iglo-bus.rent</span>
           </p>
         </div>
       </form>

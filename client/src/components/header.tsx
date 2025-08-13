@@ -50,11 +50,11 @@ export default function Header() {
         
         <div className="text-sm" data-testid="contact-email">
           <a 
-            href="mailto:contact@iglo-bus.rent" 
+            href="mailto:kontakt@iglo-bus.rent" 
             className="hover:text-brand-blue transition-colors font-medium flex items-center gap-1"
           >
             <Mail className="h-4 w-4" />
-            <span className="hidden sm:inline">contact@iglo-bus.rent</span>
+            <span className="hidden sm:inline">kontakt@iglo-bus.rent</span>
           </a>
         </div>
       </div>

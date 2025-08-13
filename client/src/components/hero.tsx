@@ -37,11 +37,11 @@ export default function Hero() {
               <Mail className="h-4 w-4 text-brand-blue" />
               <span className="text-sm">E-mail: </span>
               <a 
-                href="mailto:contact@iglo-bus.rent" 
+                href="mailto:kontakt@iglo-bus.rent" 
                 className="text-brand-blue hover:underline font-medium"
                 data-testid="contact-email-link"
               >
-                contact@iglo-bus.rent
+                kontakt@iglo-bus.rent
               </a>
             </div>
             <div className="flex items-center gap-3">

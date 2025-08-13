@@ -23,11 +23,11 @@ export default function Footer() {
               <p>
                 E-mail:{" "}
                 <a 
-                  href="mailto:contact@iglo-bus.rent" 
+                  href="mailto:kontakt@iglo-bus.rent" 
                   className="text-brand-blue hover:underline"
                   data-testid="footer-email"
                 >
-                  contact@iglo-bus.rent
+                  kontakt@iglo-bus.rent
                 </a>
               </p>
               <p>
