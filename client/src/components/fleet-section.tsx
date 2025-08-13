@@ -22,7 +22,7 @@ const vehicles = [
     group: "Grupa S",
     image: proAceCityImg,
     alt: "Toyota ProAce City - kompaktowy samochód chłodniczy",
-    capacity: "kaucja - 700zł · ~3.5–4 m³",
+    capacity: "kaucja - 1000zł · ~3.5–4 m³",
     gallery: [
       { src: proAceCityNew, alt: "Toyota ProAce City - nowy model", title: "ProAce City - model 2024" },
       { src: proAceCityInside, alt: "Toyota ProAce City - wnętrze chłodni", title: "ProAce City - wnętrze chłodni" },
@@ -42,7 +42,7 @@ const vehicles = [
     group: "Grupa M",
     image: proAceImg,
     alt: "Toyota ProAce - średni samochód chłodniczy",
-    capacity: "kaucja - 700zł · ~5–6 m³",
+    capacity: "kaucja - 1500zł · ~5–6 m³",
     gallery: [
       { src: proAceNew, alt: "Toyota ProAce - nowy model", title: "ProAce - model 2024" },
       { src: proAceInside, alt: "Toyota ProAce - wnętrze chłodni", title: "ProAce - wnętrze chłodni" },
@@ -62,7 +62,7 @@ const vehicles = [
     group: "Grupa L",
     image: proAceMaxiImg,
     alt: "Toyota ProAce Maxi - duży samochód chłodniczy",
-    capacity: "kaucja - 1000zł · ~7–8 m³",
+    capacity: "kaucja - 2000zł · ~7–8 m³",
     gallery: [
       { src: proAceMaxiNew, alt: "Toyota ProAce Maxi - nowy model", title: "ProAce Maxi - model 2024" },
       { src: proAceMaxiInside, alt: "Toyota ProAce Maxi - wnętrze chłodni", title: "ProAce Maxi - wnętrze chłodni" },
