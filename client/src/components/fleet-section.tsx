@@ -24,7 +24,6 @@ const vehicles = [
     alt: "Toyota ProAce City - kompaktowy samochód chłodniczy",
     capacity: "2 europalety • ~3.5–4 m³",
     gallery: [
-      { src: proAceCityImg, alt: "Toyota ProAce City - widok zewnętrzny", title: "ProAce City - widok zewnętrzny" },
       { src: proAceCityNew, alt: "Toyota ProAce City - nowy model", title: "ProAce City - model 2024" },
       { src: proAceCityInside, alt: "Toyota ProAce City - wnętrze chłodni", title: "ProAce City - wnętrze chłodni" },
       { src: proAceCityTech, alt: "Toyota ProAce City - wymiary techniczne", title: "ProAce City - wymiary i specyfikacja" },
@@ -45,7 +44,6 @@ const vehicles = [
     alt: "Toyota ProAce - średni samochód chłodniczy",
     capacity: "3–4 europalety • ~5–6 m³",
     gallery: [
-      { src: proAceImg, alt: "Toyota ProAce - widok zewnętrzny", title: "ProAce - widok zewnętrzny" },
       { src: proAceNew, alt: "Toyota ProAce - nowy model", title: "ProAce - model 2024" },
       { src: proAceInside, alt: "Toyota ProAce - wnętrze chłodni", title: "ProAce - wnętrze chłodni" },
       { src: proAceTech, alt: "Toyota ProAce - wymiary techniczne", title: "ProAce - wymiary i specyfikacja" },
@@ -66,7 +64,6 @@ const vehicles = [
     alt: "Toyota ProAce Maxi - duży samochód chłodniczy",
     capacity: "4–5 europalet • ~7–8 m³",
     gallery: [
-      { src: proAceMaxiImg, alt: "Toyota ProAce Maxi - widok zewnętrzny", title: "ProAce Maxi - widok zewnętrzny" },
       { src: proAceMaxiNew, alt: "Toyota ProAce Maxi - nowy model", title: "ProAce Maxi - model 2024" },
       { src: proAceMaxiInside, alt: "Toyota ProAce Maxi - wnętrze chłodni", title: "ProAce Maxi - wnętrze chłodni" },
     ],
@@ -81,8 +78,6 @@ const vehicles = [
 ];
 
 export default function FleetSection() {
-  console.log("Fleet vehicles:", vehicles.map(v => ({ id: v.id, galleryLength: v.gallery?.length })));
-  
   return (
     <section id="flota" className="mx-auto max-w-6xl px-4 pb-16" data-testid="fleet-section">
       <div className="text-center mb-10">
@@ -91,16 +86,13 @@ export default function FleetSection() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
-        {vehicles.map((vehicle, index) => {
-          console.log(`Rendering vehicle ${vehicle.id} with gallery:`, vehicle.gallery?.length);
-          return (
-            <VehicleCard 
-              key={vehicle.id} 
-              vehicle={vehicle} 
-              delay={index * 0.1}
-            />
-          );
-        })}
+        {vehicles.map((vehicle, index) => (
+          <VehicleCard 
+            key={vehicle.id} 
+            vehicle={vehicle} 
+            delay={index * 0.1}
+          />
+        ))}
       </div>
     </section>
   );
