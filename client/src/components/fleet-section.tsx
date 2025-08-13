@@ -3,6 +3,18 @@ import proAceCityImg from "@assets/ProAce city_1755066478398.jpg";
 import proAceImg from "@assets/ProAce_1755066478398.jpg";
 import proAceMaxiImg from "@assets/Proace max_1755066478398.jpg";
 
+// Import additional photos for gallery
+import proAceCityNew from "@assets/ProAce city_1755067680374.jpg";
+import proAceCityInside from "@assets/ProAce City inside_1755067680373.jpg";
+import proAceCityTech from "@assets/ProAce City tech_1755067680373.jpg";
+
+import proAceNew from "@assets/ProAce_1755067680373.jpg";
+import proAceInside from "@assets/ProAce inside_1755067680372.jpg";
+import proAceTech from "@assets/ProAce tech_1755067680372.jpg";
+
+import proAceMaxiNew from "@assets/Proace max_1755067680373.jpg";
+import proAceMaxiInside from "@assets/Proace max inside_1755067680371.jpg";
+
 const vehicles = [
   {
     id: "city",
@@ -11,6 +23,12 @@ const vehicles = [
     image: proAceCityImg,
     alt: "Toyota ProAce City - kompaktowy samochód chłodniczy",
     capacity: "2 europalety • ~3.5–4 m³",
+    gallery: [
+      { src: proAceCityImg, alt: "Toyota ProAce City - widok zewnętrzny", title: "ProAce City - widok zewnętrzny" },
+      { src: proAceCityNew, alt: "Toyota ProAce City - nowy model", title: "ProAce City - model 2024" },
+      { src: proAceCityInside, alt: "Toyota ProAce City - wnętrze chłodni", title: "ProAce City - wnętrze chłodni" },
+      { src: proAceCityTech, alt: "Toyota ProAce City - wymiary techniczne", title: "ProAce City - wymiary i specyfikacja" },
+    ],
     pricing: [
       { period: "1–3 doby", price: "320 zł" },
       { period: "4–7 dób", price: "299 zł" },
@@ -26,6 +44,12 @@ const vehicles = [
     image: proAceImg,
     alt: "Toyota ProAce - średni samochód chłodniczy",
     capacity: "3–4 europalety • ~5–6 m³",
+    gallery: [
+      { src: proAceImg, alt: "Toyota ProAce - widok zewnętrzny", title: "ProAce - widok zewnętrzny" },
+      { src: proAceNew, alt: "Toyota ProAce - nowy model", title: "ProAce - model 2024" },
+      { src: proAceInside, alt: "Toyota ProAce - wnętrze chłodni", title: "ProAce - wnętrze chłodni" },
+      { src: proAceTech, alt: "Toyota ProAce - wymiary techniczne", title: "ProAce - wymiary i specyfikacja" },
+    ],
     pricing: [
       { period: "1–3 doby", price: "360 zł" },
       { period: "4–7 dób", price: "330 zł" },
@@ -41,6 +65,11 @@ const vehicles = [
     image: proAceMaxiImg,
     alt: "Toyota ProAce Maxi - duży samochód chłodniczy",
     capacity: "4–5 europalet • ~7–8 m³",
+    gallery: [
+      { src: proAceMaxiImg, alt: "Toyota ProAce Maxi - widok zewnętrzny", title: "ProAce Maxi - widok zewnętrzny" },
+      { src: proAceMaxiNew, alt: "Toyota ProAce Maxi - nowy model", title: "ProAce Maxi - model 2024" },
+      { src: proAceMaxiInside, alt: "Toyota ProAce Maxi - wnętrze chłodni", title: "ProAce Maxi - wnętrze chłodni" },
+    ],
     pricing: [
       { period: "1–3 doby", price: "420 zł" },
       { period: "4–7 dób", price: "399 zł" },

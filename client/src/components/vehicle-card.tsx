@@ -1,4 +1,7 @@
+import { useState } from "react";
+import { Camera } from "lucide-react";
 import BookingForm from "./booking-form";
+import PhotoGallery from "./photo-gallery";
 
 interface VehicleCardProps {
   vehicle: {
@@ -8,6 +11,11 @@ interface VehicleCardProps {
     image: string;
     alt: string;
     capacity: string;
+    gallery?: Array<{
+      src: string;
+      alt: string;
+      title?: string;
+    }>;
     pricing: Array<{
       period: string;
       price: string;
@@ -18,6 +26,14 @@ interface VehicleCardProps {
 }
 
 export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+
+  const handleImageClick = () => {
+    if (vehicle.gallery && vehicle.gallery.length > 0) {
+      setIsGalleryOpen(true);
+    }
+  };
+
   return (
     <div 
       className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden hover:shadow-xl transition-shadow animate-fade-in"
@@ -32,16 +48,42 @@ export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
           </span>
         </div>
         
-        <div className="mb-4 rounded-xl overflow-hidden bg-slate-50">
+        <div className="mb-4 rounded-xl overflow-hidden bg-slate-50 relative group">
           <img 
             src={vehicle.image} 
             alt={vehicle.alt}
-            className="w-full h-48 object-cover"
+            className={`w-full h-48 object-cover transition-all ${
+              vehicle.gallery && vehicle.gallery.length > 0 
+                ? "cursor-pointer hover:scale-105" 
+                : ""
+            }`}
+            onClick={handleImageClick}
             data-testid={`vehicle-image-${vehicle.id}`}
           />
+          {vehicle.gallery && vehicle.gallery.length > 0 && (
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-full p-2">
+                <Camera className="h-5 w-5 text-brand-blue" />
+              </div>
+            </div>
+          )}
+          {vehicle.gallery && vehicle.gallery.length > 1 && (
+            <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full">
+              +{vehicle.gallery.length - 1} zdjęć
+            </div>
+          )}
         </div>
         <p className="text-sm text-slate-600 font-medium">{vehicle.capacity}</p>
       </div>
+
+      {/* Photo Gallery */}
+      {vehicle.gallery && (
+        <PhotoGallery
+          isOpen={isGalleryOpen}
+          onClose={() => setIsGalleryOpen(false)}
+          photos={vehicle.gallery}
+        />
+      )}
       
       <div className="p-6 space-y-5">
         <div className="rounded-xl border border-slate-200 overflow-hidden" data-testid={`pricing-table-${vehicle.id}`}>
