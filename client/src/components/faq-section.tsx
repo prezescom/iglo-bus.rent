@@ -30,7 +30,10 @@ const faqs = [
     question: "Kaucja",
     answer: "Kaucję wpłacasz kartą. Proponujemy preautoryzację karty kredytowej, dzięki czemu nie blokujesz swoich środków potrzebnych do prowadzenia działalności. Kaucja zwracana jest po bezproblemowym zakończeniu wynajmu, zwykle w przeciągu 1-3 dni.",
   },
-  
+  {
+    question: "Odbiór i zwrot samochodu",
+    answer: "Standardowo odbiór oraz zwrot samochodu odbywa się w siedzibie wypożyczalni - Gliwicka 15b, Przyszowice. Przy wynajmie na ponad 23dni, przywieziemy samochód pod wskazany adres na terenie województwa śląskiego. Wynajmując na ponad 90dni, przywieziemy samochód pod wskazany adres na terenie całego kraju. W innych przypadkach naliczamy opłatę 5zł/km.",
+  },  
 ];
 
 export default function FaqSection() {
