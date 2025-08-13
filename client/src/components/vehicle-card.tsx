@@ -29,8 +29,16 @@ export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
 
   const handleImageClick = () => {
+    console.log("Image clicked!", {
+      hasGallery: !!vehicle.gallery,
+      galleryLength: vehicle.gallery?.length,
+      isGalleryOpen
+    });
     if (vehicle.gallery && vehicle.gallery.length > 0) {
       setIsGalleryOpen(true);
+      console.log("Setting gallery open to true");
+    } else {
+      console.log("No gallery found or empty gallery");
     }
   };
 
@@ -72,6 +80,14 @@ export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
               +{vehicle.gallery.length - 1} zdjęć
             </div>
           )}
+          
+          {/* Test button to force open gallery */}
+          <button 
+            onClick={() => setIsGalleryOpen(true)}
+            className="absolute bottom-2 left-2 bg-red-500 text-white px-2 py-1 text-xs rounded"
+          >
+            Test Gallery
+          </button>
         </div>
         <p className="text-sm text-slate-600 font-medium">{vehicle.capacity}</p>
       </div>

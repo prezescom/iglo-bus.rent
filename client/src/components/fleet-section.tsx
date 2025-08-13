@@ -81,6 +81,8 @@ const vehicles = [
 ];
 
 export default function FleetSection() {
+  console.log("Fleet vehicles:", vehicles.map(v => ({ id: v.id, galleryLength: v.gallery?.length })));
+  
   return (
     <section id="flota" className="mx-auto max-w-6xl px-4 pb-16" data-testid="fleet-section">
       <div className="text-center mb-10">
@@ -89,13 +91,16 @@ export default function FleetSection() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
-        {vehicles.map((vehicle, index) => (
-          <VehicleCard 
-            key={vehicle.id} 
-            vehicle={vehicle} 
-            delay={index * 0.1}
-          />
-        ))}
+        {vehicles.map((vehicle, index) => {
+          console.log(`Rendering vehicle ${vehicle.id} with gallery:`, vehicle.gallery?.length);
+          return (
+            <VehicleCard 
+              key={vehicle.id} 
+              vehicle={vehicle} 
+              delay={index * 0.1}
+            />
+          );
+        })}
       </div>
     </section>
   );
