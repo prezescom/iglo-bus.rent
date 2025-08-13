@@ -19,8 +19,6 @@ export default function PhotoGallery({
   initialIndex = 0 
 }: PhotoGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  
-  console.log("PhotoGallery render:", { isOpen, photosLength: photos?.length });
 
   const goToPrevious = () => {
     setCurrentIndex((prev) => (prev === 0 ? photos.length - 1 : prev - 1));

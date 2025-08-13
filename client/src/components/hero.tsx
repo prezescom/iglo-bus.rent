@@ -6,18 +6,18 @@ export default function Hero() {
       <div className="grid lg:grid-cols-2 gap-12 items-center">
         <div className="space-y-6 animate-fade-in">
           <h1 className="text-4xl lg:text-5xl font-bold leading-tight text-brand-dark">
-            Mroźnie na wynajem
-            <span className="text-brand-blue whitespace-nowrap">-20°C do +20°C</span>
+            Mroźnie na wynajem  
+            <span className="text-brand-blue whitespace-nowrap"> -20°C do +20°C</span>
           </h1>
           <p className="text-lg text-slate-600 leading-relaxed">
-            Trzy rozmiary Toyota ProAce: City (S), ProAce (M) i Maxi (L). Zewnętrzne zasilanie 
-            <span className="font-semibold text-brand-blue">230V</span>, stabilizacja temperatury w pełnym zakresie, gotowe do pracy 24/7.
+            Trzy rozmiary Toyota ProAce: City (S), ProAce (M) i Maxi (L). Zewnętrzne zasilanie  
+            <span className="font-semibold text-brand-blue"> 230V</span>, stabilizacja temperatury w pełnym zakresie, gotowe do pracy 24/7.
           </p>
           
           <div className="grid sm:grid-cols-3 gap-4" data-testid="features">
             <div className="flex items-center gap-3 p-3 rounded-xl bg-brand-light border border-brand-blue/20 animate-slide-in">
               <Thermometer className="h-5 w-5 text-brand-blue" />
-              <span className="font-medium text-sm">Zakres -20°C…+20°C</span>
+              <span className="font-medium text-sm">Zakres -20°C do +20°C</span>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-xl bg-brand-light border border-brand-blue/20 animate-slide-in">
               <Zap className="h-5 w-5 text-brand-blue" />

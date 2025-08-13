@@ -27,13 +27,9 @@ interface VehicleCardProps {
 
 export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
-  
-  console.log(`VehicleCard ${vehicle.id} render:`, { isGalleryOpen, galleryLength: vehicle.gallery?.length });
 
   const handleImageClick = () => {
-    console.log("Image clicked - gallery data:", vehicle.gallery?.length);
     if (vehicle.gallery && vehicle.gallery.length > 0) {
-      console.log("Setting gallery open");
       setIsGalleryOpen(true);
     }
   };
@@ -56,10 +52,7 @@ export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
           className={`mb-4 rounded-xl overflow-hidden bg-slate-50 relative group ${
             vehicle.gallery && vehicle.gallery.length > 0 ? "cursor-pointer" : ""
           }`}
-          onClick={(e) => {
-            console.log("Container clicked!", e);
-            handleImageClick();
-          }}
+          onClick={handleImageClick}
           data-testid={`vehicle-image-${vehicle.id}`}
         >
           <img 
@@ -117,7 +110,7 @@ export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
         </div>
 
         <p className="text-xs text-slate-500 leading-relaxed bg-slate-50 p-3 rounded-lg">
-          W cenie: pełen zakres temperatur (-20°C…+20°C), agregat z podtrzymaniem na 230V, 
+          Zakres temperatur (-20°C do +20°C), agregat z podtrzymaniem na 230V, 
           assistance na terenie PL. Kaucja zwrotna wg umowy.
         </p>
 
