@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
-import IMG_0012 from "@assets/IMG_0012.JPG";
+const IMG_0012 = "/api/images/IMG_0012.JPG";
 
 interface PhotoGalleryProps {
   isOpen: boolean;
