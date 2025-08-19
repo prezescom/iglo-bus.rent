@@ -50,16 +50,15 @@ export default function CookiesBanner() {
                 Ta strona używa plików cookie niezbędnych do jej funkcjonowania oraz analitycznych 
                 do poprawy jakości usług. Kontynuując korzystanie ze strony, wyrażasz zgodę na 
                 wykorzystanie plików cookie zgodnie z naszą{" "}
-                <button 
+                <a 
+                  href="/polityka-prywatnosci"
                   className="text-brand-blue hover:underline font-medium"
-                  onClick={() => {
-                    // Scroll to footer or open privacy policy
-                    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-                  }}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   data-testid="privacy-policy-link"
                 >
                   polityką prywatności
-                </button>.
+                </a>.
               </p>
             </div>
           </div>

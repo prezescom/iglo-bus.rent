@@ -6,11 +6,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import CookiesBanner from "@/components/cookies-banner";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
+import PrivacyPolicy from "@/pages/privacy-policy";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/polityka-prywatnosci" component={PrivacyPolicy} />
       <Route component={NotFound} />
     </Switch>
   );

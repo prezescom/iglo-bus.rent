@@ -67,6 +67,22 @@ export default function Footer() {
         </div>
         
         <div className="border-t border-slate-700 mt-8 pt-8 text-center text-sm text-slate-400">
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-4">
+            <a 
+              href="/polityka-prywatnosci" 
+              className="text-brand-blue hover:underline"
+              data-testid="footer-privacy-policy"
+            >
+              Polityka Prywatności
+            </a>
+            <span className="hidden sm:inline">•</span>
+            <a 
+              href="mailto:kontakt@iglo-bus.rent" 
+              className="text-brand-blue hover:underline"
+            >
+              Kontakt RODO
+            </a>
+          </div>
           <p>&copy; 2024 Iglo-bus.rent. Wszystkie prawa zastrzeżone.</p>
         </div>
       </div>
