@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
-const IMG_0012 = "/api/images/IMG_0012.JPG";
-
 interface PhotoGalleryProps {
   isOpen: boolean;
   onClose: () => void;
@@ -33,14 +31,22 @@ export default function PhotoGallery({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return;
-      if (e.key === "ArrowLeft") goToPrevious();
-      if (e.key === "ArrowRight") goToNext();
+      if (e.key === "ArrowLeft") {
+        setCurrentIndex((prev) => (prev === 0 ? photos.length - 1 : prev - 1));
+      }
+      if (e.key === "ArrowRight") {
+        setCurrentIndex((prev) => (prev === photos.length - 1 ? 0 : prev + 1));
+      }
       if (e.key === "Escape") onClose();
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose, goToPrevious, goToNext]);
+  }, [isOpen, onClose, photos.length]);
+
+  useEffect(() => {
+    setCurrentIndex(initialIndex);
+  }, [initialIndex, isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -100,7 +106,7 @@ export default function PhotoGallery({
         {/* Main image */}
         <div className="w-full h-full flex items-center justify-center p-8">
           <img
-            src={IMG_0012}
+            src={photos[currentIndex].src}
             alt={photos[currentIndex].alt}
             className="max-w-full max-h-full object-contain"
             data-testid={`gallery-image-${currentIndex}`}
