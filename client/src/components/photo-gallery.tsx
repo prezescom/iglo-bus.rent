@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
+import IMG_0012 from "@assets/IMG_0012.JPG";
+
 interface PhotoGalleryProps {
   isOpen: boolean;
   onClose: () => void;
@@ -98,7 +100,7 @@ export default function PhotoGallery({
         {/* Main image */}
         <div className="w-full h-full flex items-center justify-center p-8">
           <img
-            src={photos[currentIndex].src}
+            src={IMG_0012}
             alt={photos[currentIndex].alt}
             className="max-w-full max-h-full object-contain"
             data-testid={`gallery-image-${currentIndex}`}
@@ -120,7 +122,6 @@ export default function PhotoGallery({
           </div>
         )}
       </div>
-
       {/* Thumbnail strip */}
       {photos.length > 1 && (
         <div className="absolute bottom-0 left-0 right-0 bg-black/80 p-4">
