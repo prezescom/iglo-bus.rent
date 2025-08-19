@@ -1,21 +1,24 @@
 import VehicleCard from "./vehicle-card";
 
-// Vehicle images served via API endpoint
-const proAceCityImg = "/api/images/ProAce city_1755066478398.jpg";
-const proAceImg = "/api/images/ProAce_1755066478398.jpg";
-const proAceMaxiImg = "/api/images/Proace max_1755066478398.jpg";
+// Vehicle images served via API endpoint - Updated with new gallery photos
+const proAceCityImg = "/api/images/ProAce City 1_1755593677474.JPG";
+const proAceImg = "/api/images/ProAce 1_1755593677473.JPG";
+const proAceMaxiImg = "/api/images/ProAce Maxi 1_1755593677475.JPG";
 
-// Gallery images
-const proAceCityNew = "/api/images/ProAce city_1755067680374.jpg";
-const proAceCityInside = "/api/images/ProAce City inside_1755067680373.jpg";
-const proAceCityTech = "/api/images/ProAce City tech_1755067680373.jpg";
+// ProAce City gallery images
+const proAceCityNew = "/api/images/ProAce City 1_1755593677474.JPG";
+const proAceCityInside = "/api/images/ProAce City 2_1755593677474.JPG";
+const proAceCityTech = "/api/images/ProAce City 4_1755593677472.jpg";
 
-const proAceNew = "/api/images/ProAce_1755067680373.jpg";
-const proAceInside = "/api/images/ProAce inside_1755067680372.jpg";
-const proAceTech = "/api/images/ProAce tech_1755067680372.jpg";
+// ProAce gallery images
+const proAceNew = "/api/images/ProAce 1_1755593677473.JPG";
+const proAceInside = "/api/images/ProAce 2_1755593677473.JPG";
+const proAceTech = "/api/images/ProAce 4_1755593677471.jpg";
 
-const proAceMaxiNew = "/api/images/Proace max_1755067680373.jpg";
-const proAceMaxiInside = "/api/images/Proace max inside_1755067680371.jpg";
+// ProAce Maxi gallery images
+const proAceMaxiNew = "/api/images/ProAce Maxi 1_1755593677475.JPG";
+const proAceMaxiInside = "/api/images/ProAce Maxi 2_1755593677475.JPG";
+const proAceMaxiTech = "/api/images/ProAce Maxi 3_1755593677476.JPG";
 
 const vehicles = [
   {
@@ -26,9 +29,9 @@ const vehicles = [
     alt: "Toyota ProAce City - kompaktowy samochód chłodniczy",
     capacity: "kaucja - 1000zł · ~3.5–4 m³",
     gallery: [
-      { src: proAceCityNew, alt: "Toyota ProAce City - nowy model", title: "ProAce City - model 2024" },
-      { src: proAceCityInside, alt: "Toyota ProAce City - wnętrze chłodni", title: "ProAce City - wnętrze chłodni" },
-      { src: proAceCityTech, alt: "Toyota ProAce City - wymiary techniczne", title: "ProAce City - wymiary i specyfikacja" },
+      { src: proAceCityNew, alt: "Toyota ProAce City z agregatem chłodniczym", title: "ProAce City - pojazd z systemem chłodniczym" },
+      { src: proAceCityInside, alt: "Toyota ProAce City - wnętrze chłodni z agregatem", title: "ProAce City - wnętrze z systemem Zanotti" },
+      { src: proAceCityTech, alt: "Toyota ProAce City - wymiary wewnętrzne", title: "ProAce City - wymiary zabudowy" },
     ],
     pricing: [
       { period: "1–3 doby", price: "260 zł" },
@@ -46,9 +49,9 @@ const vehicles = [
     alt: "Toyota ProAce - średni samochód chłodniczy",
     capacity: "kaucja - 1500zł · ~5–6 m³",
     gallery: [
-      { src: proAceNew, alt: "Toyota ProAce - nowy model", title: "ProAce - model 2024" },
-      { src: proAceInside, alt: "Toyota ProAce - wnętrze chłodni", title: "ProAce - wnętrze chłodni" },
-      { src: proAceTech, alt: "Toyota ProAce - wymiary techniczne", title: "ProAce - wymiary i specyfikacja" },
+      { src: proAceNew, alt: "Toyota ProAce z otwartymi drzwiami bocznymi", title: "ProAce - dostęp do ładowni" },
+      { src: proAceInside, alt: "Toyota ProAce - wnętrze chłodni z podłogą aluminiową", title: "ProAce - wnętrze z systemem chłodniczym" },
+      { src: proAceTech, alt: "Toyota ProAce - wymiary wewnętrzne", title: "ProAce - specyfikacja wymiarów" },
     ],
     pricing: [
       { period: "1–3 doby", price: "280 zł" },
@@ -68,6 +71,7 @@ const vehicles = [
     gallery: [
       { src: proAceMaxiNew, alt: "Toyota ProAce Maxi - nowy model", title: "ProAce Maxi - model 2024" },
       { src: proAceMaxiInside, alt: "Toyota ProAce Maxi - wnętrze chłodni", title: "ProAce Maxi - wnętrze chłodni" },
+      { src: proAceMaxiTech, alt: "Toyota ProAce Maxi - wymiary techniczne", title: "ProAce Maxi - wymiary i specyfikacja" },
     ],
     pricing: [
       { period: "1–3 doby", price: "350 zł" },
