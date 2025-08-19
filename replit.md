@@ -1,6 +1,13 @@
 # Overview
 
-This is a modern full-stack web application for Iglo-bus.rent, a Polish refrigerated vehicle rental service. The application serves as a business website showcasing three Toyota ProAce vehicle types (City, ProAce, and Maxi) with detailed pricing and booking functionality. Built with React on the frontend and Express.js on the backend, the application features a clean, professional design with comprehensive vehicle information, pricing tables, FAQ section, and contact forms.
+This is a modern full-stack web application for Iglo-bus.rent, a Polish refrigerated vehicle rental service. The application serves as a business website showcasing three Toyota ProAce vehicle types (City, ProAce, and Maxi) with detailed pricing and booking functionality. Built with React on the frontend and Express.js on the backend, the application features a clean, professional design with comprehensive vehicle information, pricing tables, FAQ section, contact forms, and full GDPR compliance including cookies banner and privacy policy.
+
+## Recent Changes (December 2024)
+- ✅ **GDPR Compliance**: Implemented comprehensive cookies banner with slide-up animation, accept/reject options, and localStorage preference saving
+- ✅ **Privacy Policy**: Created detailed privacy policy page (/polityka-prywatnosci) based on uploaded PDF document with FBS Jacek Małachowski as data administrator
+- ✅ **Image Gallery**: Updated with high-quality vehicle photos and fixed navigation between images
+- ✅ **API Endpoint**: Created /api/images/ endpoint to serve vehicle photos and technical specifications
+- ✅ **Mobile Optimization**: All components are fully responsive for smartphone users
 
 # User Preferences
 
@@ -24,6 +31,7 @@ Preferred communication style: Simple, everyday language.
 - **Session Management**: Express sessions with PostgreSQL session store (connect-pg-simple)
 - **Development**: Hot module replacement via Vite integration in development mode
 - **Build**: ESBuild for server-side bundling
+- **Image Serving**: Custom API endpoint (/api/images/) for serving vehicle photos from attached_assets directory
 
 ## Data Layer
 - **Database**: PostgreSQL configured via Neon serverless connection
@@ -36,6 +44,8 @@ Preferred communication style: Simple, everyday language.
 - **Reusable UI**: Comprehensive UI component library with consistent styling
 - **Form Components**: Dedicated booking form with validation and mailto integration
 - **Responsive Design**: Mobile-first approach with Tailwind responsive utilities
+- **GDPR Components**: Cookies banner with slide-up animation and privacy policy page
+- **Gallery System**: Interactive photo gallery with keyboard navigation and thumbnail strip
 
 ## Development Workflow
 - **Hot Reload**: Vite development server with HMR
@@ -68,6 +78,8 @@ Preferred communication style: Simple, everyday language.
 ## Communication
 - **Mailto Integration**: Direct email booking system without external email service
 - **Phone Integration**: Direct calling functionality via tel: links
+- **GDPR Compliance**: Cookies banner with localStorage consent management
+- **Privacy Policy**: Complete privacy policy with FBS Jacek Małachowski contact details
 
 ## Hosting & Deployment
 - **Replit**: Development and hosting platform with integrated tooling
