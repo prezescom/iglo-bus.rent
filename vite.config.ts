@@ -9,4 +9,8 @@ export default defineConfig({
     outDir: "dist",           // wynik: client/dist
     copyPublicDir: true
   }
+resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./client/src", import.meta.url)),
+    },
 });
