@@ -267,7 +267,7 @@ export default function WynajemMrozni() {
             <div className="relative">
               <img 
                 src="/api/images/ProAce City 1_1757356289373.JPG" 
-                alt="Toyota ProAce City - wynajem małej mroźni Katowice"
+                alt="Wynajem chłodnia Toyota ProAce City - mała chłodnia do wynajęcia Katowice Gliwice"
                 className="w-full h-48 object-cover"
               />
               <div className="absolute top-4 right-4 bg-brand-blue text-white px-3 py-1 rounded-full text-sm font-semibold">
@@ -298,7 +298,7 @@ export default function WynajemMrozni() {
             <div className="relative">
               <img 
                 src="/api/images/ProAce 1_1757356289351.JPG" 
-                alt="Toyota ProAce - wynajem chłodni Gliwice Śląsk"
+                alt="Wynajem izoterma Toyota ProAce - izoterma do wynajęcia Śląsk Katowice"
                 className="w-full h-48 object-cover"
               />
               <div className="absolute top-4 right-4 bg-brand-blue text-white px-3 py-1 rounded-full text-sm font-semibold">
@@ -329,7 +329,7 @@ export default function WynajemMrozni() {
             <div className="relative">
               <img 
                 src="/api/images/ProAce Maxi 1_1757356289375.JPG" 
-                alt="Toyota ProAce Maxi - wynajem dużej izotermy Śląsk"
+                alt="Wynajem mroźnia Toyota ProAce Maxi - duża mroźnia do wynajęcia Śląsk Gliwice"
                 className="w-full h-48 object-cover"
               />
               <div className="absolute top-4 right-4 bg-brand-blue text-white px-3 py-1 rounded-full text-sm font-semibold">
