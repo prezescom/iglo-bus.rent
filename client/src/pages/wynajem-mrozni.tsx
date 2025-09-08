@@ -81,7 +81,7 @@ export default function WynajemMrozni() {
               </div>
               <div className="flex items-center gap-2 p-3 rounded-xl bg-brand-light border border-brand-blue/20">
                 <Clock className="h-5 w-5 text-brand-blue" />
-                <span className="font-medium text-sm">24/7</span>
+                <span className="font-medium text-sm">230V</span>
               </div>
             </div>
 
