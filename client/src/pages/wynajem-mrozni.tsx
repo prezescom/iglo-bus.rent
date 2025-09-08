@@ -459,10 +459,6 @@ export default function WynajemMrozni() {
                 <CheckCircle2 className="h-5 w-5" />
                 <span className="text-sm">Dostawa pod adres</span>
               </div>
-              <div className="flex items-center justify-center gap-2 opacity-90">
-                <CheckCircle2 className="h-5 w-5" />
-                <span className="text-sm">Wsparcie 24/7</span>
-              </div>
             </div>
           </div>
         </div>
