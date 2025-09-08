@@ -103,20 +103,7 @@ export default function WynajemMrozni() {
             </div>
           </div>
           
-          <div className="relative">
-            <img 
-              src={fridgeExpressImage} 
-              alt="Wynajem mroźni Śląsk - Auto chłodnia Toyota ProAce" 
-              className="w-full rounded-2xl shadow-lg border border-slate-200"
-            />
-            <div className="absolute -bottom-4 -left-4 bg-white p-4 rounded-xl shadow-lg border border-slate-200">
-              <div className="flex items-center gap-2">
-                <Snowflake className="h-5 w-5 text-brand-blue" />
-                <span className="font-semibold text-brand-dark">Toyota ProAce</span>
-              </div>
-              <p className="text-sm text-slate-600 mt-1">Zakres -20°C do +20°C</p>
-            </div>
-          </div>
+          
         </div>
       </section>
 
