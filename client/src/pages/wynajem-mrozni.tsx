@@ -3,13 +3,6 @@ import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { Thermometer, Shield, CheckCircle2, Truck, Clock, Phone, Mail, ArrowRight, Snowflake, Zap } from "lucide-react";
 import { Link } from "wouter";
-import proAceImage from "@assets/ProAce 1_1757356289351.JPG";
-import proAceInteriorImage from "@assets/ProAce 2_1757356289352.JPG";
-import proAceCityImage from "@assets/ProAce City 1_1757356289373.JPG";
-import proAceCityInteriorImage from "@assets/ProAce City 2_1757356289374.JPG";
-import proAceMaxiImage from "@assets/ProAce Maxi 1_1757356289375.JPG";
-import proAceMaxiInteriorImage from "@assets/ProAce Maxi 2_1757356289376.JPG";
-import reeferVanImage from "@assets/refrigeration-vans-2_1757356251570.jpg";
 import fridgeExpressImage from "@assets/IMG_622-large_1757356251568.jpg";
 
 export default function WynajemMrozni() {
@@ -278,7 +271,7 @@ export default function WynajemMrozni() {
           <div className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-lg transition-shadow">
             <div className="relative">
               <img 
-                src={proAceCityImage} 
+                src="/api/images/ProAce City 1_1757356289373.JPG" 
                 alt="Toyota ProAce City - wynajem małej mroźni Katowice"
                 className="w-full h-48 object-cover"
               />
@@ -309,7 +302,7 @@ export default function WynajemMrozni() {
           <div className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-lg transition-shadow">
             <div className="relative">
               <img 
-                src={proAceImage} 
+                src="/api/images/ProAce 1_1757356289351.JPG" 
                 alt="Toyota ProAce - wynajem chłodni Gliwice Śląsk"
                 className="w-full h-48 object-cover"
               />
@@ -340,7 +333,7 @@ export default function WynajemMrozni() {
           <div className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-lg transition-shadow">
             <div className="relative">
               <img 
-                src={proAceMaxiImage} 
+                src="/api/images/ProAce Maxi 1_1757356289375.JPG" 
                 alt="Toyota ProAce Maxi - wynajem dużej izotermy Śląsk"
                 className="w-full h-48 object-cover"
               />
