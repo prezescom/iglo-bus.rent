@@ -358,12 +358,12 @@ export default function WynajemMrozni() {
         </div>
         
         <div className="text-center">
-          <Link href="/">
+          <a href="/#flota">
             <button className="inline-flex items-center gap-2 px-8 py-4 rounded-xl border-2 border-brand-blue text-brand-blue font-semibold hover:bg-brand-blue hover:text-white transition-colors">
               Zobacz pełną flotę i cennik
               <ArrowRight className="h-5 w-5" />
             </button>
-          </Link>
+          </a>
         </div>
       </section>
 
