@@ -1,4 +1,5 @@
 import { Snowflake, Mail } from "lucide-react";
+import { Link } from "wouter";
 
 export default function Header() {
   const scrollToSection = (sectionId: string) => {
@@ -25,6 +26,13 @@ export default function Header() {
         </div>
         
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium" data-testid="navigation">
+          <Link
+            href="/wynajem-mrozni"
+            className="hover:text-brand-blue transition-colors"
+            data-testid="nav-rental"
+          >
+            Wynajem mroźni
+          </Link>
           <button
             onClick={() => scrollToSection("flota")}
             className="hover:text-brand-blue transition-colors"
