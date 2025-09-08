@@ -1,24 +1,24 @@
 import VehicleCard from "./vehicle-card";
 
-// Vehicle images served via API endpoint - Updated with new gallery photos
-const proAceCityImg = "/api/images/ProAce City 1_1755593677474.JPG";
-const proAceImg = "/api/images/ProAce 1_1755593677473.JPG";
-const proAceMaxiImg = "/api/images/ProAce Maxi 1_1755593677475.JPG";
+// Vehicle images served statically for Vercel deployment
+const proAceCityImg = "/images/ProAce City 1_1755593677474.JPG";
+const proAceImg = "/images/ProAce 1_1755593677473.JPG";
+const proAceMaxiImg = "/images/ProAce Maxi 1_1755593677475.JPG";
 
 // ProAce City gallery images
-const proAceCityNew = "/api/images/ProAce City 1_1755593677474.JPG";
-const proAceCityInside = "/api/images/ProAce City 2_1755593677474.JPG";
-const proAceCityTech = "/api/images/ProAce City 4_1755593677472.jpg";
+const proAceCityNew = "/images/ProAce City 1_1755593677474.JPG";
+const proAceCityInside = "/images/ProAce City 2_1755593677474.JPG";
+const proAceCityTech = "/images/ProAce City 4_1755593677472.jpg";
 
 // ProAce gallery images
-const proAceNew = "/api/images/ProAce 1_1755593677473.JPG";
-const proAceInside = "/api/images/ProAce 2_1755593677473.JPG";
-const proAceTech = "/api/images/ProAce 4_1755593677471.jpg";
+const proAceNew = "/images/ProAce 1_1755593677473.JPG";
+const proAceInside = "/images/ProAce 2_1755593677473.JPG";
+const proAceTech = "/images/ProAce 4_1755593677471.jpg";
 
 // ProAce Maxi gallery images
-const proAceMaxiNew = "/api/images/ProAce Maxi 1_1755593677475.JPG";
-const proAceMaxiInside = "/api/images/ProAce Maxi 2_1755593677475.JPG";
-const proAceMaxiTech = "/api/images/ProAce Maxi 3_1755593677476.JPG";
+const proAceMaxiNew = "/images/ProAce Maxi 1_1755593677475.JPG";
+const proAceMaxiInside = "/images/ProAce Maxi 2_1755593677475.JPG";
+const proAceMaxiTech = "/images/ProAce Maxi 3_1755593677476.JPG";
 
 const vehicles = [
   {

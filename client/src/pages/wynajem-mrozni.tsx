@@ -106,7 +106,7 @@ export default function WynajemMrozni() {
           <div className="flex justify-center lg:justify-end">
             <div className="relative">
               <img 
-                src="/api/images/ChatGPT Image 29 sie 2025, 09_14_10.png" 
+                src="/images/ChatGPT Image 29 sie 2025, 09_14_10.png" 
                 alt="Iglo-Bus.rent - Logo firmy wynajmu mroźni" 
                 className="w-80 h-80 lg:w-96 lg:h-96 object-contain"
               />
@@ -266,7 +266,7 @@ export default function WynajemMrozni() {
           <div className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-lg transition-shadow">
             <div className="relative">
               <img 
-                src="/api/images/ProAce City 1_1757356289373.JPG" 
+                src="/images/ProAce City 1_1757356289373.JPG" 
                 alt="Wynajem chłodnia Toyota ProAce City - mała chłodnia do wynajęcia Katowice Gliwice"
                 className="w-full h-48 object-cover"
               />
@@ -297,7 +297,7 @@ export default function WynajemMrozni() {
           <div className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-lg transition-shadow">
             <div className="relative">
               <img 
-                src="/api/images/ProAce 1_1757356289351.JPG" 
+                src="/images/ProAce 1_1757356289351.JPG" 
                 alt="Wynajem izoterma Toyota ProAce - izoterma do wynajęcia Śląsk Katowice"
                 className="w-full h-48 object-cover"
               />
@@ -328,7 +328,7 @@ export default function WynajemMrozni() {
           <div className="bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-lg transition-shadow">
             <div className="relative">
               <img 
-                src="/api/images/ProAce Maxi 1_1757356289375.JPG" 
+                src="/images/ProAce Maxi 1_1757356289375.JPG" 
                 alt="Wynajem mroźnia Toyota ProAce Maxi - duża mroźnia do wynajęcia Śląsk Gliwice"
                 className="w-full h-48 object-cover"
               />
