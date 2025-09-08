@@ -103,7 +103,15 @@ export default function WynajemMrozni() {
             </div>
           </div>
           
-          
+          <div className="flex justify-center lg:justify-end">
+            <div className="relative">
+              <img 
+                src="/api/images/ChatGPT Image 29 sie 2025, 09_14_10.png" 
+                alt="Iglo-Bus.rent - Logo firmy wynajmu mroźni" 
+                className="w-80 h-80 lg:w-96 lg:h-96 object-contain"
+              />
+            </div>
+          </div>
         </div>
       </section>
 
