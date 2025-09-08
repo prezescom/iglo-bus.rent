@@ -13,5 +13,3 @@ run = ["npm", "run", "start"]
 
 [[ports]]
 localPort = 5000
-visibility = "public"
-protocol = "http"
