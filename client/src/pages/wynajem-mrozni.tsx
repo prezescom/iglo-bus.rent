@@ -156,8 +156,8 @@ export default function WynajemMrozni() {
             },
             {
               icon: CheckCircle2,
-              title: "Pełne wsparcie",
-              desc: "Kontakt 7 dni w tygodniu, szybka podmiana auta w przypadku awarii, serwis techniczny."
+              title: "Niezawodność floty",
+              desc: "Nowoczesne pojazdy Toyota ProAce o wysokiej jakości i sprawności, co minimalizuje ryzyko awarii podczas najmu."
             }
           ].map(({icon: Icon, title, desc}, idx) => (
             <div key={idx} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
