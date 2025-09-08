@@ -12,7 +12,7 @@ export default function Header() {
         element.scrollIntoView({ behavior: "smooth" });
       }
     } else {
-      // Navigate to home page with anchor
+      // For cross-page navigation, use regular link navigation
       window.location.href = `/#${sectionId}`;
     }
   };
@@ -41,27 +41,55 @@ export default function Header() {
           >
             Wynajem mroźni
           </Link>
-          <button
-            onClick={() => scrollToSection("flota")}
-            className="hover:text-brand-blue transition-colors"
-            data-testid="nav-fleet"
-          >
-            Flota i cennik
-          </button>
-          <button
-            onClick={() => scrollToSection("jak-dziala")}
-            className="hover:text-brand-blue transition-colors"
-            data-testid="nav-how-it-works"
-          >
-            Jak to działa
-          </button>
-          <button
-            onClick={() => scrollToSection("faq")}
-            className="hover:text-brand-blue transition-colors"
-            data-testid="nav-faq"
-          >
-            FAQ
-          </button>
+          {isHomePage ? (
+            <>
+              <button
+                onClick={() => scrollToSection("flota")}
+                className="hover:text-brand-blue transition-colors"
+                data-testid="nav-fleet"
+              >
+                Flota i cennik
+              </button>
+              <button
+                onClick={() => scrollToSection("jak-dziala")}
+                className="hover:text-brand-blue transition-colors"
+                data-testid="nav-how-it-works"
+              >
+                Jak to działa
+              </button>
+              <button
+                onClick={() => scrollToSection("faq")}
+                className="hover:text-brand-blue transition-colors"
+                data-testid="nav-faq"
+              >
+                FAQ
+              </button>
+            </>
+          ) : (
+            <>
+              <a
+                href="/#flota"
+                className="hover:text-brand-blue transition-colors"
+                data-testid="nav-fleet"
+              >
+                Flota i cennik
+              </a>
+              <a
+                href="/#jak-dziala"
+                className="hover:text-brand-blue transition-colors"
+                data-testid="nav-how-it-works"
+              >
+                Jak to działa
+              </a>
+              <a
+                href="/#faq"
+                className="hover:text-brand-blue transition-colors"
+                data-testid="nav-faq"
+              >
+                FAQ
+              </a>
+            </>
+          )}
         </nav>
         
         <div className="text-sm" data-testid="contact-email">
