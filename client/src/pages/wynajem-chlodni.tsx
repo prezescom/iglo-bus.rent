@@ -5,7 +5,7 @@ import { Thermometer, Shield, CheckCircle2, Truck, Clock, Phone, Mail, ArrowRigh
 import { Link } from "wouter";
 import fridgeExpressImage from "@assets/IMG_622-large_1757356251568.jpg";
 
-export default function WynajemMrozni() {
+export default function WynajemChlodni() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <Helmet>
