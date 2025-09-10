@@ -18,6 +18,7 @@ export default function WynajemMrozni() {
         <meta property="og:description" content="Profesjonalny wynajem mroźni, chłodni i izoterm. Toyota ProAce -20°C do +20°C. Obsługujemy Śląsk: Katowice, Gliwice i okolice." />
         <meta property="og:url" content="https://www.iglo-bus.rent/wynajem-mrozni" />
         <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://www.iglo-bus.rent/images/og-home-1200.jpg" />
         <script type="application/ld+json">{JSON.stringify({
           "@context":"https://schema.org",
           "@type":"LocalBusiness",
