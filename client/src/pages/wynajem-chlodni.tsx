@@ -5,7 +5,7 @@ import { Thermometer, Shield, CheckCircle2, Truck, Clock, Phone, Mail, ArrowRigh
 import { Link } from "wouter";
 import fridgeExpressImage from "@assets/IMG_622-large_1757356251568.jpg";
 
-export default function WynajemChlodni() {
+export default function WynajemMrozni() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <Helmet>
@@ -19,6 +19,8 @@ export default function WynajemChlodni() {
         <meta property="og:url" content="https://www.iglo-bus.rent/wynajem-mrozni" />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://www.iglo-bus.rent/images/og-home-1200.jpg" />
+
+        {/* LocalBusiness */}
         <script type="application/ld+json">{JSON.stringify({
           "@context":"https://schema.org",
           "@type":"LocalBusiness",
@@ -29,17 +31,10 @@ export default function WynajemChlodni() {
           areaServed:["Śląskie", "Katowice", "Gliwice", "Zabrze", "Bytom", "Chorzów"],
           address:{ "@type":"PostalAddress", addressRegion:"Śląskie", addressCountry:"PL" },
           priceRange:"$$",
-          description:"Profesjonalny wynajem mroźni, chłodni i samochodów z chłodnią na Śląsku. Toyota ProAce od -20°C do +20°C.",
-          hasOfferingCatalog:{
-            "@type":"OfferingCatalog",
-            name:"Wynajem Mroźni i Chłodni",
-            itemListElement:[
-              { "@type":"Offer", itemOffered:{ "@type":"Product", name:"Wynajem mroźni Toyota ProAce City", description:"Mała mroźnia -20°C do +20°C" }},
-              { "@type":"Offer", itemOffered:{ "@type":"Product", name:"Wynajem chłodni Toyota ProAce", description:"Średnia chłodnia z kontrolą temperatury" }},
-              { "@type":"Offer", itemOffered:{ "@type":"Product", name:"Wynajem izotermy Toyota ProAce Maxi", description:"Duża izoterma do transportu chłodniczego" }}
-            ]
-          }
+          description:"Profesjonalny wynajem mroźni, chłodni i samochodów z chłodnią na Śląsku. Toyota ProAce od -20°C do +20°C."
         })}</script>
+
+        {/* FAQ */}
         <script type="application/ld+json">{JSON.stringify({
           "@context":"https://schema.org",
           "@type":"FAQPage",
@@ -50,7 +45,71 @@ export default function WynajemChlodni() {
             { "@type":"Question", name:"Czy można wynająć izotermę długoterminowo?", acceptedAnswer:{ "@type":"Answer", text:"Tak, oferujemy długoterminowy wynajem izoterm z preferencyjnymi stawkami i pełnym serwisem technicznym." }}
           ]
         })}</script>
+
+        {/* PRODUCT 1: Toyota ProAce City (S) */}
+        <script type="application/ld+json">{JSON.stringify({
+          "@context":"https://schema.org/",
+          "@type":"Product",
+          name:"Wynajem mroźni Toyota ProAce City",
+          description:"Mała mroźnia -20°C do +20°C. Rejestrator temperatur, zabudowa z atestem Sanepid.",
+          image:["https://www.iglo-bus.rent/images/ProAce City 1_1757356289373.JPG"],
+          brand:{ "@type":"Brand", "name":"Toyota" },
+          url:"https://www.iglo-bus.rent/wynajem-mrozni",
+          offers:{
+            "@type":"Offer",
+            url:"https://www.iglo-bus.rent/wynajem-mrozni?model=proace-city",
+            priceCurrency:"PLN",
+            price:"260.00",
+            availability:"https://schema.org/InStock",
+            itemCondition:"https://schema.org/UsedCondition",
+            priceValidUntil:"2025-12-31",
+            seller:{ "@type":"Organization", name:"Iglo-Bus Rent" }
+          }
+        })}</script>
+
+        {/* PRODUCT 2: Toyota ProAce (M) */}
+        <script type="application/ld+json">{JSON.stringify({
+          "@context":"https://schema.org/",
+          "@type":"Product",
+          name:"Wynajem chłodni Toyota ProAce",
+          description:"Średnia chłodnia z kontrolą temperatury -20°C do +20°C. Rejestrator Esco DR201.",
+          image:["https://www.iglo-bus.rent/images/ProAce 1_1757356289351.JPG"],
+          brand:{ "@type":"Brand", "name":"Toyota" },
+          url:"https://www.iglo-bus.rent/wynajem-mrozni",
+          offers:{
+            "@type":"Offer",
+            url:"https://www.iglo-bus.rent/wynajem-mrozni?model=proace",
+            priceCurrency:"PLN",
+            price:"280.00",
+            availability:"https://schema.org/InStock",
+            itemCondition:"https://schema.org/UsedCondition",
+            priceValidUntil:"2025-12-31",
+            seller:{ "@type":"Organization", name:"Iglo-Bus Rent" }
+          }
+        })}</script>
+
+        {/* PRODUCT 3: Toyota ProAce Maxi (L) */}
+        <script type="application/ld+json">{JSON.stringify({
+          "@context":"https://schema.org/",
+          "@type":"Product",
+          name:"Wynajem izotermy Toyota ProAce Maxi",
+          description:"Duża izoterma do transportu chłodniczego. Zakres -20°C do +20°C, atest Sanepid.",
+          image:["https://www.iglo-bus.rent/images/ProAce Maxi 1_1757356289375.JPG"],
+          brand:{ "@type":"Brand", "name":"Toyota" },
+          url:"https://www.iglo-bus.rent/wynajem-mrozni",
+          offers:{
+            "@type":"Offer",
+            url:"https://www.iglo-bus.rent/wynajem-mrozni?model=proace-maxi",
+            priceCurrency:"PLN",
+            price:"3500.00",
+            availability:"https://schema.org/InStock",
+            itemCondition:"https://schema.org/UsedCondition",
+            priceValidUntil:"2025-12-31",
+            seller:{ "@type":"Organization", name:"Iglo-Bus Rent" }
+          }
+        })}</script>
       </Helmet>
+
       <Header />
 
       {/* Hero Section */}
