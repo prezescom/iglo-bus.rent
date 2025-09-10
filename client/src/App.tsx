@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import PrivacyPolicy from "@/pages/privacy-policy";
 import WynajemMrozni from "@/pages/wynajem-mrozni";
+import WynajemChlodni from "@/pages/wynajem-chlodni";
 
 function Router() {
   return (
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/polityka-prywatnosci" component={PrivacyPolicy} />
       <Route path="/wynajem-mrozni" component={WynajemMrozni} />
+      <Route path="/wynajem-chlodni" component={WynajemChlodni} />
       <Route component={NotFound} />
     </Switch>
   );
