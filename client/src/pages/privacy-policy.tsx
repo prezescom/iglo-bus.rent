@@ -219,7 +219,7 @@ export default function PrivacyPolicy() {
               <div className="space-y-3 text-sm text-slate-700">
                 <p><strong>Administrator:</strong> FBS Jacek Małachowski</p>
                 <p><strong>Adres:</strong> Gliwicka 15b, 44-178 Przyszowice</p>
-                <p><strong>Email:</strong> <a href="mailto:kontakt@iglo-bus.rent" className="text-brand-blue hover:underline">kontakt@iglo-bus.rent</a></p>
+                <p><strong>Email:</strong> <a href="/kontakt" className="text-brand-blue hover:underline">kontakt@iglo-bus.rent</a></p>
                 <p><strong>Telefon:</strong> <a href="tel:+48530410504" className="text-brand-blue hover:underline">+48 530 410 504</a></p>
               </div>
             </div>

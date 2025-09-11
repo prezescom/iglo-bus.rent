@@ -94,7 +94,7 @@ export default function Header() {
         
         <div className="text-sm" data-testid="contact-email">
           <a 
-            href="mailto:kontakt@iglo-bus.rent" 
+            href="/kontakt" 
             className="hover:text-brand-blue transition-colors font-medium flex items-center gap-1"
           >
             <Mail className="h-4 w-4" />

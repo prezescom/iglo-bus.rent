@@ -154,13 +154,12 @@ export default function WynajemMrozni() {
                   <Phone className="h-5 w-5" />
                   Zadzwoń: +48 530 410 504
                 </a>
-                <a 
-                  href="mailto:kontakt@iglo-bus.rent"
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-brand-blue text-brand-blue font-semibold hover:bg-brand-blue hover:text-white transition-colors"
-                >
-                  <Mail className="h-5 w-5" />
-                  Wyślij zapytanie
-                </a>
+                <Link href="/kontakt">
+                  <button className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-brand-blue text-brand-blue font-semibold hover:bg-brand-blue hover:text-white transition-colors">
+                    <Mail className="h-5 w-5" />
+                    Wyślij zapytanie
+                  </button>
+                </Link>
               </div>
               
               <div>
@@ -503,16 +502,15 @@ export default function WynajemMrozni() {
                 </div>
               </a>
 
-              <a 
-                href="mailto:kontakt@iglo-bus.rent"
-                className="inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-transparent border-2 border-white text-white font-bold hover:bg-white hover:text-brand-blue transition-colors w-full sm:w-auto justify-center"
-              >
-                <Mail className="h-6 w-6" />
-                <div className="text-left">
-                  <div className="text-sm opacity-75">Wyślij e-mail</div>
-                  <div className="text-lg">kontakt@iglo-bus.rent</div>
-                </div>
-              </a>
+              <Link href="/kontakt">
+                <button className="inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-transparent border-2 border-white text-white font-bold hover:bg-white hover:text-brand-blue transition-colors w-full sm:w-auto justify-center">
+                  <Mail className="h-6 w-6" />
+                  <div className="text-left">
+                    <div className="text-sm opacity-75">Wyślij e-mail</div>
+                    <div className="text-lg">kontakt@iglo-bus.rent</div>
+                  </div>
+                </button>
+              </Link>
             </div>
 
             <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 text-center">

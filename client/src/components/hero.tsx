@@ -38,7 +38,7 @@ export default function Hero() {
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 min-w-0">
                 <span className="text-xs sm:text-sm">E-mail:</span>
                 <a 
-                  href="mailto:kontakt@iglo-bus.rent" 
+                  href="/kontakt" 
                   className="text-brand-blue hover:underline font-medium text-xs sm:text-sm break-all"
                   data-testid="contact-email-link"
                 >
