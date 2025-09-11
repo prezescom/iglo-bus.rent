@@ -48,25 +48,20 @@ export default function ContactForm({
       }
 
       // Initialize EmailJS with public key
-      emailjs.init({
-        publicKey: publicKey,
-        blockHeadless: true,
-        limitRate: {
-          id: 'app',
-          throttle: 10000,
-        },
-      });
+      emailjs.init(publicKey);
 
-      // Prepare template parameters
+      // Prepare template parameters - upewnij się że pasują do szablonu EmailJS
       const templateParams = {
         from_name: formData.name,
         from_email: formData.email,
-        phone: formData.phone,
+        phone: formData.phone || 'Nie podano',
         subject: formData.subject,
         message: formData.message,
-        to_email: 'kontakt@iglo-bus.rent',
+        // Ustawiamy reply_to na email użytkownika, ale from_email musi być autoryzowany w EmailJS
         reply_to: formData.email
       };
+
+      console.log('Sending email with params:', templateParams);
 
       // Send email via EmailJS
       const result = await emailjs.send(serviceId, templateId, templateParams);
@@ -88,9 +83,20 @@ export default function ContactForm({
 
     } catch (error: any) {
       console.error('Error sending email:', error);
+      
+      let errorMessage = "Nie udało się wysłać wiadomości. Spróbuj ponownie lub zadzwoń.";
+      
+      if (error?.status === 412 && error?.text?.includes('Relaying disallowed')) {
+        errorMessage = "Problem z konfiguracją email. Prosimy dzwonić: +48 530 410 504";
+      } else if (error?.status === 400) {
+        errorMessage = "Błąd w formularzu. Sprawdź wszystkie pola i spróbuj ponownie.";
+      } else if (error?.status === 401) {
+        errorMessage = "Problem z autoryzacją email. Prosimy dzwonić: +48 530 410 504";
+      }
+      
       toast({
         title: "Błąd wysyłania",
-        description: error.message || "Nie udało się wysłać wiadomości. Spróbuj ponownie lub zadzwoń.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
