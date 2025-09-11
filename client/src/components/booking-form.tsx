@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import emailjs from '@emailjs/browser';
 
 interface BookingFormProps {
   vehicleTitle: string;
@@ -89,7 +90,7 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
     };
   }, [dateFrom, dateTo, pricing]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!dateFrom || !dateTo || !email) {
@@ -135,26 +136,77 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
 
     setIsLoading(true);
 
-    // Construct mailto link
-    const subject = encodeURIComponent(`Iglo-bus.rent — Rezerwacja ${vehicleTitle} (${dateFrom} → ${dateTo})`);
-    const body = encodeURIComponent([
-      `Grupa: ${vehicleTitle}`,
-      `Termin: ${dateFrom} → ${dateTo}`,
-      `E-mail klienta: ${email}`,
-      notes ? `Uwagi: ${notes}` : null,
-    ].filter(Boolean).join('\n'));
-    
-    const mailtoLink = `mailto:kontakt@iglo-bus.rent?subject=${subject}&body=${body}`;
-    window.location.href = mailtoLink;
+    try {
+      // EmailJS service configuration
+      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
 
-    toast({
-      title: "Przekierowanie",
-      description: "Otwieranie klienta e-mail...",
-    });
+      if (!serviceId || !templateId || !publicKey) {
+        throw new Error('Konfiguracja EmailJS nie jest kompletna. Skontaktuj się z administratorem.');
+      }
 
-    setTimeout(() => {
+      // Initialize EmailJS with public key
+      emailjs.init(publicKey);
+
+      // Prepare booking details message
+      const bookingDetails = [
+        `Pojazd: ${vehicleTitle}`,
+        `Termin wynajmu: ${dateFrom} → ${dateTo}`,
+        `E-mail klienta: ${email}`,
+        rentalCalculation ? `Liczba dni: ${rentalCalculation.days}` : null,
+        rentalCalculation ? `Szacowany koszt: ${rentalCalculation.totalCost.toLocaleString()} zł netto (${rentalCalculation.dailyRate} zł/doba)` : null,
+        notes ? `Uwagi: ${notes}` : null,
+      ].filter(Boolean).join('\n');
+
+      // Prepare template parameters
+      const templateParams = {
+        name: `Klient - Rezerwacja ${vehicleTitle}`,
+        from_name: `Klient - Rezerwacja ${vehicleTitle}`,
+        from_email: email,
+        phone: 'Podano w e-mailu',
+        subject: `Iglo-bus.rent — Rezerwacja ${vehicleTitle} (${dateFrom} → ${dateTo})`,
+        message: bookingDetails
+      };
+
+      console.log('Sending booking email with params:', templateParams);
+
+      // Send email via EmailJS
+      const result = await emailjs.send(serviceId, templateId, templateParams);
+      console.log('Booking email sent successfully:', result.status, result.text);
+
+      toast({
+        title: "Zapytanie wysłane!",
+        description: "Dziękujemy za zapytanie o rezerwację. Odpowiemy w ciągu kilku godzin.",
+      });
+
+      // Reset form
+      setDateFrom('');
+      setDateTo('');
+      setEmail('');
+      setNotes('');
+
+    } catch (error: any) {
+      console.error('Error sending booking email:', error);
+      
+      let errorMessage = "Nie udało się wysłać zapytania. Spróbuj ponownie lub zadzwoń: +48 530 410 504";
+      
+      if (error?.status === 412 && error?.text?.includes('Relaying disallowed')) {
+        errorMessage = "Problem z konfiguracją email. Prosimy dzwonić: +48 530 410 504";
+      } else if (error?.status === 400) {
+        errorMessage = "Błąd w formularzu. Sprawdź wszystkie pola i spróbuj ponownie.";
+      } else if (error?.status === 401) {
+        errorMessage = "Problem z autoryzacją email. Prosimy dzwonić: +48 530 410 504";
+      }
+      
+      toast({
+        title: "Błąd wysyłania",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
   return (
@@ -272,7 +324,14 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
             className="w-full bg-brand-blue hover:bg-brand-blue/90 text-white font-semibold py-2.5 px-4 rounded-xl transition-colors"
             data-testid="button-submit-inquiry"
           >
-            {isLoading ? "Otwieranie klienta e-mail..." : "Wyślij zapytanie"}
+            {isLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Wysyłanie...
+              </>
+            ) : (
+              "Wyślij zapytanie"
+            )}
           </Button>
           <p className="text-xs text-slate-500 text-center">
             Zapytanie trafi na <span className="font-medium">kontakt@iglo-bus.rent</span>
