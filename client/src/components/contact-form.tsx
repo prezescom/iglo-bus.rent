@@ -50,15 +50,14 @@ export default function ContactForm({
       // Initialize EmailJS with public key
       emailjs.init(publicKey);
 
-      // Prepare template parameters - upewnij się że pasują do szablonu EmailJS
+      // Prepare template parameters - dopasowane do szablonu EmailJS
       const templateParams = {
-        from_name: formData.name,
-        from_email: formData.email,
+        name: formData.name,        // {{name}} w szablonie
+        from_name: formData.name,   // dla From Name w headerze
+        from_email: formData.email, // dla Reply-To  
         phone: formData.phone || 'Nie podano',
-        subject: formData.subject,
-        message: formData.message,
-        // Ustawiamy reply_to na email użytkownika, ale from_email musi być autoryzowany w EmailJS
-        reply_to: formData.email
+        subject: formData.subject,  // {{subject}}
+        message: formData.message   // {{message}}
       };
 
       console.log('Sending email with params:', templateParams);
