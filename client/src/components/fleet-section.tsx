@@ -34,11 +34,11 @@ const vehicles = [
       { src: proAceCityTech, alt: "Toyota ProAce City - wymiary wewnętrzne", title: "ProAce City - wymiary zabudowy" },
     ],
     pricing: [
-      { period: "1–3 doby", price: "260 zł" },
-      { period: "4–7 dób", price: "240 zł" },
-      { period: "8–14 dób", price: "220 zł" },
-      { period: "15–29 dób", price: "200 zł" },
-      { period: "30+ dni (miesięcznie)", price: "4 600 zł", highlighted: true },
+      { period: "1–3 doby", price: "300 zł" },
+      { period: "4–7 dób", price: "270 zł" },
+      { period: "8–14 dób", price: "250 zł" },
+      { period: "15–29 dób", price: "230 zł" },
+      { period: "30+ dni (miesięcznie)", price: "5 000 zł", highlighted: true },
     ],
   },
   {
@@ -54,11 +54,11 @@ const vehicles = [
       { src: proAceTech, alt: "Toyota ProAce - wymiary wewnętrzne", title: "ProAce - specyfikacja wymiarów" },
     ],
     pricing: [
-      { period: "1–3 doby", price: "280 zł" },
-      { period: "4–7 dób", price: "260 zł" },
-      { period: "8–14 dób", price: "240 zł" },
-      { period: "15–29 dób", price: "220 zł" },
-      { period: "30+ dni (miesięcznie)", price: "5 200 zł", highlighted: true },
+      { period: "1–3 doby", price: "320 zł" },
+      { period: "4–7 dób", price: "290 zł" },
+      { period: "8–14 dób", price: "270 zł" },
+      { period: "15–29 dób", price: "250 zł" },
+      { period: "30+ dni (miesięcznie)", price: "5 500 zł", highlighted: true },
     ],
   },
   {
@@ -78,7 +78,7 @@ const vehicles = [
       { period: "4–7 dób", price: "320 zł" },
       { period: "8–14 dób", price: "300 zł" },
       { period: "15–29 dób", price: "280 zł" },
-      { period: "30+ dni (miesięcznie)", price: "5 800 zł", highlighted: true },
+      { period: "30+ dni (miesięcznie)", price: "6 000 zł", highlighted: true },
     ],
   },
 ];
