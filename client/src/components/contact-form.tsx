@@ -47,6 +47,16 @@ export default function ContactForm({
         throw new Error('Konfiguracja EmailJS nie jest kompletna. Skontaktuj się z administratorem.');
       }
 
+      // Initialize EmailJS with public key
+      emailjs.init({
+        publicKey: publicKey,
+        blockHeadless: true,
+        limitRate: {
+          id: 'app',
+          throttle: 10000,
+        },
+      });
+
       // Prepare template parameters
       const templateParams = {
         from_name: formData.name,
@@ -59,7 +69,8 @@ export default function ContactForm({
       };
 
       // Send email via EmailJS
-      await emailjs.send(serviceId, templateId, templateParams, publicKey);
+      const result = await emailjs.send(serviceId, templateId, templateParams);
+      console.log('Email sent successfully:', result.status, result.text);
 
       toast({
         title: "Wiadomość wysłana!",
