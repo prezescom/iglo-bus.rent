@@ -145,31 +145,44 @@ export default function WynajemMrozni() {
               </div>
             </div>
 
-            <div className="flex gap-4 flex-wrap">
-              <a 
-                href="tel:+48530410504"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-blue text-white font-semibold hover:bg-brand-blue/90 transition-colors"
-              >
-                <Phone className="h-5 w-5" />
-                Zadzwoń: +48 530 410 504
-              </a>
-              <a 
-                href="mailto:kontakt@iglo-bus.rent"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-brand-blue text-brand-blue font-semibold hover:bg-brand-blue hover:text-white transition-colors"
-              >
-                <Mail className="h-5 w-5" />
-                Wyślij zapytanie
-              </a>
+            <div className="space-y-4">
+              <div className="flex gap-4 flex-wrap">
+                <a 
+                  href="tel:+48530410504"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-blue text-white font-semibold hover:bg-brand-blue/90 transition-colors"
+                >
+                  <Phone className="h-5 w-5" />
+                  Zadzwoń: +48 530 410 504
+                </a>
+                <a 
+                  href="mailto:kontakt@iglo-bus.rent"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-brand-blue text-brand-blue font-semibold hover:bg-brand-blue hover:text-white transition-colors"
+                >
+                  <Mail className="h-5 w-5" />
+                  Wyślij zapytanie
+                </a>
+              </div>
+              
+              <div>
+                <a href="/#flota">
+                  <button className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-brand-blue/30 text-brand-blue font-medium hover:bg-brand-light transition-colors">
+                    Zobacz pełną flotę i cennik
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </a>
+              </div>
             </div>
           </div>
 
           <div className="flex justify-center lg:justify-end">
             <div className="relative">
-              <img 
-                src="/images/ChatGPT Image 29 sie 2025, 09_14_10.png" 
-                alt="Iglo-Bus.rent - Logo firmy wynajmu mroźni" 
-                className="w-80 h-80 lg:w-96 lg:h-96 object-contain"
-              />
+              <Link href="/">
+                <img 
+                  src="/images/ChatGPT Image 29 sie 2025, 09_14_10.png" 
+                  alt="Iglo-Bus.rent - Logo firmy wynajmu mroźni" 
+                  className="w-80 h-80 lg:w-96 lg:h-96 object-contain cursor-pointer hover:opacity-90 transition-opacity"
+                />
+              </Link>
             </div>
           </div>
         </div>
@@ -417,14 +430,6 @@ export default function WynajemMrozni() {
           </div>
         </div>
 
-        <div className="text-center">
-          <a href="/#flota">
-            <button className="inline-flex items-center gap-2 px-8 py-4 rounded-xl border-2 border-brand-blue text-brand-blue font-semibold hover:bg-brand-blue hover:text-white transition-colors">
-              Zobacz pełną flotę i cennik
-              <ArrowRight className="h-5 w-5" />
-            </button>
-          </a>
-        </div>
       </section>
 
       {/* FAQ */}
