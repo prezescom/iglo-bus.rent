@@ -23,7 +23,7 @@ export default function Header() {
       data-testid="header"
     >
       <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3" data-testid="logo">
+        <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity" data-testid="logo">
           <div className="h-10 w-10 rounded-2xl bg-brand-light border border-brand-blue/20 grid place-items-center">
             <Snowflake className="h-5 w-5 text-brand-blue" />
           </div>
@@ -31,7 +31,7 @@ export default function Header() {
             <div className="font-bold text-lg text-brand-dark">Iglo-bus.rent</div>
             <div className="text-xs text-slate-500">Wypożyczalnia samochodów mroźni</div>
           </div>
-        </div>
+        </Link>
         
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium" data-testid="navigation">
           <Link
