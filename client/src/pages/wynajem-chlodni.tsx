@@ -73,6 +73,24 @@ export default function WynajemChlodni() {
               Dzięki nim masz pewność, że produkty dotrą w idealnym stanie – <span className="text-brand-blue font-semibold">świeże, zgodnie z wymogami sanitarnymi</span> i gotowe do dalszej sprzedaży lub użycia.
             </p>
 
+            {/* Mocny akcent marketingowy */}
+            <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl p-6 text-white shadow-lg border-2 border-orange-400">
+              <div className="flex items-center gap-3 justify-center">
+                <div className="h-8 w-8 rounded-full bg-white/20 grid place-items-center">
+                  <Thermometer className="h-5 w-5 text-white" />
+                </div>
+                <h3 className="text-xl lg:text-2xl font-bold text-center">
+                  Mroźnia - to bardziej skuteczna auto chłodnia
+                </h3>
+                <div className="h-8 w-8 rounded-full bg-white/20 grid place-items-center">
+                  <CheckCircle2 className="h-5 w-5 text-white" />
+                </div>
+              </div>
+              <p className="text-center text-orange-100 text-sm mt-2">
+                Niższa temperatura = dłuższa świeżość = większe oszczędności
+              </p>
+            </div>
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="flex items-center gap-2 p-3 rounded-xl bg-brand-light border border-brand-blue/20">
                 <Thermometer className="h-5 w-5 text-brand-blue" />
@@ -117,6 +135,28 @@ export default function WynajemChlodni() {
                 alt="Wynajem samochodów chłodni - Toyota ProAce auto chłodnia" 
                 className="w-full max-w-lg rounded-2xl shadow-lg"
               />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Dodatkowy akcent o mroźni */}
+      <section className="bg-gradient-to-r from-slate-900 to-slate-800 py-12">
+        <div className="mx-auto max-w-4xl px-4 text-center">
+          <div className="inline-flex items-center gap-4 bg-white/10 rounded-2xl p-6 backdrop-blur-sm">
+            <div className="h-16 w-16 rounded-2xl bg-orange-500 grid place-items-center">
+              <Thermometer className="h-8 w-8 text-white" />
+            </div>
+            <div className="text-left text-white">
+              <h2 className="text-2xl lg:text-3xl font-bold mb-2">
+                Mroźnia = Bardziej Skuteczna Auto Chłodnia
+              </h2>
+              <p className="text-slate-300 text-lg">
+                Osiąga niższe temperatury, utrzymuje je dłużej, chroni produkty lepiej
+              </p>
+            </div>
+            <div className="h-16 w-16 rounded-2xl bg-green-500 grid place-items-center">
+              <CheckCircle2 className="h-8 w-8 text-white" />
             </div>
           </div>
         </div>
