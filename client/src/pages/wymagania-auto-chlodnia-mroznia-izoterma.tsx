@@ -193,27 +193,45 @@ export default function WymaganiaAutoChłodnia() {
         <div className="grid lg:grid-cols-3 gap-8">
           {[
             {
-              type: "Izoterma",
-              description: "Pojazd z izolowaną zabudową bez agregatu chłodniczego",
+              type: "Auto-Izoterma",
+              description: "Utrzymanie temperatury bez aktywnego chłodzenia przez ograniczony czas",
               tempRange: "Utrzymuje temperaturę",
-              usage: "Krótkie transporty, produkty niewymagające głębokiego chłodzenia",
-              icon: "❄️"
+              usage: "Pieczywo, produkty mleczarskie w krótkim transporcie, owoce, warzywa",
+              icon: "📦",
+              features: [
+                "Zabudowa z materiałów izolacyjnych (płyty warstwowe)",
+                "Brak źródła chłodzenia - tylko izolacja",
+                "Łatwo zmywalne powierzchnie",
+                "Stosowana do krótkich przewozów lub wstępnie schłodzonych produktów"
+              ]
             },
             {
-              type: "Chłodnia",
-              description: "Pojazd z agregatem chłodniczym do temperatur dodatnich",
-              tempRange: "0°C do +15°C",
-              usage: "Świeże produkty spożywcze, nabiał, warzywa, owoce",
-              icon: "🧊"
+              type: "Auto-Chłodnia",
+              description: "Transport produktów wymagających temperatur dodatnich od +2°C do +8°C",
+              tempRange: "+2°C do +8°C",
+              usage: "Nabiał, mięso, ryby, owoce, warzywa, gotowe posiłki",
+              icon: "🧊",
+              features: [
+                "Izolowana zabudowa łatwa do mycia i dezynfekcji",
+                "Agregat chłodniczy zapewniający stabilną temperaturę",
+                "Rejestrator temperatury z możliwością wydruku",
+                "Powierzchnie gładkie i higieniczne, bez szczelin"
+              ]
             },
             {
-              type: "Mroźnia",
-              description: "Pojazd z agregatem do temperatur ujemnych",
-              tempRange: "-25°C do 0°C",
-              usage: "Produkty mrożone, lody, mięso mrożone",
-              icon: "🧊"
+              type: "Auto-Mroźnia",
+              description: "Transport produktów głęboko mrożonych wymagających temperatur poniżej -18°C",
+              tempRange: "Poniżej -18°C",
+              usage: "Mrożone mięso, ryby, lody, warzywa, pieczywo i półprodukty do gastronomii",
+              icon: "🧊",
+              features: [
+                "Agregat chłodniczy o wysokiej wydajności",
+                "Dodatkowa izolacja ścian, podłogi i sufitu",
+                "Obowiązkowy termograf monitorujący warunki przewozu",
+                "Ścisła kontrola Sanepidu - restrykcyjne przepisy"
+              ]
             }
-          ].map(({type, description, tempRange, usage, icon}, idx) => (
+          ].map(({type, description, tempRange, usage, icon, features}, idx) => (
             <div key={idx} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="text-center mb-4">
                 <div className="text-4xl mb-2">{icon}</div>
@@ -228,6 +246,17 @@ export default function WymaganiaAutoChłodnia() {
                 <div>
                   <span className="font-medium text-slate-700">Zastosowanie:</span>
                   <p className="text-slate-600 mt-1">{usage}</p>
+                </div>
+                <div className="mt-4">
+                  <span className="font-medium text-slate-700 block mb-2">Wymagania:</span>
+                  <ul className="space-y-1">
+                    {features.map((feature, fIdx) => (
+                      <li key={fIdx} className="flex items-start gap-1 text-xs text-slate-600">
+                        <CheckCircle2 className="h-3 w-3 text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             </div>
@@ -292,6 +321,138 @@ export default function WymaganiaAutoChłodnia() {
                   </li>
                 ))}
               </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Podstawy prawne */}
+      <section className="mx-auto max-w-6xl px-4 py-16">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl lg:text-4xl font-bold text-brand-dark mb-4">
+            <span className="text-brand-blue">Podstawy Prawne</span> Transportu Chłodniczego
+          </h2>
+          <p className="text-lg text-slate-600 max-w-3xl mx-auto">
+            Transport żywności w pojazdach specjalistycznych regulują międzynarodowe i krajowe przepisy
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-8">
+          <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-12 w-12 rounded-xl bg-blue-50 grid place-items-center">
+                <FileText className="h-6 w-6 text-blue-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-brand-dark">Przepisy Europejskie</h3>
+            </div>
+            <div className="space-y-4">
+              <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                <h4 className="font-bold text-brand-dark mb-2">Rozporządzenie (WE) nr 852/2004</h4>
+                <p className="text-sm text-slate-600">Higiena środków spożywczych - ogólne wymogi higieniczne dla wszystkich podmiotów sektora spożywczego</p>
+              </div>
+              <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                <h4 className="font-bold text-brand-dark mb-2">Rozporządzenie (WE) nr 853/2004</h4>
+                <p className="text-sm text-slate-600">Szczegółowe wymagania dla żywności pochodzenia zwierzęcego - mięso, ryby, nabiał</p>
+              </div>
+              <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                <h4 className="font-bold text-brand-dark mb-2">Umowa ATP</h4>
+                <p className="text-sm text-slate-600">Normy dla międzynarodowego przewozu artykułów szybko psujących się - standard dla transportów zagranicznych</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-12 w-12 rounded-xl bg-green-50 grid place-items-center">
+                <Shield className="h-6 w-6 text-green-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-brand-dark">Przepisy Krajowe</h3>
+            </div>
+            <div className="space-y-4">
+              <div className="p-4 rounded-lg bg-green-50 border border-green-200">
+                <h4 className="font-bold text-brand-dark mb-2">Ustawa o bezpieczeństwie żywności</h4>
+                <p className="text-sm text-slate-600 mb-2">Dz.U. 2006 nr 171 poz. 1225 z późn. zm.</p>
+                <p className="text-sm text-slate-600">Krajowe przepisy dotyczące bezpieczeństwa żywności i żywienia w Polsce</p>
+              </div>
+              <div className="p-4 rounded-lg bg-green-50 border border-green-200">
+                <h4 className="font-bold text-brand-dark mb-2">Przepisy Sanepidu</h4>
+                <p className="text-sm text-slate-600">Szczegółowe wytyczne Powiatowych Stacji Sanitarno-Epidemiologicznych dotyczące atestów i kontroli pojazdów</p>
+              </div>
+              <div className="p-4 rounded-lg bg-green-50 border border-green-200">
+                <h4 className="font-bold text-brand-dark mb-2">Normy HACCP</h4>
+                <p className="text-sm text-slate-600">System zarządzania bezpieczeństwem żywności - obowiązkowy dla transportów komercyjnych</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Proces uzyskania zatwierdzenia */}
+      <section className="bg-slate-50 py-16">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl lg:text-4xl font-bold text-brand-dark mb-4">
+              Droga do <span className="text-brand-blue">Zatwierdzenia Sanepidu</span>
+            </h2>
+            <p className="text-lg text-slate-600 max-w-3xl mx-auto">
+              Krok po kroku - jak uzyskać atest Sanepid dla pojazdu chłodniczego
+            </p>
+          </div>
+
+          <div className="max-w-4xl mx-auto">
+            <div className="space-y-6">
+              {[
+                {
+                  step: "1",
+                  title: "Przygotowanie pojazdu",
+                  description: "Dostosowanie pojazdu zgodnie z wymogami: izolacja, agregat chłodniczy, systemy higieniczne",
+                  details: ["Montaż zabudowy izolacyjnej", "Instalacja agregatu chłodniczego", "Wykończenie higieniczne wnętrza", "Instalacja rejestratora temperatur"]
+                },
+                {
+                  step: "2",
+                  title: "Złożenie wniosku",
+                  description: "Złożenie kompletnego wniosku w Powiatowej Stacji Sanitarno-Epidemiologicznej",
+                  details: ["Wypełnienie formularza wniosku", "Dołączenie dokumentacji technicznej", "Przedstawienie certyfikatów agregatu", "Opłacenie opłaty administracyjnej"]
+                },
+                {
+                  step: "3",
+                  title: "Kontrola inspektora",
+                  description: "Szczegółowa kontrola pojazdu przez uprawnionego inspektora Sanepidu",
+                  details: ["Ocena stanu technicznego zabudowy", "Sprawdzenie działania agregatu", "Kontrola systemu rejestracji temperatur", "Weryfikacja norm higienicznych"]
+                },
+                {
+                  step: "4",
+                  title: "Wydanie decyzji",
+                  description: "Otrzymanie decyzji administracyjnej zatwierdzającej pojazd do przewozu żywności",
+                  details: ["Decyzja z określonym zakresem zastosowania", "Numer atestu do umieszczenia na pojeździe", "Ważność atestu (zazwyczaj 3-5 lat)", "Warunki użytkowania pojazdu"]
+                },
+                {
+                  step: "5",
+                  title: "Regularne przeglądy",
+                  description: "Utrzymanie atestu poprzez regularne przeglądy i dezynfekcję pojazdu",
+                  details: ["Coroczne kontrole stanu technicznego", "Regularna dezynfekcja wnętrza", "Kalibracja urządzeń pomiarowych", "Prowadzenie dokumentacji eksploatacyjnej"]
+                }
+              ].map(({step, title, description, details}, idx) => (
+                <div key={idx} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                  <div className="flex items-start gap-4">
+                    <div className="h-10 w-10 rounded-full bg-brand-blue text-white grid place-items-center font-bold flex-shrink-0">
+                      {step}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-brand-dark mb-2">{title}</h3>
+                      <p className="text-slate-600 mb-4">{description}</p>
+                      <div className="grid md:grid-cols-2 gap-2">
+                        {details.map((detail, dIdx) => (
+                          <div key={dIdx} className="flex items-start gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                            <span className="text-sm text-slate-600">{detail}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
