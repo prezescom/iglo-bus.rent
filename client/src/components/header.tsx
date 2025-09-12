@@ -110,6 +110,11 @@ export default function Header() {
                   📋 Wymagania auto chłodnia
                 </Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/wyposazenie-samochodow-mrozni" className="w-full">
+                  🔧 Wyposażenie samochodów
+                </Link>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </nav>
