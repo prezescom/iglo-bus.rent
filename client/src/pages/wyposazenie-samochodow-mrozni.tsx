@@ -205,22 +205,6 @@ export default function WyposazenieSamochodowMrozni() {
               </div>
             </div>
           </div>
-
-          {/* Odpływy */}
-          <div className="bg-slate-50 rounded-2xl p-8">
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <div className="h-12 w-12 rounded-xl bg-brand-light grid place-items-center">
-                  <Shield className="h-6 w-6 text-brand-blue" />
-                </div>
-                <h3 className="text-2xl font-bold text-brand-dark">Odpływy Spawane Odkręcane (2 szt.)</h3>
-              </div>
-              <p className="text-slate-600 text-lg leading-relaxed max-w-3xl mx-auto">
-                Ułatwiają mycie i dezynfekcję przestrzeni ładunkowej, gwarantując higieniczne warunki przewozu. 
-                Spawane połączenie zapewnia szczelność, a odkręcane elementy umożliwiają łatwe czyszczenie.
-              </p>
-            </div>
-          </div>
         </div>
       </section>
 
