@@ -15,46 +15,58 @@ export default function WynajemMrozni() {
         <title>Wynajem mroźni i chłodni – Śląsk (Katowice, Gliwice) | Iglo-Bus Rent</title>
         <meta
           name="description"
-          content="Wynajem mroźni/chłodni Toyota ProAce na Śląsku: Katowice, Gliwice i okolice. Zakres -20°C do +20°C, atest Sanepid, rejestrator temperatur, dostawa pod adres. Krótko i długoterminowo."
+          content="Wynajem mroźni Toyota ProAce na Śląsku (Katowice, Gliwice). −20°C do +20°C, atest Sanepid, rejestrator temperatur, dostawa pod adres. Krótko i długoterminowo."
         />
         <link rel="canonical" href={url} />
+        {/* hreflang to self (SEOCheck: alternate missing) */}
+        <link rel="alternate" hrefLang="pl" href={url} />
+        <link rel="alternate" hrefLang="x-default" href={url} />
         <meta name="robots" content="index,follow,max-image-preview:large" />
 
         {/* Open Graph / Twitter */}
+        <meta property="og:site_name" content="Iglo-Bus Rent" />
         <meta property="og:title" content="Wynajem mroźni i chłodni – Śląsk (Katowice, Gliwice) | Iglo-Bus Rent" />
-        <meta property="og:description" content="Profesjonalny wynajem mroźni, chłodni i izoterm. Toyota ProAce -20°C do +20°C. Obsługujemy Śląsk: Katowice, Gliwice i okolice." />
+        <meta
+          property="og:description"
+          content="Profesjonalny wynajem mroźni, chłodni i izoterm. Toyota ProAce −20°C do +20°C. Obsługujemy Śląsk: Katowice, Gliwice i okolice."
+        />
         <meta property="og:url" content={url} />
         <meta property="og:type" content="website" />
         <meta property="og:image" content={ogImage} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
         <meta property="og:locale" content="pl_PL" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Wynajem mroźni i chłodni – Śląsk | Iglo-Bus Rent" />
-        <meta name="twitter:description" content="Toyota ProAce -20°C do +20°C, atest Sanepid, rejestrator temperatur. Katowice, Gliwice i cały Śląsk." />
+        <meta
+          name="twitter:description"
+          content="Toyota ProAce −20°C do +20°C, atest Sanepid, rejestrator temperatur. Katowice, Gliwice i cały Śląsk."
+        />
         <meta name="twitter:image" content={ogImage} />
 
         {/* LocalBusiness (Organization) */}
         <script type="application/ld+json">{JSON.stringify({
           "@context":"https://schema.org",
           "@type":"LocalBusiness",
-          name:"Iglo-Bus Rent – Wynajem mroźni i chłodni",
-          url,
-          telephone:"+48530410504",
-          email:"kontakt@iglo-bus.rent",
-          areaServed:["Woj. śląskie","Katowice","Gliwice","Zabrze","Bytom","Chorzów"],
-          address:{ "@type":"PostalAddress", addressRegion:"Śląskie", addressCountry:"PL" },
-          priceRange:"$$",
-          description:"Wynajem mroźni, chłodni i izoterm Toyota ProAce na Śląsku. Zakres temperatur -20°C do +20°C, atest Sanepid, rejestrator temperatur."
+          "name":"Iglo-Bus Rent – Wynajem mroźni i chłodni",
+          "url": url,
+          "telephone":"+48530410504",
+          "email":"kontakt@iglo-bus.rent",
+          "areaServed":["Woj. śląskie","Katowice","Gliwice","Zabrze","Bytom","Chorzów"],
+          "address":{ "@type":"PostalAddress", "addressRegion":"Śląskie", "addressCountry":"PL" },
+          "priceRange":"$$",
+          "description":"Wynajem mroźni, chłodni i izoterm Toyota ProAce na Śląsku. Zakres temperatur −20°C do +20°C, atest Sanepid, rejestrator temperatur."
         })}</script>
 
-        {/* FAQPage */}
+        {/* FAQPage (zostaje) */}
         <script type="application/ld+json">{JSON.stringify({
           "@context":"https://schema.org",
           "@type":"FAQPage",
-          mainEntity:[
-            { "@type":"Question", name:"Ile kosztuje wynajem mroźni na Śląsku?", acceptedAnswer:{ "@type":"Answer", text:"Ceny zależą od modelu (Toyota ProAce City/ProAce/Maxi) oraz czasu najmu. Przygotowujemy wyceny dla Katowic, Gliwic i całego Śląska." }},
-            { "@type":"Question", name:"Czy obsługujecie Katowice i Gliwice?", acceptedAnswer:{ "@type":"Answer", text:"Tak. Obsługujemy Katowice, Gliwice i całe woj. śląskie. Zapewniamy dostawę auta pod adres." }},
-            { "@type":"Question", name:"Jaki jest zakres temperatur?", acceptedAnswer:{ "@type":"Answer", text:"Zakres roboczy od -20°C do +20°C. Pojazdy mają rejestrator temperatur (wydruki dla odbiorcy)." }},
-            { "@type":"Question", name:"Czy możliwy jest długoterminowy wynajem?", acceptedAnswer:{ "@type":"Answer", text:"Tak. Oferujemy najem długoterminowy z preferencyjnymi stawkami i serwisem." }}
+          "mainEntity":[
+            { "@type":"Question", "name":"Ile kosztuje wynajem mroźni na Śląsku?", "acceptedAnswer":{ "@type":"Answer", "text":"Ceny zależą od modelu (Toyota ProAce City/ProAce/Maxi) oraz czasu najmu. Przygotowujemy wyceny dla Katowic, Gliwic i całego Śląska." }},
+            { "@type":"Question", "name":"Czy obsługujecie Katowice i Gliwice?", "acceptedAnswer":{ "@type":"Answer", "text":"Tak. Obsługujemy Katowice, Gliwice i całe woj. śląskie. Zapewniamy dostawę auta pod adres." }},
+            { "@type":"Question", "name":"Jaki jest zakres temperatur?", "acceptedAnswer":{ "@type":"Answer", "text":"Zakres roboczy od −20°C do +20°C. Pojazdy mają rejestrator temperatur (wydruki dla odbiorcy)." }},
+            { "@type":"Question", "name":"Czy możliwy jest długoterminowy wynajem?", "acceptedAnswer":{ "@type":"Answer", "text":"Tak. Oferujemy najem długoterminowy z preferencyjnymi stawkami i serwisem." }}
           ]
         })}</script>
 
@@ -62,23 +74,10 @@ export default function WynajemMrozni() {
         <script type="application/ld+json">{JSON.stringify({
           "@context":"https://schema.org",
           "@type":"BreadcrumbList",
-          itemListElement:[
+          "itemListElement":[
             {"@type":"ListItem","position":1,"name":"Strona główna","item":"https://www.iglo-bus.rent/"},
             {"@type":"ListItem","position":2,"name":"Wynajem mroźni","item":url}
           ]
-        })}</script>
-
-        {/* WebSite + SearchAction (opcjonalne sitelinks) */}
-        <script type="application/ld+json">{JSON.stringify({
-          "@context":"https://schema.org",
-          "@type":"WebSite",
-          name:"Iglo-Bus Rent",
-          url:"https://www.iglo-bus.rent/",
-          potentialAction:{
-            "@type":"SearchAction",
-            target:"https://www.iglo-bus.rent/szukaj?q={query}",
-            "query-input":"required name=query"
-          }
         })}</script>
       </Helmet>
 
@@ -88,6 +87,7 @@ export default function WynajemMrozni() {
       <section className="mx-auto max-w-6xl px-4 pt-8 pb-12">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           <div className="space-y-6">
+            {/* H1 – (SEOCheck: brak H1) */}
             <h1 className="text-4xl lg:text-5xl font-bold leading-tight text-brand-dark">
               Wynajem mroźni <span className="text-brand-blue">Śląsk</span>
               <span className="block text-2xl lg:text-3xl mt-2 font-semibold">
@@ -100,11 +100,11 @@ export default function WynajemMrozni() {
               Atest Sanepid, rejestrator temperatur, dostawa pod adres.
             </p>
 
-            {/* szybkie fakty */}
+{/* szybkie fakty */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="flex items-center gap-2 p-3 rounded-xl bg-brand-light border border-brand-blue/20">
                 <Thermometer className="h-5 w-5 text-brand-blue" />
-                <span className="font-medium text-sm">-20°C/+20°C</span>
+                <span className="font-medium text-sm">−20°C/+20°C</span>
               </div>
               <div className="flex items-center gap-2 p-3 rounded-xl bg-brand-light border border-brand-blue/20">
                 <Shield className="h-5 w-5 text-brand-blue" />
@@ -112,7 +112,7 @@ export default function WynajemMrozni() {
               </div>
               <div className="flex items-center gap-2 p-3 rounded-xl bg-brand-light border border-brand-blue/20">
                 <CheckCircle2 className="h-5 w-5 text-brand-blue" />
-                <span className="font-medium text-sm">Śląsk</span>
+                <span className="font-medium text-sm">Rejestrator</span>
               </div>
               <div className="flex items-center gap-2 p-3 rounded-xl bg-brand-light border border-brand-blue/20">
                 <Zap className="h-5 w-5 text-brand-blue" />
@@ -138,11 +138,13 @@ export default function WynajemMrozni() {
                 </Link>
               </div>
 
-              {/* linki wewnętrzne pod SEO – usunięto 'wynajem-izoterm' */}
+              {/* linki wewnętrzne – SEOCheck: dead end */}
               <div className="flex flex-wrap gap-2 text-sm text-brand-blue">
                 <Link href="/wynajem-chlodni">Wynajem chłodni</Link>
                 <span>·</span>
-                <Link href="/kontakt">Kontakt</Link>
+                <Link href="/wyposazenie-samochodow-mrozni">Wyposażenie mroźni</Link>
+                <span>·</span>
+                <Link href="/wymagania-auto-chlodnia-mroznia-izoterma">Wymagania prawne</Link>
               </div>
 
               <div>
@@ -217,7 +219,7 @@ export default function WynajemMrozni() {
               <div className="space-y-4">
                 <div className="flex justify-between items-center p-3 rounded-lg bg-slate-50">
                   <span className="font-medium">Zakres temperatury</span>
-                  <span className="font-bold text-brand-blue">-20°C do +20°C</span>
+                  <span className="font-bold text-brand-blue">−20°C do +20°C</span>
                 </div>
                 <div className="flex justify-between items-center p-3 rounded-lg bg-slate-50">
                   <span className="font-medium">Typy zabudowy</span>
@@ -311,7 +313,7 @@ export default function WynajemMrozni() {
               <p className="text-slate-600 mb-4">Kompaktowy, ekonomiczny – pełna kontrola temperatury do dystrybucji miejskiej.</p>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between"><span>Pojemność</span><span className="font-semibold">~3,3 m³</span></div>
-                <div className="flex justify-between"><span>Temperatura</span><span className="font-semibold text-brand-blue">-20°C / +20°C</span></div>
+                <div className="flex justify-between"><span>Temperatura</span><span className="font-semibold text-brand-blue">−20°C / +20°C</span></div>
                 <div className="flex justify-between"><span>Zastosowanie</span><span className="font-semibold">Dostawy miejskie</span></div>
               </div>
             </div>
@@ -336,7 +338,7 @@ export default function WynajemMrozni() {
               <p className="text-slate-600 mb-4">Najbardziej uniwersalny – optymalny stosunek pojemności do kosztu.</p>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between"><span>Pojemność</span><span className="font-semibold">~5,5 m³</span></div>
-                <div className="flex justify-between"><span>Temperatura</span><span className="font-semibold text-brand-blue">-20°C / +20°C</span></div>
+                <div className="flex justify-between"><span>Temperatura</span><span className="font-semibold text-brand-blue">−20°C / +20°C</span></div>
                 <div className="flex justify-between"><span>Zastosowanie</span><span className="font-semibold">Transport regionalny</span></div>
               </div>
             </div>
@@ -361,7 +363,7 @@ export default function WynajemMrozni() {
               <p className="text-slate-600 mb-4">Największa pojemność – na duże, dłuższe transporty.</p>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between"><span>Pojemność</span><span className="font-semibold">~8,6 m³</span></div>
-                <div className="flex justify-between"><span>Temperatura</span><span className="font-semibold text-brand-blue">-20°C / +20°C</span></div>
+                <div className="flex justify-between"><span>Temperatura</span><span className="font-semibold text-brand-blue">−20°C / +20°C</span></div>
                 <div className="flex justify-between"><span>Zastosowanie</span><span className="font-semibold">Duże ładunki</span></div>
               </div>
             </div>
@@ -383,7 +385,7 @@ export default function WynajemMrozni() {
             {[
               { q: "Ile kosztuje wynajem mroźni na Śląsku?", a: "Ceny zależą od modelu (City/ProAce/Maxi), czasu najmu i trasy. Oferujemy konkurencyjne stawki dla firm z Katowic, Gliwic i całego Śląska. Skontaktuj się, a przygotujemy wycenę." },
               { q: "Czy obsługujecie Katowice i Gliwice?", a: "Tak, działamy w całym woj. śląskim: Katowice, Gliwice, Zabrze, Bytom, Chorzów. Dostarczamy auto pod adres i odbieramy po zakończeniu najmu." },
-              { q: "Jaki zakres temperatur?", a: "Wszystkie auta utrzymują -20°C do +20°C, wyposażone w rejestrator Esco DR201 (wydruk dla odbiorcy). Dostępne izotermy, chłodnie i mroźnie." },
+              { q: "Jaki zakres temperatur?", a: "Wszystkie auta utrzymują −20°C do +20°C, wyposażone w rejestrator Esco DR201 (wydruk dla odbiorcy). Dostępne izotermy, chłodnie i mroźnie." },
               { q: "Czy można wynająć długoterminowo?", a: "Oczywiście. Najem długoterminowy ze stałą stawką, pełnym serwisem i elastycznymi rozliczeniami B2B." },
               { q: "Czy jest zasilanie 230V?", a: "Tak, opcjonalne zasilanie 230V pozwala utrzymać temperaturę na postoju lub przy rozładunku." }
             ].map(({q, a}, idx) => (
