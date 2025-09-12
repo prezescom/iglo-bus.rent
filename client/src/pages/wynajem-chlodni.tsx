@@ -140,28 +140,6 @@ export default function WynajemChlodni() {
         </div>
       </section>
 
-      {/* Dodatkowy akcent o mroźni */}
-      <section className="bg-gradient-to-r from-slate-900 to-slate-800 py-12">
-        <div className="mx-auto max-w-4xl px-4 text-center">
-          <div className="inline-flex items-center gap-4 bg-white/10 rounded-2xl p-6 backdrop-blur-sm">
-            <div className="h-16 w-16 rounded-2xl bg-orange-500 grid place-items-center">
-              <Thermometer className="h-8 w-8 text-white" />
-            </div>
-            <div className="text-left text-white">
-              <h2 className="text-2xl lg:text-3xl font-bold mb-2">
-                Mroźnia = Bardziej Skuteczna Auto Chłodnia
-              </h2>
-              <p className="text-slate-300 text-lg">
-                Osiąga niższe temperatury, utrzymuje je dłużej, chroni produkty lepiej
-              </p>
-            </div>
-            <div className="h-16 w-16 rounded-2xl bg-green-500 grid place-items-center">
-              <CheckCircle2 className="h-8 w-8 text-white" />
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Co można przewozić */}
       <section className="mx-auto max-w-6xl px-4 py-16">
         <div className="text-center mb-12">
@@ -375,7 +353,7 @@ export default function WynajemChlodni() {
         <div className="mx-auto max-w-6xl px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl lg:text-4xl font-bold text-brand-dark mb-4">
-              Nasza <span className="text-brand-blue">Flota Samochodów Chłodni</span>
+              Nasza <span className="text-brand-blue">Flota Samochodów Mroźni</span>
             </h2>
             <p className="text-lg text-slate-600 max-w-3xl mx-auto">
               Toyota ProAce w trzech rozmiarach - od małych dostaw miejskich po duże transporty. 
@@ -495,7 +473,7 @@ export default function WynajemChlodni() {
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative z-10">
             <h2 className="text-3xl lg:text-4xl font-bold mb-4">
-              Sprawdź Dostępność Samochodów Chłodni
+              Sprawdź Dostępność Samochodów Mroźni
             </h2>
             <p className="text-xl mb-8 opacity-90">
               Odpowiadamy szybko — zwykle w kilkanaście minut. <br />

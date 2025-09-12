@@ -1,5 +1,11 @@
-import { Snowflake, Mail } from "lucide-react";
+import { Snowflake, Mail, ChevronDown } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Header() {
   const [location] = useLocation();
@@ -34,13 +40,29 @@ export default function Header() {
         </Link>
         
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium" data-testid="navigation">
-          <Link
-            href="/wynajem-mrozni"
-            className="hover:text-brand-blue transition-colors"
-            data-testid="nav-rental"
-          >
-            Wynajem mroźni
-          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center gap-1 hover:text-brand-blue transition-colors outline-none" data-testid="nav-rental-dropdown">
+              Wynajem mroźni
+              <ChevronDown className="h-3 w-3" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-64">
+              <DropdownMenuItem asChild>
+                <Link href="/wynajem-mrozni" className="w-full">
+                  🧊 Wynajem mroźni
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/wynajem-chlodni" className="w-full">
+                  ❄️ Wynajem chłodni
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/wymagania-auto-chlodnia-mroznia-izoterma" className="w-full">
+                  📋 Wymagania auto chłodnia
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {isHomePage ? (
             <>
               <button
