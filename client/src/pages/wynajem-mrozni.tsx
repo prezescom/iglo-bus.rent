@@ -95,8 +95,8 @@ export default function WynajemMrozni() {
               </span>
             </h1>
             <p className="text-lg text-slate-600 leading-relaxed">
-              Profesjonalny <strong>wynajem mroźni, chłodni i izoterm</strong> na Śląsku.
-              Toyota ProAce w trzech rozmiarach: <span className="text-brand-blue font-semibold">-20°C do +20°C</span>.
+              <strong>Wynajem mroźni, chłodni i izoterm</strong> na Śląsku.
+              Toyota ProAce w trzech rozmiarach: <span className="text-brand-blue font-semibold">S / M / L</span>.
               Atest Sanepid, rejestrator temperatur, dostawa pod adres.
             </p>
 
@@ -138,11 +138,9 @@ export default function WynajemMrozni() {
                 </Link>
               </div>
 
-              {/* linki wewnętrzne pod SEO */}
+              {/* linki wewnętrzne pod SEO – usunięto 'wynajem-izoterm' */}
               <div className="flex flex-wrap gap-2 text-sm text-brand-blue">
                 <Link href="/wynajem-chlodni">Wynajem chłodni</Link>
-                <span>·</span>
-                <Link href="/wynajem-izoterm">Wynajem izoterm</Link>
                 <span>·</span>
                 <Link href="/kontakt">Kontakt</Link>
               </div>
@@ -181,43 +179,16 @@ export default function WynajemMrozni() {
           <h2 className="text-3xl lg:text-4xl font-bold text-brand-dark mb-4">
             Dlaczego <span className="text-brand-blue">wynajem mroźni</span> od Iglo-Bus Rent?
           </h2>
-          <p className="text-lg text-slate-600 max-w-3xl mx-auto">
-            Wynajmujemy chłodnie, mroźnie i izotermy na Śląsku – głównie Katowice, Gliwice i okolice.
-          </p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[
-            {
-              icon: Shield,
-              title: "Pełna zgodność prawna",
-              desc: "Zabudowy z atestem Sanepid, komplet dokumentów do odbiorów."
-            },
-            {
-              icon: Thermometer,
-              title: "Precyzyjna temperatura",
-              desc: "Rejestrator Esco DR201 z szybkim wydrukiem."
-            },
-            {
-              icon: Clock,
-              title: "Elastyczny wynajem",
-              desc: "Od 1 dnia do najmu długoterminowego."
-            },
-            {
-              icon: Truck,
-              title: "Dostawa na Śląsku",
-              desc: "Katowice, Gliwice i całe województwo śląskie."
-            },
-            {
-              icon: Zap,
-              title: "Nowoczesna flota",
-              desc: "Toyota ProAce, opcjonalne zasilanie 230V."
-            },
-            {
-              icon: CheckCircle2,
-              title: "Niezawodność",
-              desc: "Regularny serwis – minimalizujemy ryzyko przestojów."
-            }
+            { icon: Shield, title: "Pełna zgodność prawna", desc: "Zabudowy z atestem Sanepid, komplet dokumentów do odbiorów." },
+            { icon: Thermometer, title: "Precyzyjna temperatura", desc: "Rejestrator Esco DR201 z szybkim wydrukiem i pamięcią wewnętrzną." },
+            { icon: Clock, title: "Elastyczny wynajem", desc: "Od 1 dnia do najmu długoterminowego." },
+            { icon: Truck, title: "Dostawa na Śląsku", desc: "Katowice, Gliwice i całe województwo śląskie." },
+            { icon: Zap, title: "Nowoczesna flota", desc: "Toyota ProAce, zewnętrzne zasilanie 230V." },
+            { icon: CheckCircle2, title: "Niezawodność", desc: "Regularny serwis – minimalizujemy ryzyko przestojów." }
           ].map(({icon: Icon, title, desc}, idx) => (
             <div key={idx} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3 mb-4">
@@ -410,26 +381,11 @@ export default function WynajemMrozni() {
 
           <div className="grid gap-4 max-w-4xl mx-auto">
             {[
-              {
-                q: "Ile kosztuje wynajem mroźni na Śląsku?",
-                a: "Ceny zależą od modelu (City/ProAce/Maxi), czasu najmu i trasy. Oferujemy konkurencyjne stawki dla firm z Katowic, Gliwic i całego Śląska. Skontaktuj się, a przygotujemy wycenę."
-              },
-              {
-                q: "Czy obsługujecie Katowice i Gliwice?",
-                a: "Tak, działamy w całym woj. śląskim: Katowice, Gliwice, Zabrze, Bytom, Chorzów. Dostarczamy auto pod adres i odbieramy po zakończeniu najmu."
-              },
-              {
-                q: "Jaki zakres temperatur?",
-                a: "Wszystkie auta utrzymują -20°C do +20°C, wyposażone w rejestrator Esco DR201 (wydruk dla odbiorcy). Dostępne izotermy, chłodnie i mroźnie."
-              },
-              {
-                q: "Czy można wynająć długoterminowo?",
-                a: "Oczywiście. Najem długoterminowy ze stałą stawką, pełnym serwisem i elastycznymi rozliczeniami B2B."
-              },
-              {
-                q: "Czy jest zasilanie 230V?",
-                a: "Tak, opcjonalne zasilanie 230V pozwala utrzymać temperaturę na postoju lub przy rozładunku."
-              }
+              { q: "Ile kosztuje wynajem mroźni na Śląsku?", a: "Ceny zależą od modelu (City/ProAce/Maxi), czasu najmu i trasy. Oferujemy konkurencyjne stawki dla firm z Katowic, Gliwic i całego Śląska. Skontaktuj się, a przygotujemy wycenę." },
+              { q: "Czy obsługujecie Katowice i Gliwice?", a: "Tak, działamy w całym woj. śląskim: Katowice, Gliwice, Zabrze, Bytom, Chorzów. Dostarczamy auto pod adres i odbieramy po zakończeniu najmu." },
+              { q: "Jaki zakres temperatur?", a: "Wszystkie auta utrzymują -20°C do +20°C, wyposażone w rejestrator Esco DR201 (wydruk dla odbiorcy). Dostępne izotermy, chłodnie i mroźnie." },
+              { q: "Czy można wynająć długoterminowo?", a: "Oczywiście. Najem długoterminowy ze stałą stawką, pełnym serwisem i elastycznymi rozliczeniami B2B." },
+              { q: "Czy jest zasilanie 230V?", a: "Tak, opcjonalne zasilanie 230V pozwala utrzymać temperaturę na postoju lub przy rozładunku." }
             ].map(({q, a}, idx) => (
               <details key={idx} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                 <summary className="p-6 font-semibold text-brand-dark cursor-pointer hover:text-brand-blue transition-colors">
@@ -453,7 +409,7 @@ export default function WynajemMrozni() {
               Sprawdź dostępność mroźni na Śląsku
             </h2>
             <p className="text-xl mb-8 opacity-90">
-              Odpowiadamy szybko — zwykle w kilkanaście minut. Wynajem chłodni w Katowicach, Gliwicach i na całym Śląsku.
+              Odpowiadamy szybko — zwykle w kilkanaście minut. Wynajem mroźni w Katowicach, Gliwicach i na całym Śląsku.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-2xl mx-auto">
