@@ -40,29 +40,6 @@ export default function Header() {
         </Link>
         
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium" data-testid="navigation">
-          <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-1 hover:text-brand-blue transition-colors outline-none" data-testid="nav-rental-dropdown">
-              Wynajem mroźni
-              <ChevronDown className="h-3 w-3" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-64">
-              <DropdownMenuItem asChild>
-                <Link href="/wynajem-mrozni" className="w-full">
-                  🧊 Wynajem mroźni
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/wynajem-chlodni" className="w-full">
-                  ❄️ Wynajem chłodni
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/wymagania-auto-chlodnia-mroznia-izoterma" className="w-full">
-                  📋 Wymagania auto chłodnia
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
           {isHomePage ? (
             <>
               <button
@@ -112,6 +89,29 @@ export default function Header() {
               </a>
             </>
           )}
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center gap-1 hover:text-brand-blue transition-colors outline-none" data-testid="nav-knowledge-dropdown">
+              Baza wiedzy
+              <ChevronDown className="h-3 w-3" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuItem asChild>
+                <Link href="/wynajem-mrozni" className="w-full">
+                  🧊 Wynajem mroźni
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/wynajem-chlodni" className="w-full">
+                  ❄️ Wynajem chłodni
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/wymagania-auto-chlodnia-mroznia-izoterma" className="w-full">
+                  📋 Wymagania auto chłodnia
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </nav>
         
         <div className="text-sm" data-testid="contact-email">
