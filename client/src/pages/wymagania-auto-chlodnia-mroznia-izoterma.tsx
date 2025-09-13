@@ -95,28 +95,47 @@ export default function WymaganiaAutoChlodnia() {
             Zebraliśmy najważniejsze <strong>wymogi prawne i techniczne</strong> dla pojazdów do transportu w kontrolowanej temperaturze.
           </p>
 
-          {/* Spis treści + linki wewnętrzne */}
-          <nav className="mt-6 text-sm text-brand-blue flex flex-wrap gap-3 justify-center">
-            <a href="#wymagania-prawne" className="hover:underline">Podstawowe wymagania</a>
-            <span>·</span>
-            <a href="#wymogi-techniczne" className="hover:underline">Wymogi techniczne</a>
-            <span>·</span>
-            <a href="#klasyfikacja" className="hover:underline">Klasyfikacja pojazdów</a>
-            <span>·</span>
-            <a href="#kontrole-kary" className="hover:underline">Kontrole i kary</a>
-            <span>·</span>
-            <a href="#podstawy-prawne" className="hover:underline">Podstawy prawne</a>
-            <span>·</span>
-            <a href="#howto-sanepid" className="hover:underline">Jak uzyskać atest</a>
-          </nav>
+          {/* Spis treści - sekcje na tej stronie */}
+          <div className="mt-6 bg-white/70 rounded-xl p-4 border border-slate-200">
+            <div className="text-xs font-medium text-slate-500 mb-2 text-center">📋 Spis treści tej strony:</div>
+            <nav className="text-sm text-brand-blue flex flex-wrap gap-3 justify-center">
+              <a href="#wymagania-prawne" className="hover:underline hover:text-brand-dark transition-colors px-2 py-1 rounded bg-brand-light/30">Podstawowe wymagania</a>
+              <span className="text-slate-400">·</span>
+              <a href="#wymogi-techniczne" className="hover:underline hover:text-brand-dark transition-colors px-2 py-1 rounded bg-brand-light/30">Wymogi techniczne</a>
+              <span className="text-slate-400">·</span>
+              <a href="#klasyfikacja" className="hover:underline hover:text-brand-dark transition-colors px-2 py-1 rounded bg-brand-light/30">Klasyfikacja pojazdów</a>
+              <span className="text-slate-400">·</span>
+              <a href="#kontrole-kary" className="hover:underline hover:text-brand-dark transition-colors px-2 py-1 rounded bg-brand-light/30">Kontrole i kary</a>
+              <span className="text-slate-400">·</span>
+              <a href="#podstawy-prawne" className="hover:underline hover:text-brand-dark transition-colors px-2 py-1 rounded bg-brand-light/30">Podstawy prawne</a>
+              <span className="text-slate-400">·</span>
+              <a href="#howto-sanepid" className="hover:underline hover:text-brand-dark transition-colors px-2 py-1 rounded bg-brand-light/30">Jak uzyskać atest</a>
+            </nav>
+          </div>
 
-          {/* Linki wewnętrzne SEO */}
-          <div className="mt-4 text-sm text-brand-blue flex gap-2 justify-center">
-            <Link href="/wynajem-chlodni">Wynajem chłodni</Link>
-            <span>·</span>
-            <Link href="/wynajem-mrozni">Wynajem mroźni</Link>
-            <span>·</span>
-            <Link href="/wyposazenie-samochodow-mrozni">Wyposażenie mroźni</Link>
+          {/* Powiązane strony - linki do innych podstron */}
+          <div className="mt-4 bg-brand-light/20 rounded-xl p-4 border border-brand-blue/20">
+            <div className="text-xs font-medium text-slate-600 mb-2 text-center">🔗 Powiązane tematy:</div>
+            <div className="text-sm flex gap-2 justify-center flex-wrap">
+              <Link 
+                href="/wynajem-chlodni" 
+                className="text-brand-blue hover:text-white hover:bg-brand-blue transition-all px-3 py-1 rounded-full border border-brand-blue/30"
+              >
+                ❄️ Wynajem chłodni
+              </Link>
+              <Link 
+                href="/wynajem-mrozni" 
+                className="text-brand-blue hover:text-white hover:bg-brand-blue transition-all px-3 py-1 rounded-full border border-brand-blue/30"
+              >
+                🧊 Wynajem mroźni
+              </Link>
+              <Link 
+                href="/wyposazenie-samochodow-mrozni" 
+                className="text-brand-blue hover:text-white hover:bg-brand-blue transition-all px-3 py-1 rounded-full border border-brand-blue/30"
+              >
+                🔧 Wyposażenie mroźni
+              </Link>
+            </div>
           </div>
         </div>
       </section>
