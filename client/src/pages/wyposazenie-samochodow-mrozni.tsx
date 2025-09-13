@@ -102,12 +102,13 @@ export default function WyposazenieSamochodowMrozni() {
             </p>
 
             {/* Linki wewnętrzne pod SEO */}
-            <div className="inline-flex flex-wrap items-center gap-3 justify-center">
-              <Link href="/wynajem-mrozni">Wynajem mroźni</Link>
+            <div className="text-sm text-slate-500 flex gap-2 justify-center flex-wrap border-t border-slate-200 pt-3">
+              <span className="text-xs">Zobacz także:</span>
+              <Link href="/wynajem-mrozni" className="text-brand-blue hover:underline">Wynajem mroźni</Link>
               <span>•</span>
-              <Link href="/wynajem-chlodni">Wynajem chłodni</Link>
+              <Link href="/wynajem-chlodni" className="text-brand-blue hover:underline">Wynajem chłodni</Link>
               <span>•</span>
-              <Link href="/wymagania-auto-chlodnia-mroznia-izoterma">Wymagania prawne</Link>
+              <Link href="/wymagania-auto-chlodnia-mroznia-izoterma" className="text-brand-blue hover:underline">Wymagania prawne</Link>
             </div>
 
             <div className="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-blue/10 border border-brand-blue/20">

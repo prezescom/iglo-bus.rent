@@ -218,10 +218,13 @@ export default function WynajemChlodni() {
               </div>
 
               {/* linki wewnętrzne pod SEO */}
-              <div className="flex flex-wrap gap-2 text-sm text-brand-blue">
-                <Link href="/wynajem-mrozni">Wynajem mroźni</Link>
-                <span>·</span>
-                <Link href="/kontakt">Kontakt</Link>
+              <div className="text-sm text-slate-500 flex gap-2 justify-center flex-wrap border-t border-slate-200 pt-3">
+                <span className="text-xs">Zobacz także:</span>
+                <Link href="/wynajem-mrozni" className="text-brand-blue hover:underline">Wynajem mroźni</Link>
+                <span>•</span>
+                <Link href="/wyposazenie-samochodow-mrozni" className="text-brand-blue hover:underline">Wyposażenie mroźni</Link>
+                <span>•</span>
+                <Link href="/wymagania-auto-chlodnia-mroznia-izoterma" className="text-brand-blue hover:underline">Wymagania prawne</Link>
               </div>
             </div>
           </div>

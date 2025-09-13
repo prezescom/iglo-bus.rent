@@ -139,12 +139,13 @@ export default function WynajemMrozni() {
               </div>
 
               {/* linki wewnętrzne – SEOCheck: dead end */}
-              <div className="flex flex-wrap gap-2 text-sm text-brand-blue">
-                <Link href="/wynajem-chlodni">Wynajem chłodni</Link>
-                <span>·</span>
-                <Link href="/wyposazenie-samochodow-mrozni">Wyposażenie mroźni</Link>
-                <span>·</span>
-                <Link href="/wymagania-auto-chlodnia-mroznia-izoterma">Wymagania prawne</Link>
+              <div className="text-sm text-slate-500 flex gap-2 justify-center flex-wrap border-t border-slate-200 pt-3">
+                <span className="text-xs">Zobacz także:</span>
+                <Link href="/wynajem-chlodni" className="text-brand-blue hover:underline">Wynajem chłodni</Link>
+                <span>•</span>
+                <Link href="/wyposazenie-samochodow-mrozni" className="text-brand-blue hover:underline">Wyposażenie mroźni</Link>
+                <span>•</span>
+                <Link href="/wymagania-auto-chlodnia-mroznia-izoterma" className="text-brand-blue hover:underline">Wymagania prawne</Link>
               </div>
 
               <div>
