@@ -1,5 +1,6 @@
-import { Snowflake, Mail, ChevronDown } from "lucide-react";
+import { Snowflake, Mail, ChevronDown, Menu, X } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +11,7 @@ import {
 export default function Header() {
   const [location] = useLocation();
   const isHomePage = location === "/";
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const scrollToSection = (sectionId: string) => {
     if (isHomePage) {
@@ -119,16 +121,133 @@ export default function Header() {
           </DropdownMenu>
         </nav>
         
-        <div className="text-sm" data-testid="contact-email">
-          <a 
-            href="/kontakt" 
-            className="hover:text-brand-blue transition-colors font-medium flex items-center gap-1"
+        <div className="flex items-center gap-3">
+          <div className="text-sm" data-testid="contact-email">
+            <a 
+              href="/kontakt" 
+              className="hover:text-brand-blue transition-colors font-medium flex items-center gap-1"
+            >
+              <Mail className="h-4 w-4" />
+              <span className="hidden sm:inline">kontakt@iglo-bus.rent</span>
+            </a>
+          </div>
+          
+          {/* Mobile menu button */}
+          <button
+            className="md:hidden p-2 hover:bg-gray-100 rounded-md transition-colors"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            data-testid="mobile-menu-button"
           >
-            <Mail className="h-4 w-4" />
-            <span className="hidden sm:inline">kontakt@iglo-bus.rent</span>
-          </a>
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
       </div>
+      
+      {/* Mobile menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t bg-white/95 backdrop-blur-sm" data-testid="mobile-menu">
+          <nav className="px-4 py-3 space-y-2">
+            {isHomePage ? (
+              <>
+                <button
+                  onClick={() => {
+                    scrollToSection("flota");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="block w-full text-left py-2 px-3 hover:bg-brand-light rounded-md transition-colors"
+                  data-testid="mobile-nav-fleet"
+                >
+                  Flota i cennik
+                </button>
+                <button
+                  onClick={() => {
+                    scrollToSection("jak-dziala");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="block w-full text-left py-2 px-3 hover:bg-brand-light rounded-md transition-colors"
+                  data-testid="mobile-nav-how-it-works"
+                >
+                  Jak to działa
+                </button>
+                <button
+                  onClick={() => {
+                    scrollToSection("faq");
+                    setMobileMenuOpen(false);
+                  }}
+                  className="block w-full text-left py-2 px-3 hover:bg-brand-light rounded-md transition-colors"
+                  data-testid="mobile-nav-faq"
+                >
+                  FAQ
+                </button>
+              </>
+            ) : (
+              <>
+                <a
+                  href="/#flota"
+                  className="block py-2 px-3 hover:bg-brand-light rounded-md transition-colors"
+                  data-testid="mobile-nav-fleet"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Flota i cennik
+                </a>
+                <a
+                  href="/#jak-dziala"
+                  className="block py-2 px-3 hover:bg-brand-light rounded-md transition-colors"
+                  data-testid="mobile-nav-how-it-works"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Jak to działa
+                </a>
+                <a
+                  href="/#faq"
+                  className="block py-2 px-3 hover:bg-brand-light rounded-md transition-colors"
+                  data-testid="mobile-nav-faq"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  FAQ
+                </a>
+              </>
+            )}
+            
+            {/* Mobile Baza wiedzy section */}
+            <div className="border-t pt-2 mt-2">
+              <div className="py-2 px-3 text-sm font-medium text-gray-600">Baza wiedzy</div>
+              <Link 
+                href="/wynajem-mrozni" 
+                className="block py-2 px-6 hover:bg-brand-light rounded-md transition-colors text-sm"
+                onClick={() => setMobileMenuOpen(false)}
+                data-testid="mobile-nav-wynajem-mrozni"
+              >
+                🧊 Wynajem mroźni
+              </Link>
+              <Link 
+                href="/wynajem-chlodni" 
+                className="block py-2 px-6 hover:bg-brand-light rounded-md transition-colors text-sm"
+                onClick={() => setMobileMenuOpen(false)}
+                data-testid="mobile-nav-wynajem-chlodni"
+              >
+                ❄️ Wynajem chłodni
+              </Link>
+              <Link 
+                href="/wymagania-auto-chlodnia-mroznia-izoterma" 
+                className="block py-2 px-6 hover:bg-brand-light rounded-md transition-colors text-sm"
+                onClick={() => setMobileMenuOpen(false)}
+                data-testid="mobile-nav-wymagania"
+              >
+                📋 Wymagania auto chłodnia
+              </Link>
+              <Link 
+                href="/wyposazenie-samochodow-mrozni" 
+                className="block py-2 px-6 hover:bg-brand-light rounded-md transition-colors text-sm"
+                onClick={() => setMobileMenuOpen(false)}
+                data-testid="mobile-nav-wyposazenie"
+              >
+                🔧 Wyposażenie samochodów
+              </Link>
+            </div>
+          </nav>
+        </div>
+      )}
     </header>
   );
 }
