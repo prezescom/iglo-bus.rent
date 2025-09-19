@@ -3,28 +3,35 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <!-- Minimalny fallback tytułu (właściwe SEO ustawia react-helmet-async w stronach) -->
     <title>Iglo-Bus Rent</title>
 
+    <!-- Kolor motywu i ikony -->
     <meta name="theme-color" content="#0ea5e9" />
     <meta name="color-scheme" content="light only" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
+    <!-- Wydajność: fonty (opcjonalnie zostawiamy) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+      rel="stylesheet"
+    />
 
-    <!-- Uwaga: żadnych canonical/OG/Twitter/hreflang/JSON-LD w index.html.
-         Wszystko wstrzykują strony przez react-helmet-async. -->
-
-    <!-- Vite bundel -->
-    <link rel="stylesheet" crossorigin href="/assets/index-Vb5OTFhT.css" />
-    <script type="module" crossorigin src="/assets/index-DOmv7MHh.js"></script>
+    <!-- Uwaga:
+      ŻADNYCH canonical/OG/Twitter/hreflang/JSON-LD w index.html.
+      Wszystko wstrzykują poszczególne strony przez react-helmet-async.
+    -->
   </head>
   <body>
     <div id="root"></div>
     <noscript>Do pełnej funkcjonalności tej strony potrzebny jest JavaScript.</noscript>
+
+    <!-- Prawidłowy punkt wejścia dla Vite (ŹRÓDŁO, nie /assets/…) -->
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
