@@ -1,198 +1,30 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pl">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>Iglo-Bus Rent</title>
 
-    <!-- Basic SEO -->
-    <title>Wypożyczalnia aut mroźni i chłodni – Śląsk | Iglo-Bus Rent</title>
-    <meta
-      name="description"
-      content="Iglo-Bus Rent: wynajem samochodów mroźni i chłodni na Śląsku (Katowice, Gliwice i okolice). Zakres -20°C do +20°C, atest Sanepid, rejestrator temperatur. Krótko i długoterminowo."
-    />
-    <link rel="canonical" href="https://www.iglo-bus.rent/" />
-    <meta name="robots" content="index,follow,max-image-preview:large" />
-
-    <!-- Open Graph -->
-    <meta property="og:type" content="website" />
-    <meta property="og:locale" content="pl_PL" />
-    <meta property="og:site_name" content="Iglo-Bus Rent" />
-    <meta
-      property="og:title"
-      content="Wypożyczalnia aut mroźni i chłodni – Śląsk | Iglo-Bus Rent"
-    />
-    <meta
-      property="og:description"
-      content="Wynajem aut mroźni i chłodni. Samochody do -20°C, rejestratory temperatur, szybkie podstawienie na Śląsku."
-    />
-    <meta property="og:url" content="https://www.iglo-bus.rent/" />
-    <meta
-      property="og:image"
-      content="https://www.iglo-bus.rent/images/og-home-1200.jpg"
-    />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-
-    <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Iglo-Bus Rent – wynajem mroźni i chłodni" />
-    <meta
-      name="twitter:description"
-      content="Flota Toyota ProAce: -20°C do +20°C, atest Sanepid, rejestrator temperatur. Śląsk."
-    />
-    <meta
-      name="twitter:image"
-      content="https://www.iglo-bus.rent/images/og-home-1200.jpg"
-    />
-
-    <!-- Hreflang (jeśli masz tylko polski, zostaw pl) -->
-    <link rel="alternate" href="https://www.iglo-bus.rent/" hreflang="pl" />
-
-    <!-- Icons -->
+    <meta name="theme-color" content="#0ea5e9" />
+    <meta name="color-scheme" content="light only" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="theme-color" content="#0ea5e9" />
 
-    <!-- Performance: fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet" />
 
-    <!-- JSON-LD: WebSite + SearchAction (sitelinks) -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "WebSite",
-        "name": "Iglo-Bus Rent",
-        "url": "https://www.iglo-bus.rent/",
-        "potentialAction": {
-          "@type": "SearchAction",
-          "target": "https://www.iglo-bus.rent/szukaj?q={query}",
-          "query-input": "required name=query"
-        }
-      }
-    </script>
+    <!-- Uwaga: żadnych canonical/OG/Twitter/hreflang/JSON-LD w index.html.
+         Wszystko wstrzykują strony przez react-helmet-async. -->
 
-    <!-- JSON-LD: BreadcrumbList (strona główna) -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          {
-            "@type": "ListItem",
-            "position": 1,
-            "name": "Strona główna",
-            "item": "https://www.iglo-bus.rent/"
-          }
-        ]
-      }
-    </script>
-
-    <!-- JSON-LD: LocalBusiness (firma) -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "LocalBusiness",
-        "name": "Iglo-Bus Rent",
-        "url": "https://www.iglo-bus.rent/",
-        "description": "Wypożyczalnia samochodów mroźni i chłodni na Śląsku (-20°C do +20°C, atest Sanepid, rejestrator temperatur).",
-        "areaServed": ["Woj. śląskie", "Katowice", "Gliwice", "Zabrze", "Bytom", "Chorzów"],
-        "telephone": "+48530410504",
-        "email": "kontakt@iglo-bus.rent",
-        "priceRange": "PLN",
-        "address": {
-          "@type": "PostalAddress",
-          "addressRegion": "Śląskie",
-          "addressCountry": "PL"
-        },
-        "sameAs": ["https://www.facebook.com/iglobus.rent"]
-      }
-    </script>
-
-    <!-- JSON-LD: Product – ProAce City (S) -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org/",
-        "@type": "Product",
-        "name": "Wynajem mroźni Toyota ProAce City",
-        "description": "Mała mroźnia -20°C do +20°C. Rejestrator temperatur, zabudowa z atestem Sanepid.",
-        "image": ["https://www.iglo-bus.rent/images/og-home-1200.jpg"],
-        "brand": { "@type": "Brand", "name": "Toyota" },
-        "url": "https://www.iglo-bus.rent/wynajem-mrozni",
-        "offers": {
-          "@type": "Offer",
-          "url": "https://www.iglo-bus.rent/wynajem-mrozni?model=proace-city",
-          "priceCurrency": "PLN",
-          "price": "260.00",
-          "availability": "https://schema.org/InStock",
-          "itemCondition": "https://schema.org/UsedCondition",
-          "priceValidUntil": "2025-12-31",
-          "seller": { "@type": "Organization", "name": "Iglo-Bus Rent" }
-        },
-        "additionalProperty": [
-          { "@type": "PropertyValue", "name": "Zakres temperatur", "value": "-20°C do +20°C" },
-          { "@type": "PropertyValue", "name": "Rejestrator temperatury", "value": "Esco DR201" }
-        ]
-      }
-    </script>
-
-    <!-- JSON-LD: Product – ProAce (M) -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org/",
-        "@type": "Product",
-        "name": "Wynajem chłodni Toyota ProAce",
-        "description": "Średnia chłodnia z kontrolą temperatury -20°C do +20°C. Rejestrator Esco DR201.",
-        "image": ["https://www.iglo-bus.rent/images/og-home-1200.jpg"],
-        "brand": { "@type": "Brand", "name": "Toyota" },
-        "url": "https://www.iglo-bus.rent/wynajem-mrozni",
-        "offers": {
-          "@type": "Offer",
-          "url": "https://www.iglo-bus.rent/wynajem-mrozni?model=proace",
-          "priceCurrency": "PLN",
-          "price": "280.00",
-          "availability": "https://schema.org/InStock",
-          "itemCondition": "https://schema.org/UsedCondition",
-          "priceValidUntil": "2025-12-31",
-          "seller": { "@type": "Organization", "name": "Iglo-Bus Rent" }
-        }
-      }
-    </script>
-
-    <!-- JSON-LD: Product – ProAce Maxi (L) -->
-    <script type="application/ld+json">
-      {
-        "@context": "https://schema.org/",
-        "@type": "Product",
-        "name": "Wynajem izotermy Toyota ProAce Maxi",
-        "description": "Duża izoterma do transportu chłodniczego. Zakres -20°C do +20°C, atest Sanepid.",
-        "image": ["https://www.iglo-bus.rent/images/og-home-1200.jpg"],
-        "brand": { "@type": "Brand", "name": "Toyota" },
-        "url": "https://www.iglo-bus.rent/wynajem-mrozni",
-        "offers": {
-          "@type": "Offer",
-          "url": "https://www.iglo-bus.rent/wynajem-mrozni?model=proace-maxi",
-          "priceCurrency": "PLN",
-          "price": "350.00",
-          "availability": "https://schema.org/InStock",
-          "itemCondition": "https://schema.org/UsedCondition",
-          "priceValidUntil": "2025-12-31",
-          "seller": { "@type": "Organization", "name": "Iglo-Bus Rent" }
-        }
-      }
-    </script>
+    <!-- Vite bundel -->
+    <link rel="stylesheet" crossorigin href="/assets/index-Vb5OTFhT.css" />
+    <script type="module" crossorigin src="/assets/index-DOmv7MHh.js"></script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <noscript>Do pełnej funkcjonalności tej strony potrzebny jest JavaScript.</noscript>
   </body>
 </html>
