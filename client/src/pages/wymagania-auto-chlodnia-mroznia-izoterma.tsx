@@ -8,76 +8,85 @@ export default function WymaganiaAutoChlodnia() {
   const url = "https://www.iglo-bus.rent/wymagania-auto-chlodnia-mroznia-izoterma";
   const ogImage = "https://www.iglo-bus.rent/images/og-home-1200.jpg";
 
+  // Ujednolicone meta (jeden punkt prawdy)
+  const pageTitle = "Wymagania auto chłodni, mroźni i izoterm – przepisy | Iglo-Bus Rent";
+  const pageDesc =
+    "Przepisy i normy dla auto chłodni, mroźni i izoterm: atest Sanepid, rejestrator temperatur, HACCP. Praktyczny poradnik dla firm z woj. śląskiego.";
+  const datePublished = "2024-12-12";
+  const dateModified = "2024-12-12";
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <Helmet>
         {/* Core SEO */}
-        <title>Wymagania auto chłodni, mroźni i izoterm – przepisy | Iglo-Bus Rent</title>
-        <meta
-          name="description"
-          content="Przepisy i normy dla auto chłodni, mroźni i izoterm: atest Sanepid, rejestrator temperatur, HACCP. Praktyczny poradnik dla firm z woj. śląskiego."
-        />
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDesc} />
         <link rel="canonical" href={url} />
         <meta name="robots" content="index,follow,max-image-preview:large" />
+        <link rel="alternate" hrefLang="pl-PL" href={url} />
 
         {/* Open Graph / Twitter */}
         <meta property="og:type" content="article" />
         <meta property="og:locale" content="pl_PL" />
         <meta property="og:site_name" content="Iglo-Bus Rent" />
-        <meta property="og:title" content="Wymagania auto chłodni, mroźni i izoterm – przepisy" />
-        <meta
-          property="og:description"
-          content="Atest Sanepid, rejestrator temperatur i HACCP – wszystko, co musi spełniać pojazd do transportu chłodniczego."
-        />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDesc} />
         <meta property="og:url" content={url} />
         <meta property="og:image" content={ogImage} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="Auto chłodnia/mroźnia – wymagania i przepisy" />
+        <meta property="article:published_time" content={datePublished} />
+        <meta property="article:modified_time" content={dateModified} />
 
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Wymagania auto chłodni, mroźni i izoterm – przepisy" />
-        <meta
-          name="twitter:description"
-          content="Praktyczny przewodnik: Sanepid, HACCP, rejestrator temperatur – warunki dla transportu chłodniczego."
-        />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDesc} />
         <meta name="twitter:image" content={ogImage} />
 
         {/* Article schema */}
-        <script type="application/ld+json">{JSON.stringify({
-          "@context":"https://schema.org",
-          "@type":"Article",
-          "headline":"Wymagania auto chłodni, mroźni i izoterm – przepisy i normy",
-          "description":"Przewodnik po wymaganiach prawnych i technicznych: atest Sanepid, rejestrator temperatur, HACCP.",
-          "author":{"@type":"Organization","name":"Iglo-Bus Rent"},
-          "publisher":{"@type":"Organization","name":"Iglo-Bus Rent"},
-          "image": ogImage,
-          "mainEntityOfPage": url,
-          "datePublished":"2024-12-12",
-          "dateModified":"2024-12-12"
+        <script
+          type="application/ld+json"
+        >{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Article",
+          headline: "Wymagania auto chłodni, mroźni i izoterm – przepisy i normy",
+          description:
+            "Przewodnik po wymaganiach prawnych i technicznych: atest Sanepid, rejestrator temperatur, HACCP.",
+          author: { "@type": "Organization", name: "Iglo-Bus Rent" },
+          publisher: { "@type": "Organization", name: "Iglo-Bus Rent" },
+          image: ogImage,
+          mainEntityOfPage: url,
+          datePublished,
+          dateModified
         })}</script>
 
         {/* Breadcrumbs */}
-        <script type="application/ld+json">{JSON.stringify({
-          "@context":"https://schema.org",
-          "@type":"BreadcrumbList",
-          "itemListElement":[
-            {"@type":"ListItem","position":1,"name":"Strona główna","item":"https://www.iglo-bus.rent/"},
-            {"@type":"ListItem","position":2,"name":"Wymagania auto chłodni / mroźni / izoterm","item":url}
+        <script
+          type="application/ld+json"
+        >{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Strona główna", item: "https://www.iglo-bus.rent/" },
+            { "@type": "ListItem", position: 2, name: "Wymagania auto chłodni / mroźni / izoterm", item: url }
           ]
         })}</script>
 
         {/* HowTo – droga do zatwierdzenia Sanepidu */}
-        <script type="application/ld+json">{JSON.stringify({
-          "@context":"https://schema.org",
-          "@type":"HowTo",
-          "name":"Jak uzyskać zatwierdzenie Sanepidu dla pojazdu chłodniczego",
-          "description":"Kroki do uzyskania atestu Sanepid dla auta chłodni/mroźni.",
-          "step":[
-            {"@type":"HowToStep","name":"Przygotowanie pojazdu","text":"Zabudowa izolacyjna, agregat chłodniczy, rejestrator temperatur, wykończenie higieniczne."},
-            {"@type":"HowToStep","name":"Złożenie wniosku","text":"Wniosek w PSSE + dokumentacja techniczna i certyfikaty."},
-            {"@type":"HowToStep","name":"Kontrola inspektora","text":"Sprawdzenie zabudowy, agregatu i rejestratora."},
-            {"@type":"HowToStep","name":"Wydanie decyzji","text":"Decyzja administracyjna z zakresem zastosowania."},
-            {"@type":"HowToStep","name":"Regularne przeglądy","text":"Przeglądy, dezynfekcja, kalibracja urządzeń, dokumentacja."}
+        <script
+          type="application/ld+json"
+        >{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "HowTo",
+          name: "Jak uzyskać zatwierdzenie Sanepidu dla pojazdu chłodniczego",
+          description: "Kroki do uzyskania atestu Sanepid dla auta chłodni/mroźni.",
+          step: [
+            { "@type": "HowToStep", name: "Przygotowanie pojazdu", text: "Zabudowa izolacyjna, agregat chłodniczy, rejestrator temperatur, wykończenie higieniczne." },
+            { "@type": "HowToStep", name: "Złożenie wniosku", text: "Wniosek w PSSE + dokumentacja techniczna i certyfikaty." },
+            { "@type": "HowToStep", name: "Kontrola inspektora", text: "Sprawdzenie zabudowy, agregatu i rejestratora." },
+            { "@type": "HowToStep", name: "Wydanie decyzji", text: "Decyzja administracyjna z zakresem zastosowania." },
+            { "@type": "HowToStep", name: "Regularne przeglądy", text: "Przeglądy, dezynfekcja, kalibracja urządzeń, dokumentacja." }
           ]
         })}</script>
       </Helmet>
@@ -111,7 +120,7 @@ export default function WymaganiaAutoChlodnia() {
               <span className="text-slate-300">•</span>
               <a href="#howto-sanepid" className="hover:underline font-medium">Jak uzyskać atest</a>
             </nav>
-            
+
             {/* Powiązane strony */}
             <div className="text-sm text-slate-500 flex gap-2 justify-center flex-wrap border-t border-slate-200 pt-3">
               <span className="text-xs">Zobacz także:</span>

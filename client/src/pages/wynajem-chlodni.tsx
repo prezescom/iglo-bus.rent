@@ -26,117 +26,124 @@ export default function WynajemChlodni() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <Helmet>
-        {/* SEO core */}
-        <title>Wynajem samochodów chłodni – Śląsk (Katowice, Gliwice) | Iglo-Bus Rent</title>
-        <meta
-          name="description"
-          content="Wynajem aut chłodni na Śląsku: Katowice, Gliwice i okolice. Toyota ProAce −20°C do +20°C, atest Sanepid, rejestrator temperatur. Krótko i długoterminowo."
-        />
-        <link rel="canonical" href={url} />
-        <meta name="robots" content="index,follow,max-image-preview:large" />
+        {/* === Core SEO === */}
+        {(() => {
+          const url = "https://www.iglo-bus.rent/wynajem-chlodni";
+          const pageTitle = "Wynajem samochodów chłodni – Śląsk (Katowice, Gliwice) | Iglo-Bus Rent";
+          const pageDesc =
+            "Wynajem aut chłodni na Śląsku: Katowice, Gliwice i okolice. Toyota ProAce −20°C do +20°C, atest Sanepid, rejestrator temperatur. Krótko i długoterminowo.";
+          const ogImage = "https://www.iglo-bus.rent/images/og-home-1200.jpg";
+          return (
+            <>
+              <title>{pageTitle}</title>
+              <meta name="description" content={pageDesc} />
+              <link rel="canonical" href={url} />
+              {/* hreflang – samodopełnienie */}
+              <link rel="alternate" hrefLang="pl" href={url} />
+              <link rel="alternate" hrefLang="x-default" href={url} />
+              <meta name="robots" content="index,follow,max-image-preview:large" />
 
-        {/* Open Graph / Twitter */}
-        <meta property="og:type" content="website" />
-        <meta property="og:locale" content="pl_PL" />
-        <meta property="og:site_name" content="Iglo-Bus Rent" />
-        <meta property="og:title" content="Wynajem samochodów chłodni – Śląsk (Katowice, Gliwice) | Iglo-Bus Rent" />
-        <meta
-          property="og:description"
-          content="Profesjonalny transport chłodniczy. Samochody chłodnie Toyota ProAce z zakresem −20°C do +20°C, atest Sanepid, rejestrator temperatur."
-        />
-        <meta property="og:url" content={url} />
-        <meta property="og:image" content={ogImage} />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
+              {/* === Open Graph / Twitter (spójne z <title>/<meta name="description">) === */}
+              <meta property="og:type" content="website" />
+              <meta property="og:locale" content="pl_PL" />
+              <meta property="og:site_name" content="Iglo-Bus Rent" />
+              <meta property="og:url" content={url} />
+              <meta property="og:title" content={pageTitle} />
+              <meta property="og:description" content={pageDesc} />
+              <meta property="og:image" content={ogImage} />
+              <meta property="og:image:width" content="1200" />
+              <meta property="og:image:height" content="630" />
+              <meta property="og:image:alt" content="Wynajem samochodów chłodni Toyota ProAce na Śląsku" />
 
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Wynajem samochodów chłodni – Śląsk | Iglo-Bus Rent" />
-        <meta
-          name="twitter:description"
-          content="Auta chłodnie Toyota ProAce: −20°C do +20°C, Sanepid, rejestrator. Katowice, Gliwice, cały Śląsk."
-        />
-        <meta name="twitter:image" content={ogImage} />
+              <meta name="twitter:card" content="summary_large_image" />
+              <meta name="twitter:title" content={pageTitle} />
+              <meta name="twitter:description" content={pageDesc} />
+              <meta name="twitter:image" content={ogImage} />
 
-        {/* LocalBusiness */}
-        <script type="application/ld+json">{JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "LocalBusiness",
-          name: "Iglo-Bus Rent - Wynajem Samochodów Chłodni",
-          url,
-          telephone: "+48530410504",
-          email: "kontakt@iglo-bus.rent",
-          areaServed: ["Śląskie", "Katowice", "Gliwice", "Zabrze", "Bytom", "Chorzów"],
-          address: { "@type": "PostalAddress", addressRegion: "Śląskie", addressCountry: "PL" },
-          priceRange: "$$",
-          description:
-            "Wynajem samochodów chłodni do transportu produktów spożywczych, leków i cateringów. Toyota ProAce −20°C do +20°C, atest Sanepid, rejestrator temperatur.",
-          serviceType: ["Transport chłodniczy", "Wynajem aut chłodni", "Transport produktów spożywczych", "Transport farmaceutyczny"],
-        })}</script>
+              {/* === Structured data (zostaje jak było) === */}
+              {/* LocalBusiness */}
+              <script type="application/ld+json">{JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "LocalBusiness",
+                name: "Iglo-Bus Rent - Wynajem Samochodów Chłodni",
+                url,
+                telephone: "+48530410504",
+                email: "kontakt@iglo-bus.rent",
+                areaServed: ["Śląskie", "Katowice", "Gliwice", "Zabrze", "Bytom", "Chorzów"],
+                address: { "@type": "PostalAddress", addressRegion: "Śląskie", addressCountry: "PL" },
+                priceRange: "$$",
+                description:
+                  "Wynajem samochodów chłodni do transportu produktów spożywczych, leków i cateringów. Toyota ProAce −20°C do +20°C, atest Sanepid, rejestrator temperatur.",
+                serviceType: ["Transport chłodniczy", "Wynajem aut chłodni", "Transport produktów spożywczych", "Transport farmaceutyczny"],
+              })}</script>
 
-        {/* Service */}
-        <script type="application/ld+json">{JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Service",
-          name: "Wynajem samochodów chłodni",
-          description:
-            "Profesjonalny wynajem samochodów chłodni do przewozu towarów wymagających kontroli temperatury na Śląsku.",
-          provider: { "@type": "Organization", name: "Iglo-Bus Rent" },
-          areaServed: ["Śląskie", "Katowice", "Gliwice"],
-          serviceType: "Transport chłodniczy",
-          url
-        })}</script>
+              {/* Service */}
+              <script type="application/ld+json">{JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "Service",
+                name: "Wynajem samochodów chłodni",
+                description:
+                  "Profesjonalny wynajem samochodów chłodni do przewozu towarów wymagających kontroli temperatury na Śląsku.",
+                provider: { "@type": "Organization", name: "Iglo-Bus Rent" },
+                areaServed: ["Śląskie", "Katowice", "Gliwice"],
+                serviceType: "Transport chłodniczy",
+                url
+              })}</script>
 
-        {/* FAQPage */}
-        <script type="application/ld+json">{JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "FAQPage",
-          mainEntity: [
-            {
-              "@type": "Question",
-              name: "Co można przewozić auto-chłodnią?",
-              acceptedAnswer: {
-                "@type": "Answer",
-                text:
-                  "Świeże produkty spożywcze, wyroby mrożone, catering, leki i inne towary wrażliwe na temperaturę zgodnie z HACCP."
-              }
-            },
-            {
-              "@type": "Question",
-              name: "Jaki zakres temperatur oferują samochody chłodnie?",
-              acceptedAnswer: {
-                "@type": "Answer",
-                text:
-                  "Kontrola temperatury od −20°C do +20°C z precyzyjnym monitoringiem i rejestratorem temperatur."
-              }
-            },
-            {
-              "@type": "Question",
-              name: "Czy pojazdy mają atest Sanepid?",
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: "Tak, wszystkie auta mają atest Sanepid i aktualną dokumentację."
-              }
-            },
-            {
-              "@type": "Question",
-              name: "Czy możliwy jest elastyczny wynajem?",
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: "Tak, krótkoterminowo i długoterminowo – zależnie od potrzeb."
-              }
-            }
-          ]
-        })}</script>
+              {/* FAQPage */}
+              <script type="application/ld+json">{JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                mainEntity: [
+                  {
+                    "@type": "Question",
+                    name: "Co można przewozić auto-chłodnią?",
+                    acceptedAnswer: {
+                      "@type": "Answer",
+                      text:
+                        "Świeże produkty spożywcze, wyroby mrożone, catering, leki i inne towary wrażliwe na temperaturę zgodnie z HACCP."
+                    }
+                  },
+                  {
+                    "@type": "Question",
+                    name: "Jaki zakres temperatur oferują samochody chłodnie?",
+                    acceptedAnswer: {
+                      "@type": "Answer",
+                      text:
+                        "Kontrola temperatury od −20°C do +20°C z precyzyjnym monitoringiem i rejestratorem temperatur."
+                    }
+                  },
+                  {
+                    "@type": "Question",
+                    name: "Czy pojazdy mają atest Sanepid?",
+                    acceptedAnswer: {
+                      "@type": "Answer",
+                      text: "Tak, wszystkie auta mają atest Sanepid i aktualną dokumentację."
+                    }
+                  },
+                  {
+                    "@type": "Question",
+                    name: "Czy możliwy jest elastyczny wynajem?",
+                    acceptedAnswer: {
+                      "@type": "Answer",
+                      text: "Tak, krótkoterminowo i długoterminowo – zależnie od potrzeb."
+                    }
+                  }
+                ]
+              })}</script>
 
-        {/* Breadcrumbs */}
-        <script type="application/ld+json">{JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "BreadcrumbList",
-          itemListElement: [
-            { "@type": "ListItem", position: 1, name: "Strona główna", item: "https://www.iglo-bus.rent/" },
-            { "@type": "ListItem", position: 2, name: "Wynajem chłodni", item: url }
-          ]
-        })}</script>
+              {/* Breadcrumbs */}
+              <script type="application/ld+json">{JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                itemListElement: [
+                  { "@type": "ListItem", position: 1, name: "Strona główna", item: "https://www.iglo-bus.rent/" },
+                  { "@type": "ListItem", position: 2, name: "Wynajem chłodni", item: url }
+                ]
+              })}</script>
+            </>
+          );
+        })()}
       </Helmet>
 
       <Header />

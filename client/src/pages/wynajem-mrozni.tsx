@@ -11,74 +11,78 @@ export default function WynajemMrozni() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <Helmet>
-        {/* SEO core */}
-        <title>Wynajem mroźni i chłodni – Śląsk (Katowice, Gliwice) | Iglo-Bus Rent</title>
-        <meta
-          name="description"
-          content="Wynajem mroźni Toyota ProAce na Śląsku (Katowice, Gliwice). −20°C do +20°C, atest Sanepid, rejestrator temperatur, dostawa pod adres. Krótko i długoterminowo."
-        />
-        <link rel="canonical" href={url} />
-        {/* hreflang to self (SEOCheck: alternate missing) */}
-        <link rel="alternate" hrefLang="pl" href={url} />
-        <link rel="alternate" hrefLang="x-default" href={url} />
-        <meta name="robots" content="index,follow,max-image-preview:large" />
+        {(() => {
+          const url = "https://www.iglo-bus.rent/wynajem-mrozni";
+          const pageTitle = "Wynajem mroźni i chłodni – Śląsk (Katowice, Gliwice) | Iglo-Bus Rent";
+          const pageDesc =
+            "Wynajem mroźni Toyota ProAce na Śląsku (Katowice, Gliwice). −20°C do +20°C, atest Sanepid, rejestrator temperatur, dostawa pod adres. Krótko i długoterminowo.";
+          const ogImage = "https://www.iglo-bus.rent/images/og-home-1200.jpg";
+          return (
+            <>
+              {/* Core */}
+              <title>{pageTitle}</title>
+              <meta name="description" content={pageDesc} />
+              <link rel="canonical" href={url} />
+              {/* hreflang – już było, zostawiamy i ujednoliciłem tytuły */}
+              <link rel="alternate" hrefLang="pl" href={url} />
+              <link rel="alternate" hrefLang="x-default" href={url} />
+              <meta name="robots" content="index,follow,max-image-preview:large" />
 
-        {/* Open Graph / Twitter */}
-        <meta property="og:site_name" content="Iglo-Bus Rent" />
-        <meta property="og:title" content="Wynajem mroźni i chłodni – Śląsk (Katowice, Gliwice) | Iglo-Bus Rent" />
-        <meta
-          property="og:description"
-          content="Wynajem mroźni, chłodni i izoterm. Toyota ProAce −20°C do +20°C. Obsługujemy Śląsk: Katowice, Gliwice i okolice."
-        />
-        <meta property="og:url" content={url} />
-        <meta property="og:type" content="website" />
-        <meta property="og:image" content={ogImage} />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta property="og:locale" content="pl_PL" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Wynajem mroźni i chłodni – Śląsk | Iglo-Bus Rent" />
-        <meta
-          name="twitter:description"
-          content="Toyota ProAce −20°C do +20°C, atest Sanepid, rejestrator temperatur. Katowice, Gliwice i cały Śląsk."
-        />
-        <meta name="twitter:image" content={ogImage} />
+              {/* OG/Twitter */}
+              <meta property="og:type" content="website" />
+              <meta property="og:locale" content="pl_PL" />
+              <meta property="og:site_name" content="Iglo-Bus Rent" />
+              <meta property="og:url" content={url} />
+              <meta property="og:title" content={pageTitle} />
+              <meta property="og:description" content={pageDesc} />
+              <meta property="og:image" content={ogImage} />
+              <meta property="og:image:width" content="1200" />
+              <meta property="og:image:height" content="630" />
+              <meta property="og:image:alt" content="Wynajem mroźni i chłodni Toyota ProAce na Śląsku" />
 
-        {/* LocalBusiness (Organization) */}
-        <script type="application/ld+json">{JSON.stringify({
-          "@context":"https://schema.org",
-          "@type":"LocalBusiness",
-          "name":"Iglo-Bus Rent – Wynajem mroźni i chłodni",
-          "url": url,
-          "telephone":"+48530410504",
-          "email":"kontakt@iglo-bus.rent",
-          "areaServed":["Woj. śląskie","Katowice","Gliwice","Zabrze","Bytom","Chorzów"],
-          "address":{ "@type":"PostalAddress", "addressRegion":"Śląskie", "addressCountry":"PL" },
-          "priceRange":"$$",
-          "description":"Wynajem mroźni, chłodni i izoterm Toyota ProAce na Śląsku. Zakres temperatur −20°C do +20°C, atest Sanepid, rejestrator temperatur."
-        })}</script>
+              <meta name="twitter:card" content="summary_large_image" />
+              <meta name="twitter:title" content={pageTitle} />
+              <meta name="twitter:description" content={pageDesc} />
+              <meta name="twitter:image" content={ogImage} />
 
-        {/* FAQPage (zostaje) */}
-        <script type="application/ld+json">{JSON.stringify({
-          "@context":"https://schema.org",
-          "@type":"FAQPage",
-          "mainEntity":[
-            { "@type":"Question", "name":"Ile kosztuje wynajem mroźni na Śląsku?", "acceptedAnswer":{ "@type":"Answer", "text":"Ceny zależą od modelu (Toyota ProAce City/ProAce/Maxi) oraz czasu najmu. Przygotowujemy wyceny dla Katowic, Gliwic i całego Śląska." }},
-            { "@type":"Question", "name":"Czy obsługujecie Katowice i Gliwice?", "acceptedAnswer":{ "@type":"Answer", "text":"Tak. Obsługujemy Katowice, Gliwice i całe woj. śląskie. Zapewniamy dostawę auta pod adres." }},
-            { "@type":"Question", "name":"Jaki jest zakres temperatur?", "acceptedAnswer":{ "@type":"Answer", "text":"Zakres roboczy od −20°C do +20°C. Pojazdy mają rejestrator temperatur (wydruki dla odbiorcy)." }},
-            { "@type":"Question", "name":"Czy możliwy jest długoterminowy wynajem?", "acceptedAnswer":{ "@type":"Answer", "text":"Tak. Oferujemy najem długoterminowy z preferencyjnymi stawkami i serwisem." }}
-          ]
-        })}</script>
+              {/* LocalBusiness (zostaje) */}
+              <script type="application/ld+json">{JSON.stringify({
+                "@context":"https://schema.org",
+                "@type":"LocalBusiness",
+                "name":"Iglo-Bus Rent – Wynajem mroźni i chłodni",
+                "url": url,
+                "telephone":"+48530410504",
+                "email":"kontakt@iglo-bus.rent",
+                "areaServed":["Woj. śląskie","Katowice","Gliwice","Zabrze","Bytom","Chorzów"],
+                "address":{ "@type":"PostalAddress", "addressRegion":"Śląskie", "addressCountry":"PL" },
+                "priceRange":"$$",
+                "description":"Wynajem mroźni, chłodni i izoterm Toyota ProAce na Śląsku. Zakres temperatur −20°C do +20°C, atest Sanepid, rejestrator temperatur."
+              })}</script>
 
-        {/* Breadcrumbs */}
-        <script type="application/ld+json">{JSON.stringify({
-          "@context":"https://schema.org",
-          "@type":"BreadcrumbList",
-          "itemListElement":[
-            {"@type":"ListItem","position":1,"name":"Strona główna","item":"https://www.iglo-bus.rent/"},
-            {"@type":"ListItem","position":2,"name":"Wynajem mroźni","item":url}
-          ]
-        })}</script>
+              {/* FAQPage (zostaje) */}
+              <script type="application/ld+json">{JSON.stringify({
+                "@context":"https://schema.org",
+                "@type":"FAQPage",
+                "mainEntity":[
+                  { "@type":"Question", "name":"Ile kosztuje wynajem mroźni na Śląsku?", "acceptedAnswer":{ "@type":"Answer", "text":"Ceny zależą od modelu (Toyota ProAce City/ProAce/Maxi) oraz czasu najmu. Przygotowujemy wyceny dla Katowic, Gliwic i całego Śląska." }},
+                  { "@type":"Question", "name":"Czy obsługujecie Katowice i Gliwice?", "acceptedAnswer":{ "@type":"Answer", "text":"Tak. Obsługujemy Katowice, Gliwice i całe woj. śląskie. Zapewniamy dostawę auta pod adres." }},
+                  { "@type":"Question", "name":"Jaki jest zakres temperatur?", "acceptedAnswer":{ "@type":"Answer", "text":"Zakres roboczy od −20°C do +20°C. Pojazdy mają rejestrator temperatur (wydruki dla odbiorcy)." }},
+                  { "@type":"Question", "name":"Czy możliwy jest długoterminowy wynajem?", "acceptedAnswer":{ "@type":"Answer", "text":"Tak. Oferujemy najem długoterminowy z preferencyjnymi stawkami i serwisem." }}
+                ]
+              })}</script>
+
+              {/* Breadcrumbs */}
+              <script type="application/ld+json">{JSON.stringify({
+                "@context":"https://schema.org",
+                "@type":"BreadcrumbList",
+                "itemListElement":[
+                  {"@type":"ListItem","position":1,"name":"Strona główna","item":"https://www.iglo-bus.rent/"},
+                  {"@type":"ListItem","position":2,"name":"Wynajem mroźni","item":url}
+                ]
+              })}</script>
+            </>
+          );
+        })()}
       </Helmet>
 
       <Header />

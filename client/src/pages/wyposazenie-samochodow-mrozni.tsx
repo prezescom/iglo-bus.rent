@@ -17,70 +17,77 @@ export default function WyposazenieSamochodowMrozni() {
   return (
     <div className="min-h-screen bg-white">
       <Helmet>
-        {/* Core SEO */}
-        <title>Wyposażenie samochodów mroźni – lista i funkcje | Iglo-Bus Rent</title>
-        <meta
-          name="description"
-          content="Wyposażenie aut mroźni: listwy aluminiowe, drążki blokujące, półki double deck, rejestrator ESCO DR201, agregat z grzaniem i zasilaniem 230V. Śląsk: Katowice, Gliwice."
-        />
-        <link rel="canonical" href={url} />
-        <meta name="robots" content="index,follow,max-image-preview:large" />
+        {(() => {
+          const url = "https://www.iglo-bus.rent/wyposazenie-samochodow-mrozni";
+          const pageTitle = "Wyposażenie samochodów mroźni – lista i funkcje | Iglo-Bus Rent";
+          const pageDesc =
+            "Wyposażenie aut mroźni: listwy aluminiowe, drążki blokujące, półki double deck, rejestrator ESCO DR201, agregat z grzaniem i zasilaniem 230V. Śląsk: Katowice, Gliwice.";
+          const ogImage = "https://www.iglo-bus.rent/images/og-home-1200.jpg";
+          return (
+            <>
+              {/* Core */}
+              <title>{pageTitle}</title>
+              <meta name="description" content={pageDesc} />
+              <link rel="canonical" href={url} />
+              {/* hreflang – dodajemy (tak jak na mroźniach) */}
+              <link rel="alternate" hrefLang="pl" href={url} />
+              <link rel="alternate" hrefLang="x-default" href={url} />
+              <meta name="robots" content="index,follow,max-image-preview:large" />
 
-        {/* Open Graph / Twitter */}
-        <meta property="og:type" content="website" />
-        <meta property="og:locale" content="pl_PL" />
-        <meta property="og:site_name" content="Iglo-Bus Rent" />
-        <meta property="og:title" content="Wyposażenie samochodów mroźni – Iglo-Bus Rent" />
-        <meta
-          property="og:description"
-          content="Profesjonalne wyposażenie naszych samochodów mroźni: mocowanie ładunku, rejestrator temperatur ESCO, półki double deck, agregat 230V z funkcją grzania."
-        />
-        <meta property="og:url" content={url} />
-        <meta property="og:image" content={ogImage} />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
+              {/* OG/Twitter */}
+              <meta property="og:type" content="website" />
+              <meta property="og:locale" content="pl_PL" />
+              <meta property="og:site_name" content="Iglo-Bus Rent" />
+              <meta property="og:url" content={url} />
+              <meta property="og:title" content={pageTitle} />
+              <meta property="og:description" content={pageDesc} />
+              <meta property="og:image" content={ogImage} />
+              <meta property="og:image:width" content="1200" />
+              <meta property="og:image:height" content="630" />
+              <meta property="og:image:alt" content="Wyposażenie samochodów mroźni i chłodni – przykładowe elementy" />
 
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Wyposażenie samochodów mroźni – Iglo-Bus Rent" />
-        <meta
-          name="twitter:description"
-          content="Listwy aluminiowe, drążki, półki double deck, rejestrator ESCO DR201, agregat 230V z grzaniem."
-        />
-        <meta name="twitter:image" content={ogImage} />
+              <meta name="twitter:card" content="summary_large_image" />
+              <meta name="twitter:title" content={pageTitle} />
+              <meta name="twitter:description" content={pageDesc} />
+              <meta name="twitter:image" content={ogImage} />
 
-        {/* Structured data */}
-        <script type="application/ld+json">{JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "WebPage",
-          "name": "Wyposażenie samochodów mroźni",
-          "url": url,
-          "description": "Przegląd wyposażenia aut mroźni i chłodni używanych przez Iglo-Bus Rent."
-        })}</script>
+              {/* WebPage schema (zostaje, tylko pilnujemy spójnych wartości) */}
+              <script type="application/ld+json">{JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "WebPage",
+                "name": "Wyposażenie samochodów mroźni",
+                "url": url,
+                "description": "Przegląd wyposażenia aut mroźni i chłodni używanych przez Iglo-Bus Rent."
+              })}</script>
 
-        {/* Breadcrumbs */}
-        <script type="application/ld+json">{JSON.stringify({
-          "@context":"https://schema.org",
-          "@type":"BreadcrumbList",
-          "itemListElement":[
-            {"@type":"ListItem","position":1,"name":"Strona główna","item":"https://www.iglo-bus.rent/"},
-            {"@type":"ListItem","position":2,"name":"Wyposażenie samochodów mroźni","item":url}
-          ]
-        })}</script>
+              {/* Breadcrumbs */}
+              <script type="application/ld+json">{JSON.stringify({
+                "@context":"https://schema.org",
+                "@type":"BreadcrumbList",
+                "itemListElement":[
+                  {"@type":"ListItem","position":1,"name":"Strona główna","item":"https://www.iglo-bus.rent/"},
+                  {"@type":"ListItem","position":2,"name":"Wyposażenie samochodów mroźni","item":url}
+                ]
+              })}</script>
 
-        {/* ItemList – elementy wyposażenia */}
-        <script type="application/ld+json">{JSON.stringify({
-          "@context":"https://schema.org",
-          "@type":"ItemList",
-          "name":"Wyposażenie aut mroźni",
-          "itemListElement":[
-            {"@type":"ListItem","position":1,"name":"Listwy aluminiowe do kotwiczenia ładunku"},
-            {"@type":"ListItem","position":2,"name":"Drążek do blokowania ładunku"},
-            {"@type":"ListItem","position":3,"name":"Rejestrator temperatur ESCO DR201"},
-            {"@type":"ListItem","position":4,"name":"Półka double deck aluminiowa"},
-            {"@type":"ListItem","position":5,"name":"Agregat z funkcją grzania i zasilaniem 230V"}
-          ]
-        })}</script>
+              {/* ItemList – elementy wyposażenia (bez zmian) */}
+              <script type="application/ld+json">{JSON.stringify({
+                "@context":"https://schema.org",
+                "@type":"ItemList",
+                "name":"Wyposażenie aut mroźni",
+                "itemListElement":[
+                  {"@type":"ListItem","position":1,"name":"Listwy aluminiowe do kotwiczenia ładunku"},
+                  {"@type":"ListItem","position":2,"name":"Drążek do blokowania ładunku"},
+                  {"@type":"ListItem","position":3,"name":"Rejestrator temperatur ESCO DR201"},
+                  {"@type":"ListItem","position":4,"name":"Półka double deck aluminiowa"},
+                  {"@type":"ListItem","position":5,"name":"Agregat z funkcją grzania i zasilaniem 230V"}
+                ]
+              })}</script>
+            </>
+          );
+        })()}
       </Helmet>
+
 
       <Header />
 

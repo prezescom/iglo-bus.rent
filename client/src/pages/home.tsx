@@ -22,31 +22,37 @@ export default function Home() {
   }, []);
 
   // UZUPEŁNIJ jeśli masz inne dane kontaktowe
-  const siteUrl = "https://www.iglo-bus.rent/";
-  const phone = "+48 123 456 789";
+  const siteUrl = "https://www.iglo-bus.rent/"; // canonical na stronę główną (z /)
+  const phone = "+48 530 410 504";
   const email = "kontakt@iglo-bus.rent";
+
+  const pageTitle = "Wynajem samochodów chłodni i mroźni – Polska | Iglo-Bus Rent";
+  const pageDesc =
+    "Wypożyczalnia samochodów chłodni i mroźni z atestem Sanepid. Krótko i długoterminowo – szybkie podstawienie na terenie całej Polski.";
+  const ogImage = `${siteUrl}images/og-home-1200.jpg`;
 
   const jsonLdLocalBusiness = {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
-    "name": "Iglo-Bus Rent",
-    "url": siteUrl,
-    "email": email,
-    "telephone": phone,
-    "areaServed": "PL",
-    "priceRange": "PLN",
-    "image": `${siteUrl}images/og-home-1200.jpg`,
-    "description": "Wynajem samochodów chłodniczych i mroźni z atestem Sanepid. Krótkoterminowo i długoterminowo, szybka dostawa w całej Polsce."
+    name: "Iglo-Bus Rent",
+    url: siteUrl,
+    email,
+    telephone: phone,
+    areaServed: "PL",
+    priceRange: "PLN",
+    image: ogImage,
+    description:
+      "Wynajem samochodów chłodni i mroźni z atestem Sanepid. Krótko i długoterminowo, szybka dostawa w całej Polsce."
   };
 
   const jsonLdWebSite = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "url": siteUrl,
-    "name": "Iglo-Bus Rent",
-    "potentialAction": {
+    url: siteUrl,
+    name: "Iglo-Bus Rent",
+    potentialAction: {
       "@type": "SearchAction",
-      "target": `${siteUrl}?q={search_term_string}`,
+      target: `${siteUrl}?q={search_term_string}`,
       "query-input": "required name=search_term_string"
     }
   };
@@ -54,41 +60,40 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <Helmet>
-        <title>Wynajem samochodów chłodniczych i mroźni – Polska | Iglo-Bus Rent</title>
-        <meta
-          name="description"
-          content="Wypożyczalnia samochodów chłodniczych i mroźni z atestem Sanepid. Krótkoterminowo i długoterminowo – szybkie podstawienie na terenie całej Polski."
-        />
+        {/* === Core SEO === */}
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDesc} />
         <link rel="canonical" href={siteUrl} />
+        <meta name="robots" content="index,follow,max-image-preview:large" />
+        {/* hreflang – wersja PL i domyślna */}
+        <link rel="alternate" hrefLang="pl" href={siteUrl} />
+        <link rel="alternate" hrefLang="x-default" href={siteUrl} />
 
-        {/* Open Graph */}
+        {/* === Open Graph === */}
         <meta property="og:type" content="website" />
+        <meta property="og:locale" content="pl_PL" />
+        <meta property="og:site_name" content="Iglo-Bus Rent" />
         <meta property="og:url" content={siteUrl} />
-        <meta property="og:title" content="Wynajem samochodów chłodniczych i mroźni – Iglo-Bus Rent" />
-        <meta
-          property="og:description"
-          content="Wynajem chłodni i mroźni z atestem Sanepid. Krótko- i długoterminowo, szybkie podstawienie – cała Polska."
-        />
-        <meta property="og:image" content={`${siteUrl}images/og-home-1200.jpg`} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDesc} />
+        <meta property="og:image" content={ogImage} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="Samochód chłodnia/mroźnia – Iglo-Bus Rent" />
 
-        {/* Twitter */}
+        {/* === Twitter === */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Wynajem samochodów chłodniczych i mroźni – Iglo-Bus Rent" />
-        <meta
-          name="twitter:description"
-          content="Wynajem chłodni i mroźni z atestem Sanepid. Krótko- i długoterminowo – cała Polska."
-        />
-        <meta name="twitter:image" content={`${siteUrl}images/og-home-1200.jpg`} />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDesc} />
+        <meta name="twitter:image" content={ogImage} />
 
         {/* Dane strukturalne */}
         <script type="application/ld+json">{JSON.stringify(jsonLdLocalBusiness)}</script>
         <script type="application/ld+json">{JSON.stringify(jsonLdWebSite)}</script>
       </Helmet>
 
-      {/* Niewidoczny H1 dla SEO (nie psuje layoutu) */}
-      <h1 className="sr-only">
-        Wynajem samochodów chłodniczych i mroźni – Iglo-Bus Rent
-      </h1>
+      {/* Jeden H1 (ukryty wizualnie – OK dla SEO i dostępności) */}
+      <h1 className="sr-only">Wynajem samochodów chłodni i mroźni – Iglo-Bus Rent</h1>
 
       <Header />
       <Hero />
