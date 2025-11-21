@@ -36,7 +36,7 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
     
     if (endDate <= startDate) return null;
 
-    const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const days = Math.ceil((endDate.getTime() - startDate.getTime()+1) / (1000 * 60 * 60 * 24));
     
     if (days <= 0) return null;
 
