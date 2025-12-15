@@ -34,11 +34,11 @@ const vehicles = [
       { src: proAceCityTech, alt: "Toyota ProAce City - wymiary wewnętrzne", title: "ProAce City - wymiary zabudowy" },
     ],
     pricing: [
-      { period: "1–3 doby", price: "300 zł" },
-      { period: "4–7 dób", price: "270 zł" },
-      { period: "8–14 dób", price: "250 zł" },
-      { period: "15–29 dób", price: "230 zł" },
-      { period: "30+ dni (miesięcznie)", price: "5 000 zł", highlighted: true },
+      { period: "1–3 doby", price: "250 zł" },
+      { period: "4–7 dób", price: "230 zł" },
+      { period: "8–14 dób", price: "210 zł" },
+      { period: "15–29 dób", price: "190 zł" },
+      { period: "30+ dni (miesięcznie)", price: "4 500 zł", highlighted: true },
     ],
   },
   {
