@@ -54,6 +54,7 @@ export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
           }`}
           onClick={handleImageClick}
           data-testid={`vehicle-image-${vehicle.id}`}
+          data-vehicle-group={vehicle.group.replace("Grupa ", "")}
         >
           <img 
             src={vehicle.image} 
