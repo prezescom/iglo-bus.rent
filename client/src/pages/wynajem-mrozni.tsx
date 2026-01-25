@@ -1,178 +1,157 @@
-import { Helmet } from "react-helmet-async";
-import Header from "@/components/header";
-import Footer from "@/components/footer";
-import {
-  Thermometer,
-  Shield,
-  CheckCircle2,
-  Truck,
-  Clock,
-  Phone,
-  Mail,
-  ArrowRight,
-  Zap
-} from "lucide-react";
+import PageShell from "@/components/page-shell";
+import PageHero from "@/components/page-hero";
+import Section from "@/components/section";
+import { Thermometer, Shield, CheckCircle2, Truck, Clock, Zap, Phone, Mail } from "lucide-react";
 import { Link } from "wouter";
 
 export default function WynajemMrozni() {
-  const url = "https://www.iglo-bus.rent/wynajem-mrozni";
-  const ogImage = "https://www.iglo-bus.rent/images/og-home-1200.jpg";
+  const canonical = "https://www.iglo-bus.rent/wynajem-mrozni";
+  const title = "Wynajem mroźni – Śląsk (Katowice, Gliwice) | Iglo-Bus Rent";
+  const description =
+    "Wynajem mroźni Toyota ProAce na Śląsku (Katowice, Gliwice). −20°C do +20°C, atest Sanepid, rejestrator temperatur, dostawa pod adres.";
+
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      name: "Iglo-Bus Rent – Wynajem mroźni",
+      url: canonical,
+      telephone: "+48530410504",
+      email: "kontakt@iglo-bus.rent",
+      areaServed: ["Woj. śląskie", "Katowice", "Gliwice", "Zabrze", "Bytom", "Chorzów"],
+      address: { "@type": "PostalAddress", addressRegion: "Śląskie", addressCountry: "PL" },
+      priceRange: "$$",
+      description:
+        "Wynajem mroźni, chłodni i izoterm Toyota ProAce. −20°C do +20°C, atest Sanepid, rejestrator temperatur.",
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Strona główna", item: "https://www.iglo-bus.rent/" },
+        { "@type": "ListItem", position: 2, name: "Wynajem mroźni", item: canonical },
+      ],
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: [
+        {
+          "@type": "Question",
+          name: "Jaki jest zakres temperatur?",
+          acceptedAnswer: { "@type": "Answer", text: "Zakres roboczy wynosi od −20°C do +20°C (zależnie od ustawień i warunków)." },
+        },
+        {
+          "@type": "Question",
+          name: "Czy auta mają rejestrator temperatury?",
+          acceptedAnswer: { "@type": "Answer", text: "Tak, pojazdy mają rejestrację temperatury i możliwość przygotowania wydruku." },
+        },
+        {
+          "@type": "Question",
+          name: "Czy dostarczacie auto pod adres na Śląsku?",
+          acceptedAnswer: { "@type": "Answer", text: "Tak, realizujemy podstawienia m.in. w Katowicach, Gliwicach i całym woj. śląskim." },
+        },
+      ],
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+    <PageShell title={title} description={description} canonical={canonical} jsonLd={jsonLd}>
+      <PageHero
+        h1={
+          <>
+            Wynajem mroźni <span className="text-brand-blue">Śląsk</span>
+            <span className="block mt-2 text-base sm:text-lg font-semibold text-slate-600">
+              Katowice • Gliwice • dostawa pod adres
+            </span>
+          </>
+        }
+        lead={
+          <>
+            Toyota ProAce w rozmiarach <span className="font-semibold text-brand-blue">S / M / L</span>. Atest Sanepid,
+            rejestrator temperatur, opcja podtrzymania <span className="font-semibold text-brand-blue">230V</span>.
+          </>
+        }
+        facts={[
+          { icon: <Thermometer className="h-5 w-5" />, label: "−20°C do +20°C" },
+          { icon: <Shield className="h-5 w-5" />, label: "Atest Sanepid" },
+          { icon: <CheckCircle2 className="h-5 w-5" />, label: "Rejestrator" },
+          { icon: <Truck className="h-5 w-5" />, label: "Dostawa Śląsk" },
+        ]}
+        secondaryCtaHref="/kontakt"
+        secondaryCtaLabel="Wyślij zapytanie"
+      />
 
-      <Helmet>
-        <title>Wynajem mroźni i chłodni – Śląsk | Iglo-Bus Rent</title>
-        <meta
-          name="description"
-          content="Wynajem mroźni Toyota ProAce na Śląsku – Katowice, Gliwice. −20°C do +20°C, atest Sanepid, rejestrator temperatur, dostawa pod adres."
-        />
-        <link rel="canonical" href={url} />
-        <meta name="robots" content="index,follow,max-image-preview:large" />
-
-        <meta property="og:type" content="website" />
-        <meta property="og:locale" content="pl_PL" />
-        <meta property="og:site_name" content="Iglo-Bus Rent" />
-        <meta property="og:url" content={url} />
-        <meta property="og:title" content="Wynajem mroźni i chłodni – Śląsk | Iglo-Bus Rent" />
-        <meta
-          property="og:description"
-          content="Wynajem mroźni i chłodni na Śląsku – Toyota ProAce, −20°C do +20°C, Sanepid, dostawa pod adres."
-        />
-        <meta property="og:image" content={ogImage} />
-
-        <script type="application/ld+json">{JSON.stringify({
-          "@context":"https://schema.org",
-          "@type":"LocalBusiness",
-          "name":"Iglo-Bus Rent",
-          "url":url,
-          "telephone":"+48530410504",
-          "email":"kontakt@iglo-bus.rent",
-          "areaServed":"Śląskie",
-          "priceRange":"$$"
-        })}</script>
-      </Helmet>
-
-      <Header />
-
-      {/* HERO */}
-      <section className="mx-auto max-w-6xl px-4 pt-10 pb-14">
-        <div className="grid lg:grid-cols-2 gap-10 items-center">
-
-          {/* LEWA */}
-          <div className="space-y-6">
-
-            <h1 className="text-4xl lg:text-5xl font-bold text-brand-dark leading-tight">
-              Wynajem mroźni <span className="text-brand-blue">Śląsk</span>
-              <span className="block mt-2 text-2xl font-semibold">
-                Katowice • Gliwice • okolice
-              </span>
-            </h1>
-
-            <p className="text-lg text-slate-600">
-              Toyota ProAce S / M / L. Zakres temperatur{" "}
-              <strong className="text-brand-blue">−20°C do +20°C</strong>, atest Sanepid,
-              rejestrator, dostawa pod adres.
-            </p>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="flex items-center gap-2 p-3 bg-brand-light rounded-xl border">
-                <Thermometer className="h-5 w-5 text-brand-blue" /> −20°C/+20°C
-              </div>
-              <div className="flex items-center gap-2 p-3 bg-brand-light rounded-xl border">
-                <Shield className="h-5 w-5 text-brand-blue" /> Sanepid
-              </div>
-              <div className="flex items-center gap-2 p-3 bg-brand-light rounded-xl border">
-                <CheckCircle2 className="h-5 w-5 text-brand-blue" /> Rejestrator
-              </div>
-              <div className="flex items-center gap-2 p-3 bg-brand-light rounded-xl border">
-                <Zap className="h-5 w-5 text-brand-blue" /> 230V
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-4 pt-2">
-              <a
-                href="tel:+48530410504"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-brand-blue text-white font-semibold"
-              >
-                <Phone className="h-5 w-5" />
-                +48 530 410 504
-              </a>
-
-              <Link href="/kontakt">
-                <button className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-brand-blue text-brand-blue font-semibold hover:bg-brand-blue hover:text-white transition">
-                  <Mail className="h-5 w-5" />
-                  Wyślij zapytanie
-                </button>
-              </Link>
-            </div>
-
-            <a href="/#flota" className="inline-flex items-center gap-2 text-brand-blue font-medium">
-              Zobacz flotę i ceny <ArrowRight className="h-4 w-4" />
-            </a>
-          </div>
-
-          {/* PRAWA – LOGO UJEDNOLICONE */}
-          <div className="flex justify-center lg:justify-end">
-            <Link href="/">
-              <img
-                src="/images/logo-hero.png"
-                alt="Iglo-Bus Rent – wynajem mroźni i chłodni"
-                width={384}
-                height={384}
-                className="w-80 h-80 lg:w-96 lg:h-96 object-contain hover:opacity-90 transition-opacity cursor-pointer"
-                loading="eager"
-                decoding="async"
-              />
-            </Link>
-          </div>
-
-        </div>
-      </section>
-
-      {/* DLACZEGO MY */}
-      <section className="mx-auto max-w-6xl px-4 py-16">
+      <Section tone="soft" title="Dlaczego Iglo-Bus Rent?" subtitle="Stała jakość, szybka dostępność i jasne zasady.">
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-
           {[
-            {icon: Shield, title:"Legalność", desc:"Atesty Sanepid, dokumenty"},
-            {icon: Thermometer, title:"Temperatura", desc:"Stała kontrola"},
-            {icon: Clock, title:"Elastyczność", desc:"Krótko i długo"},
-            {icon: Truck, title:"Dostawa", desc:"Cały Śląsk"},
-            {icon: Zap, title:"Nowoczesność", desc:"230V, agregaty"},
-            {icon: CheckCircle2, title:"Niezawodność", desc:"Serwis floty"}
-          ].map((i,idx)=>(
-            <div key={idx} className="bg-white p-6 rounded-2xl border shadow-sm">
-              <i.icon className="h-6 w-6 text-brand-blue mb-3"/>
-              <h3 className="font-semibold mb-1">{i.title}</h3>
-              <p className="text-sm text-slate-600">{i.desc}</p>
+            { icon: Shield, title: "Dokumenty i zgodność", desc: "Atest Sanepid i komplet dokumentów do odbiorów." },
+            { icon: Thermometer, title: "Stabilna temperatura", desc: "Zakres od −20°C do +20°C, rejestracja temperatury." },
+            { icon: Clock, title: "Elastyczny czas najmu", desc: "Od 1 dnia do najmu długoterminowego." },
+            { icon: Truck, title: "Podstawienie pod adres", desc: "Katowice, Gliwice i całe woj. śląskie." },
+            { icon: Zap, title: "230V (opcja)", desc: "Możliwość podtrzymania na postoju (zależnie od auta/konfiguracji)." },
+            { icon: CheckCircle2, title: "Serwis floty", desc: "Regularne przeglądy i przygotowanie auta do wyjazdu." },
+          ].map(({ icon: Icon, title, desc }, idx) => (
+            <div key={idx} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+              <div className="h-12 w-12 rounded-xl bg-brand-light grid place-items-center mb-4">
+                <Icon className="h-6 w-6 text-brand-blue" />
+              </div>
+              <h3 className="font-semibold text-brand-dark mb-2">{title}</h3>
+              <p className="text-slate-600 text-sm leading-relaxed">{desc}</p>
             </div>
           ))}
-
         </div>
-      </section>
+      </Section>
 
-      {/* CTA */}
-      <section className="mx-auto max-w-6xl px-4 pb-20">
-        <div className="bg-brand-blue rounded-3xl p-10 text-white text-center">
-          <h2 className="text-3xl font-bold mb-4">
-            Sprawdź dostępność mroźni na Śląsku
-          </h2>
-          <p className="mb-6 opacity-90">
-            Odpowiadamy szybko – zwykle w kilkanaście minut
-          </p>
+      <Section title="Flota i cennik" subtitle="Sprawdź rozmiary S/M/L i aktualne stawki na stronie głównej.">
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <a
+            href="/#flota"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border-2 border-brand-blue text-brand-blue font-semibold hover:bg-brand-light transition-colors"
+          >
+            Przejdź do floty i cennika
+          </a>
+          <Link href="/wynajem-chlodni">
+            <button className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-slate-200 text-slate-700 font-semibold hover:border-brand-blue/40 hover:text-brand-blue transition-colors">
+              Zobacz wynajem chłodni
+            </button>
+          </Link>
+        </div>
+      </Section>
 
+      <Section tone="soft" title="FAQ" subtitle="Najczęściej zadawane pytania o wynajem mroźni.">
+        <div className="grid gap-4 max-w-4xl mx-auto">
+          {[
+            { q: "Czy obsługujecie Katowice i Gliwice?", a: "Tak. Działamy na Śląsku i możemy dostarczyć auto pod adres." },
+            { q: "Czy mogę wynająć długoterminowo?", a: "Tak. Oferujemy wynajem długoterminowy z preferencyjną stawką." },
+            { q: "Czy dostanę potwierdzenie temperatury?", a: "Pojazdy mają rejestrację temperatury; w zależności od potrzeby przygotujemy wydruk/raport." },
+          ].map((x, i) => (
+            <details key={i} className="bg-white rounded-xl border border-slate-200 shadow-sm">
+              <summary className="p-5 font-semibold text-brand-dark cursor-pointer hover:text-brand-blue transition-colors">
+                {x.q}
+              </summary>
+              <div className="px-5 pb-5 text-slate-600">{x.a}</div>
+            </details>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Sprawdź dostępność" subtitle="Zadzwoń lub wyślij zapytanie — wrócimy z wyceną i dostępnością.">
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <a
             href="tel:+48530410504"
-            className="inline-flex items-center gap-3 px-8 py-4 bg-white text-brand-blue font-bold rounded-xl"
+            className="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-xl bg-brand-blue text-white font-bold"
           >
-            <Phone className="h-6 w-6" />
-            +48 530 410 504
+            <Phone className="h-5 w-5" /> +48 530 410 504
+          </a>
+          <a
+            href="mailto:kontakt@iglo-bus.rent"
+            className="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-xl border-2 border-brand-blue text-brand-blue font-bold"
+          >
+            <Mail className="h-5 w-5" /> kontakt@iglo-bus.rent
           </a>
         </div>
-      </section>
-
-      <Footer />
-    </div>
+      </Section>
+    </PageShell>
   );
 }
