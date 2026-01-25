@@ -64,7 +64,7 @@ export default function Hero({ onPrimaryCtaClick }: HeroProps) {
           {/* LOGO HERO */}
           <div className="w-full flex justify-center lg:justify-end">
             <img
-              src="/images/iglo-bus-logo.svg"   // lub logo-hero.png
+              src="/images/logo-hero.png"   // lub logo-hero.png
               alt="Iglo-Bus Rent – wynajem chłodni i mroźni"
               className="max-w-[320px] w-full h-auto drop-shadow-sm"
               loading="eager"
