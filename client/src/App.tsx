@@ -5,12 +5,13 @@ import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import CookiesBanner from "@/components/cookies-banner";
+
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import PrivacyPolicy from "@/pages/privacy-policy";
 import WynajemMrozni from "@/pages/wynajem-mrozni";
 import WynajemChlodni from "@/pages/wynajem-chlodni";
-import WymaganiaAutoChłodnia from "@/pages/wymagania-auto-chlodnia-mroznia-izoterma";
+import WymaganiaAutoChlodniaMrozniaIzoterma from "@/pages/wymagania-auto-chlodnia-mroznia-izoterma";
 import WyposazenieSamochodowMrozni from "@/pages/wyposazenie-samochodow-mrozni";
 import Contact from "@/pages/contact";
 
@@ -21,7 +22,10 @@ function Router() {
       <Route path="/polityka-prywatnosci" component={PrivacyPolicy} />
       <Route path="/wynajem-mrozni" component={WynajemMrozni} />
       <Route path="/wynajem-chlodni" component={WynajemChlodni} />
-      <Route path="/wymagania-auto-chlodnia-mroznia-izoterma" component={WymaganiaAutoChłodnia} />
+      <Route
+        path="/wymagania-auto-chlodnia-mroznia-izoterma"
+        component={WymaganiaAutoChlodniaMrozniaIzoterma}
+      />
       <Route path="/wyposazenie-samochodow-mrozni" component={WyposazenieSamochodowMrozni} />
       <Route path="/kontakt" component={Contact} />
       <Route component={NotFound} />
@@ -29,7 +33,7 @@ function Router() {
   );
 }
 
-function App() {
+export default function App() {
   return (
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
@@ -42,5 +46,3 @@ function App() {
     </HelmetProvider>
   );
 }
-
-export default App;
