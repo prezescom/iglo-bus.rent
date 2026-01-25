@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, KeyboardEvent } from "react";
 import { Camera } from "lucide-react";
 import BookingForm from "./booking-form";
 import PhotoGallery from "./photo-gallery";
@@ -27,15 +27,22 @@ interface VehicleCardProps {
 
 export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const hasGallery = Boolean(vehicle.gallery && vehicle.gallery.length > 0);
 
-  const handleImageClick = () => {
-    if (vehicle.gallery && vehicle.gallery.length > 0) {
-      setIsGalleryOpen(true);
+  const openGallery = () => {
+    if (hasGallery) setIsGalleryOpen(true);
+  };
+
+  const onKeyOpen = (e: KeyboardEvent<HTMLButtonElement>) => {
+    if (!hasGallery) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      openGallery();
     }
   };
 
   return (
-    <div 
+    <div
       className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden hover:shadow-xl transition-shadow animate-fade-in"
       style={{ animationDelay: `${delay}s` }}
       data-testid={`vehicle-card-${vehicle.id}`}
@@ -47,45 +54,51 @@ export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
             {vehicle.group}
           </span>
         </div>
-        
-        <div 
-          className={`mb-4 rounded-xl overflow-hidden bg-slate-50 relative group ${
-            vehicle.gallery && vehicle.gallery.length > 0 ? "cursor-pointer" : ""
+
+        <button
+          type="button"
+          className={`mb-4 rounded-xl overflow-hidden bg-slate-50 relative group w-full text-left ${
+            hasGallery ? "cursor-pointer" : "cursor-default"
           }`}
-          onClick={handleImageClick}
+          onClick={openGallery}
+          onKeyDown={onKeyOpen}
+          disabled={!hasGallery}
+          aria-label={hasGallery ? `Otwórz galerię zdjęć: ${vehicle.title}` : `Zdjęcie: ${vehicle.title}`}
           data-testid={`vehicle-image-${vehicle.id}`}
           data-vehicle-group={vehicle.group.replace("Grupa ", "")}
         >
-          <img 
-            src={vehicle.image} 
+          <img
+            src={vehicle.image}
             alt={vehicle.alt}
-            className="w-full h-48 object-cover transition-all hover:scale-105"
+            className="w-full h-48 object-cover transition-transform group-hover:scale-105"
+            loading="lazy"
+            decoding="async"
+            width={640}
+            height={192}
           />
-          {vehicle.gallery && vehicle.gallery.length > 0 && (
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center pointer-events-none">
-              <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-full p-2">
-                <Camera className="h-5 w-5 text-brand-blue" />
+
+          {hasGallery && (
+            <>
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center pointer-events-none">
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-full p-2">
+                  <Camera className="h-5 w-5 text-brand-blue" />
+                </div>
               </div>
-            </div>
+
+              <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full pointer-events-none">
+                +{vehicle.gallery!.length} zdjęć
+              </div>
+            </>
           )}
-          {vehicle.gallery && vehicle.gallery.length > 0 && (
-            <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full pointer-events-none">
-              +{vehicle.gallery.length} zdjęć
-            </div>
-          )}
-        </div>
+        </button>
+
         <p className="text-sm text-slate-600 font-medium">{vehicle.capacity}</p>
       </div>
 
-      {/* Photo Gallery */}
       {vehicle.gallery && (
-        <PhotoGallery
-          isOpen={isGalleryOpen}
-          onClose={() => setIsGalleryOpen(false)}
-          photos={vehicle.gallery}
-        />
+        <PhotoGallery isOpen={isGalleryOpen} onClose={() => setIsGalleryOpen(false)} photos={vehicle.gallery} />
       )}
-      
+
       <div className="p-6 space-y-5">
         <div className="rounded-xl border border-slate-200 overflow-hidden" data-testid={`pricing-table-${vehicle.id}`}>
           <table className="w-full text-sm">
@@ -98,12 +111,8 @@ export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
             <tbody className="divide-y divide-slate-100">
               {vehicle.pricing.map((pricing, index) => (
                 <tr key={index} className={pricing.highlighted ? "bg-brand-light" : ""}>
-                  <td className={`p-3 ${pricing.highlighted ? "font-medium" : ""}`}>
-                    {pricing.period}
-                  </td>
-                  <td className="p-3 text-right font-bold text-brand-blue">
-                    {pricing.price}
-                  </td>
+                  <td className={`p-3 ${pricing.highlighted ? "font-medium" : ""}`}>{pricing.period}</td>
+                  <td className="p-3 text-right font-bold text-brand-blue">{pricing.price}</td>
                 </tr>
               ))}
             </tbody>
@@ -111,7 +120,8 @@ export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
         </div>
 
         <p className="text-xs text-slate-500 leading-relaxed bg-slate-50 p-3 rounded-lg">
-          Zakres temperatur (-20°C do +20°C), rejestrator temperatur, agregat z podtrzymaniem na 230V, kamera cofania, Android Auto,          assistance na terenie EU. Kaucja zwrotna wg umowy.
+          Zakres temperatur (−20°C do +20°C), rejestrator temperatur, agregat z podtrzymaniem 230V (opcja), kamera cofania,
+          Android Auto, assistance na terenie EU. Kaucja zwrotna wg umowy.
         </p>
 
         <BookingForm vehicleTitle={vehicle.title} pricing={vehicle.pricing} />
