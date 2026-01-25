@@ -7,14 +7,43 @@
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-
       gtag('config', 'G-GD58J3BBZ2');
     </script>
-    
+
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-    <!-- Minimalny fallback tytułu (właściwe SEO ustawia react-helmet-async w stronach) -->
-    <title>Iglo-Bus Rent</title>
+
+    <!-- ✅ Fallback SEO (na wypadek braku JS / preview / botów) -->
+    <title>Wynajem samochodów chłodni i mroźni – Polska | Iglo-Bus Rent</title>
+    <meta
+      name="description"
+      content="Wynajem aut chłodni i mroźni z atestem Sanepid. Zakres −20°C do +20°C, rejestrator temperatur, szybkie podstawienie w całej Polsce."
+    />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <link rel="canonical" href="https://www.iglo-bus.rent/" />
+
+    <!-- Open Graph / Twitter fallback -->
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pl_PL" />
+    <meta property="og:site_name" content="Iglo-Bus Rent" />
+    <meta property="og:url" content="https://www.iglo-bus.rent/" />
+    <meta property="og:title" content="Wynajem samochodów chłodni i mroźni – Polska | Iglo-Bus Rent" />
+    <meta
+      property="og:description"
+      content="Wynajem aut chłodni i mroźni z atestem Sanepid. Zakres −20°C do +20°C, rejestrator temperatur, szybkie podstawienie w całej Polsce."
+    />
+    <meta property="og:image" content="https://www.iglo-bus.rent/images/og-home-1200.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Iglo-Bus Rent – wynajem chłodni i mroźni" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Wynajem samochodów chłodni i mroźni – Polska | Iglo-Bus Rent" />
+    <meta
+      name="twitter:description"
+      content="Wynajem aut chłodni i mroźni z atestem Sanepid. Zakres −20°C do +20°C, rejestrator temperatur, szybkie podstawienie w całej Polsce."
+    />
+    <meta name="twitter:image" content="https://www.iglo-bus.rent/images/og-home-1200.jpg" />
 
     <!-- Kolor motywu i ikony -->
     <meta name="theme-color" content="#0ea5e9" />
@@ -25,14 +54,16 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
     <!-- Google Tag Manager -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-TVKDC6PD');</script>
+    <script>
+      (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+      new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+      j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+      'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+      })(window,document,'script','dataLayer','GTM-TVKDC6PD');
+    </script>
     <!-- End Google Tag Manager -->
 
-    <!-- Wydajność: fonty (opcjonalnie zostawiamy) -->
+    <!-- Wydajność: fonty -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -41,21 +72,41 @@
       rel="stylesheet"
     />
 
-    <!-- Uwaga:
-      ŻADNYCH canonical/OG/Twitter/hreflang/JSON-LD w index.html.
-      Wszystko wstrzykują strony przez react-helmet-async.
-    -->
+    <!-- ✅ Minimalne JSON-LD fallback (Home ma dokładniejsze przez Helmet) -->
+    <script type="application/ld+json">
+      {
+        "@context":"https://schema.org",
+        "@type":"Organization",
+        "name":"Iglo-Bus Rent",
+        "url":"https://www.iglo-bus.rent/",
+        "contactPoint":[
+          {
+            "@type":"ContactPoint",
+            "telephone":"+48530410504",
+            "contactType":"sales",
+            "areaServed":"PL",
+            "availableLanguage":["pl"]
+          }
+        ]
+      }
+    </script>
   </head>
+
   <body>
     <!-- Google Tag Manager (noscript) -->
-    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TVKDC6PD"
-    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <noscript>
+      <iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-TVKDC6PD"
+        height="0"
+        width="0"
+        style="display:none;visibility:hidden"
+      ></iframe>
+    </noscript>
     <!-- End Google Tag Manager (noscript) -->
-    
+
     <div id="root"></div>
     <noscript>Do pełnej funkcjonalności tej strony potrzebny jest JavaScript.</noscript>
 
-    <!-- Prawidłowy punkt wejścia dla Vite (ŹRÓDŁO, nie /assets/…) -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
