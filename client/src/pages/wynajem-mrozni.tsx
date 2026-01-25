@@ -166,19 +166,21 @@ export default function WynajemMrozni() {
           </div>
 
           {/* Logo / grafika – nie lazy dla LCP */}
-          <div className="flex justify-center lg:justify-end">
-            <div className="relative">
-              <Link href="/">
-                <img
-                  src="/images/ChatGPT Image 29 sie 2025, 09_14_10.png"
-                  alt="Iglo-Bus Rent – wynajem mroźni i chłodni na Śląsku"
-                  width={384}
-                  height={384}
-                  className="w-80 h-80 lg:w-96 lg:h-96 object-contain cursor-pointer hover:opacity-90 transition-opacity"
-                />
-              </Link>
-            </div>
-          </div>
+<div className="flex justify-center lg:justify-end">
+  <div className="relative">
+    <Link href="/">
+      <img
+        src="/images/logo-hero.png"
+        alt="Iglo-Bus Rent – wynajem mroźni i chłodni na Śląsku"
+        width={384}
+        height={384}
+        className="w-80 h-80 lg:w-96 lg:h-96 object-contain cursor-pointer hover:opacity-90 transition-opacity"
+        loading="eager"
+        decoding="async"
+      />
+    </Link>
+  </div>
+</div>
         </div>
       </section>
 
