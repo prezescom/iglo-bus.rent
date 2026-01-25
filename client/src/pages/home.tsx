@@ -9,26 +9,22 @@ import Footer from "@/components/footer";
 
 export default function Home() {
   useEffect(() => {
-    // Scroll do kotwicy po załadowaniu
     const hash = window.location.hash;
     if (hash) {
       setTimeout(() => {
         const element = document.querySelector(hash);
-        if (element) {
-          element.scrollIntoView({ behavior: "smooth" });
-        }
+        if (element) element.scrollIntoView({ behavior: "smooth" });
       }, 100);
     }
   }, []);
 
-  // UZUPEŁNIJ jeśli masz inne dane kontaktowe
-  const siteUrl = "https://www.iglo-bus.rent/"; // canonical na stronę główną (z /)
+  const siteUrl = "https://www.iglo-bus.rent/";
   const phone = "+48 530 410 504";
   const email = "kontakt@iglo-bus.rent";
 
   const pageTitle = "Wynajem samochodów chłodni i mroźni – Polska | Iglo-Bus Rent";
   const pageDesc =
-    "Wypożyczalnia samochodów chłodni i mroźni z atestem Sanepid. Krótko i długoterminowo – szybkie podstawienie na terenie całej Polski.";
+    "Wynajem aut chłodni i mroźni z atestem Sanepid. Zakres −20°C do +20°C, rejestrator temperatur, szybkie podstawienie w całej Polsce.";
   const ogImage = `${siteUrl}images/og-home-1200.jpg`;
 
   const jsonLdLocalBusiness = {
@@ -37,7 +33,7 @@ export default function Home() {
     name: "Iglo-Bus Rent",
     url: siteUrl,
     email,
-    telephone: phone,
+    telephone: phone.replace(/\s/g, ""),
     areaServed: "PL",
     priceRange: "PLN",
     image: ogImage,
@@ -49,27 +45,33 @@ export default function Home() {
     "@context": "https://schema.org",
     "@type": "WebSite",
     url: siteUrl,
-    name: "Iglo-Bus Rent",
-    potentialAction: {
-      "@type": "SearchAction",
-      target: `${siteUrl}?q={search_term_string}`,
-      "query-input": "required name=search_term_string"
-    }
+    name: "Iglo-Bus Rent"
+  };
+
+  const jsonLdBreadcrumbs = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Strona główna", item: siteUrl }
+    ]
+  };
+
+  const scrollToFleet = () => {
+    const el = document.getElementById("flota");
+    if (el) el.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
       <Helmet>
-        {/* === Core SEO === */}
         <title>{pageTitle}</title>
         <meta name="description" content={pageDesc} />
         <link rel="canonical" href={siteUrl} />
         <meta name="robots" content="index,follow,max-image-preview:large" />
-        {/* hreflang – wersja PL i domyślna */}
+
         <link rel="alternate" hrefLang="pl" href={siteUrl} />
         <link rel="alternate" hrefLang="x-default" href={siteUrl} />
 
-        {/* === Open Graph === */}
         <meta property="og:type" content="website" />
         <meta property="og:locale" content="pl_PL" />
         <meta property="og:site_name" content="Iglo-Bus Rent" />
@@ -79,27 +81,27 @@ export default function Home() {
         <meta property="og:image" content={ogImage} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
-        <meta property="og:image:alt" content="Samochód chłodnia/mroźnia – Iglo-Bus Rent" />
+        <meta property="og:image:alt" content="Wynajem samochodów chłodni i mroźni – Iglo-Bus Rent" />
 
-        {/* === Twitter === */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={pageDesc} />
         <meta name="twitter:image" content={ogImage} />
 
-        {/* Dane strukturalne */}
         <script type="application/ld+json">{JSON.stringify(jsonLdLocalBusiness)}</script>
         <script type="application/ld+json">{JSON.stringify(jsonLdWebSite)}</script>
+        <script type="application/ld+json">{JSON.stringify(jsonLdBreadcrumbs)}</script>
       </Helmet>
 
-      {/* Jeden H1 (ukryty wizualnie – OK dla SEO i dostępności) */}
-      <h1 className="sr-only">Wynajem samochodów chłodni i mroźni – Iglo-Bus Rent</h1>
-
       <Header />
-      <Hero />
-      <FleetSection />
-      <HowItWorks />
-      <FaqSection />
+
+      <main>
+        <Hero onPrimaryCtaClick={scrollToFleet} />
+        <FleetSection />
+        <HowItWorks />
+        <FaqSection />
+      </main>
+
       <Footer />
     </div>
   );
