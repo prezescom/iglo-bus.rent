@@ -40,7 +40,7 @@ const vehicles = [
       { period: "4–7 dób", price: "250 zł" },
       { period: "8–14 dób", price: "230 zł" },
       { period: "15–29 dób", price: "210 zł" },
-      { period: "30+ dni (miesięcznie)", price: "5 000 zł", highlighted: true },
+      { period: "30+ dni (miesięcznie)", price: "5 500 zł", highlighted: true },
     ],
   },
   {
@@ -57,11 +57,11 @@ const vehicles = [
       { src: proAceTech, alt: "Toyota ProAce - wymiary wewnętrzne", title: "ProAce - specyfikacja wymiarów" },
     ],
     pricing: [
-      { period: "1–3 doby", price: "320 zł" },
-      { period: "4–7 dób", price: "290 zł" },
-      { period: "8–14 dób", price: "270 zł" },
-      { period: "15–29 dób", price: "250 zł" },
-      { period: "30+ dni (miesięcznie)", price: "5 500 zł", highlighted: true },
+      { period: "1–3 doby", price: "400 zł" },
+      { period: "4–7 dób", price: "350 zł" },
+      { period: "8–14 dób", price: "320 zł" },
+      { period: "15–29 dób", price: "280 zł" },
+      { period: "30+ dni (miesięcznie)", price: "6 000 zł", highlighted: true },
     ],
   },
   {
@@ -78,11 +78,11 @@ const vehicles = [
       { src: proAceMaxiTech, alt: "Toyota ProAce Maxi - wymiary techniczne", title: "ProAce Maxi - wymiary i specyfikacja" },
     ],
     pricing: [
-      { period: "1–3 doby", price: "350 zł" },
-      { period: "4–7 dób", price: "320 zł" },
-      { period: "8–14 dób", price: "300 zł" },
-      { period: "15–29 dób", price: "280 zł" },
-      { period: "30+ dni (miesięcznie)", price: "6 000 zł", highlighted: true },
+      { period: "1–3 doby", price: "450 zł" },
+      { period: "4–7 dób", price: "400 zł" },
+      { period: "8–14 dób", price: "370 zł" },
+      { period: "15–29 dób", price: "330 zł" },
+      { period: "30+ dni (miesięcznie)", price: "6 500 zł", highlighted: true },
     ],
   },
 ];
