@@ -44,38 +44,30 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
     let dailyRate = 0;
     let tierUsed = "";
 
+    const findRate = (p: { period: string; price: string }) =>
+      parseInt(p.price.replace(/[^\d]/g, ''));
+
     if (days >= 30) {
-      // Monthly pricing - find the monthly rate
-      const monthlyPricing = pricing.find(p => p.period.includes("30+") || p.period.includes("miesięcznie"));
-      if (monthlyPricing) {
-        const monthlyPrice = parseInt(monthlyPricing.price.replace(/[^\d]/g, ''));
-        dailyRate = Math.round(monthlyPrice / 30); // Convert monthly to daily
-        tierUsed = monthlyPricing.period;
+      const tier = pricing.find(p =>
+        p.period.includes("30+") || p.period.includes("miesięcznie") || p.period === "miesiąc"
+      );
+      if (tier) {
+        const monthlyPrice = findRate(tier);
+        dailyRate = Math.round(monthlyPrice / 30);
+        tierUsed = tier.period;
       }
     } else if (days >= 15) {
       const tier = pricing.find(p => p.period.includes("15–29"));
-      if (tier) {
-        dailyRate = parseInt(tier.price.replace(/[^\d]/g, ''));
-        tierUsed = tier.period;
-      }
+      if (tier) { dailyRate = findRate(tier); tierUsed = tier.period; }
     } else if (days >= 8) {
       const tier = pricing.find(p => p.period.includes("8–14"));
-      if (tier) {
-        dailyRate = parseInt(tier.price.replace(/[^\d]/g, ''));
-        tierUsed = tier.period;
-      }
+      if (tier) { dailyRate = findRate(tier); tierUsed = tier.period; }
     } else if (days >= 4) {
       const tier = pricing.find(p => p.period.includes("4–7"));
-      if (tier) {
-        dailyRate = parseInt(tier.price.replace(/[^\d]/g, ''));
-        tierUsed = tier.period;
-      }
+      if (tier) { dailyRate = findRate(tier); tierUsed = tier.period; }
     } else {
-      const tier = pricing.find(p => p.period.includes("1–3"));
-      if (tier) {
-        dailyRate = parseInt(tier.price.replace(/[^\d]/g, ''));
-        tierUsed = tier.period;
-      }
+      const tier = pricing.find(p => p.period.includes("1–3") || p.period === "doba");
+      if (tier) { dailyRate = findRate(tier); tierUsed = tier.period; }
     }
 
     if (dailyRate === 0) return null;
