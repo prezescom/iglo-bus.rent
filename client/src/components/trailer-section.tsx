@@ -10,8 +10,8 @@ const trailers = [
     capacity:
       "Wymiary wewnętrzne (d/s/w): 250 × 135 × 150 cm · DMC: 750 kg · kaucja - 1500 zł",
     gallery: [
-      { src: "/images/przyczepa-S-wnetrze.jpg", alt: "Przyczepa chłodnicza S – wnętrze skrzyni ładunkowej", title: "Przyczepa S – wnętrze chłodni" },
-      { src: "/images/przyczepa-S-zewnatrz.jpg", alt: "Przyczepa chłodnicza S – widok z zewnątrz", title: "Przyczepa S – agregat Thermo King" },
+      { src: "/images/przyczepa-S-wnetrze.jpg", alt: "Przyczepa chłodnicza S – z zewnątrz", title: "Przyczepa S" },
+      { src: "/images/przyczepa-S-zewnatrz.jpg", alt: "Przyczepa chłodnicza S – wnętrze skrzyni ładunkowej", title: "Przyczepa S – skrzynia ładunkowa" },
     ],
     pricing: [
       { period: "1–3 doby", price: "200 zł" },
@@ -30,8 +30,8 @@ const trailers = [
     capacity:
       "Wymiary wewnętrzne (d/s/w): 380 × 160 × 170 cm · DMC: 2000 kg · kaucja - 2000 zł",
     gallery: [
-      { src: "/images/przyczepa-L-wnetrze.jpg", alt: "Przyczepa chłodnicza L – wnętrze skrzyni ładunkowej", title: "Przyczepa L – wnętrze z szynami" },
-      { src: "/images/przyczepa-L-zewnatrz.jpg", alt: "Przyczepa chłodnicza L – widok z zewnątrz", title: "Przyczepa L – agregat Thermo King" },
+      { src: "/images/przyczepa-L-wnetrze.jpg", alt: "Przyczepa chłodnicza L – widok z zewnątrz", title: "Przyczepa L" },
+      { src: "/images/przyczepa-L-zewnatrz.jpg", alt: "Przyczepa chłodnicza L – wnętrze", title: "Przyczepa L – wnętrze" },
     ],
     pricing: [
       { period: "1–3 doby", price: "250 zł" },
