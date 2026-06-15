@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import PageShell from "@/components/page-shell";
 import PageHero from "@/components/page-hero";
 import Section from "@/components/section";
@@ -5,6 +6,8 @@ import { Thermometer, Shield, CheckCircle2, Truck, Zap, Clock, Phone, Mail } fro
 import { Link } from "wouter";
 
 export default function WynajemPrzyczepChlodniczych() {
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+
   const canonical = "https://www.iglo-bus.rent/wynajem-przyczep-chlodniczych";
   const title = "Wynajem przyczepy chłodniczej – Polska | Iglo-Bus Rent";
   const description =
@@ -72,10 +75,10 @@ export default function WynajemPrzyczepChlodniczych() {
         },
         {
           "@type": "Question",
-          name: "Czy przyczepa wymaga podłączenia do prądu 230V podczas postoju?",
+          name: "Czy agregat chłodniczy działa podczas jazdy?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "Agregat chłodniczy działa autonomicznie. Opcja 230V pozwala utrzymać temperaturę bez paliwa na dłuższych postojach – np. na eventach czy w hurtowniach.",
+            text: "Nie. Agregat chłodniczy wymaga stałego zasilania 230V i nie działa podczas jazdy. Przed załadunkiem należy wstępnie schłodzić skrzynię ładunkową w miejscu z dostępem do prądu.",
           },
         },
         {
@@ -180,7 +183,7 @@ export default function WynajemPrzyczepChlodniczych() {
             { icon: Thermometer, title: "Dystrybucja spożywcza", desc: "Pośredni transport chłodzony – przyczepa jedzie za ciągnikiem własnym klienta." },
             { icon: Clock, title: "Zastępstwo serwisowe", desc: "Tymczasowa chłodnia na czas awarii lub remontu własnej zabudowy." },
             { icon: Zap, title: "Punkt sprzedaży", desc: "Podłączenie 230V umożliwia pracę bez silnika – idealne na targach i stoiskach." },
-            { icon: Shield, title: "Farmacja i kosmetyki", desc: "Stabilna temperatura w zakresie +2°C do +8°C dla wrażliwych produktów." },
+            { icon: Shield, title: "Mróz i chłód w jednym", desc: "Zakres −20°C do +10°C pokrywa zarówno transport mrożonek, jak i produktów chłodzonych." },
             { icon: CheckCircle2, title: "Krótki lub długi termin", desc: "Wynajem od jednej doby do miesięcy – cennik bez progów wejścia." },
           ].map(({ icon: Icon, title, desc }, idx) => (
             <div key={idx} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
@@ -203,7 +206,7 @@ export default function WynajemPrzyczepChlodniczych() {
             },
             {
               q: "Czy agregat działa podczas jazdy?",
-              a: "Tak. Agregat chłodniczy działa autonomicznie podczas jazdy. Opcja 230V pozwala utrzymać temperaturę bez zużycia paliwa na dłuższych postojach.",
+              a: "Nie. Agregat chłodniczy wymaga stałego zasilania 230V – nie działa podczas jazdy. Przed załadunkiem należy wstępnie schłodzić skrzynię ładunkową w miejscu z dostępem do prądu.",
             },
             {
               q: "Czy dostarczacie przyczepę pod adres?",
