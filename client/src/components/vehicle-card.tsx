@@ -11,6 +11,7 @@ interface VehicleCardProps {
     image: string;
     alt: string;
     capacity: string;
+    description?: string;
     gallery?: Array<{
       src: string;
       alt: string;
@@ -120,8 +121,7 @@ export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
         </div>
 
         <p className="text-xs text-slate-500 leading-relaxed bg-slate-50 p-3 rounded-lg">
-          Zakres temperatur (−20°C do +20°C), rejestrator temperatur, agregat z podtrzymaniem 230V (opcja), kamera cofania,
-          Android Auto, assistance na terenie EU. Kaucja zwrotna wg umowy.
+          {vehicle.description ?? "Zakres temperatur (−20°C do +20°C), rejestrator temperatur, agregat z podtrzymaniem 230V (opcja), kamera cofania, Android Auto, assistance na terenie EU. Kaucja zwrotna wg umowy."}
         </p>
 
         <BookingForm vehicleTitle={vehicle.title} pricing={vehicle.pricing} />
