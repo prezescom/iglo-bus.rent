@@ -46,7 +46,7 @@ export default function TrailerSection() {
         <h2 className="text-2xl md:text-3xl font-bold text-brand-dark mb-2">Przyczepy chłodnicze</h2>
         <p className="text-slate-600 text-sm md:text-base leading-relaxed max-w-3xl mx-auto">
           Przyczepy chłodnicze do wynajęcia – idealne jako rozszerzenie pojemności lub samodzielne rozwiązanie transportowe.
-          Zakres temperatur −20°C do +20°C. Ceny netto.
+          Zakres temperatur −20°C do +10°C. Ceny netto.
           <span className="hidden md:inline"> Płatność wyłącznie kartą.</span>
         </p>
         <p className="md:hidden text-xs text-slate-500 mt-2">Płatność wyłącznie kartą.</p>
