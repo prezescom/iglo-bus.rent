@@ -14,11 +14,8 @@ const trailers = [
       { src: "/images/przyczepa-S-zewnatrz.jpg", alt: "Przyczepa chłodnicza S – wnętrze skrzyni ładunkowej", title: "Przyczepa S – skrzynia ładunkowa" },
     ],
     pricing: [
-      { period: "1–3 doby", price: "200 zł" },
-      { period: "4–7 dób", price: "170 zł" },
-      { period: "8–14 dób", price: "150 zł" },
-      { period: "15–29 dób", price: "130 zł" },
-      { period: "30+ dni (miesięcznie)", price: "3 500 zł", highlighted: true },
+      { period: "doba", price: "200 zł" },
+      { period: "miesiąc", price: "3 000 zł", highlighted: true },
     ],
   },
   {
@@ -34,11 +31,8 @@ const trailers = [
       { src: "/images/przyczepa-L-zewnatrz.jpg", alt: "Przyczepa chłodnicza L – wnętrze", title: "Przyczepa L – wnętrze" },
     ],
     pricing: [
-      { period: "1–3 doby", price: "250 zł" },
-      { period: "4–7 dób", price: "220 zł" },
-      { period: "8–14 dób", price: "200 zł" },
-      { period: "15–29 dób", price: "180 zł" },
-      { period: "30+ dni (miesięcznie)", price: "4 800 zł", highlighted: true },
+      { period: "doba", price: "250 zł" },
+      { period: "miesiąc", price: "3 500 zł", highlighted: true },
     ],
   },
 ];
