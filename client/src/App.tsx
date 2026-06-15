@@ -13,6 +13,7 @@ import WynajemMrozni from "@/pages/wynajem-mrozni";
 import WynajemChlodni from "@/pages/wynajem-chlodni";
 import WymaganiaAutoChlodniaMrozniaIzoterma from "@/pages/wymagania-auto-chlodnia-mroznia-izoterma";
 import WyposazenieSamochodowMrozni from "@/pages/wyposazenie-samochodow-mrozni";
+import WynajemPrzyczepChlodniczych from "@/pages/wynajem-przyczep-chlodniczych";
 import Contact from "@/pages/contact";
 
 function Router() {
@@ -27,6 +28,7 @@ function Router() {
         component={WymaganiaAutoChlodniaMrozniaIzoterma}
       />
       <Route path="/wyposazenie-samochodow-mrozni" component={WyposazenieSamochodowMrozni} />
+      <Route path="/wynajem-przyczep-chlodniczych" component={WynajemPrzyczepChlodniczych} />
       <Route path="/kontakt" component={Contact} />
       <Route component={NotFound} />
     </Switch>

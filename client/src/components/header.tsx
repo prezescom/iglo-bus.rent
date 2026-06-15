@@ -80,6 +80,9 @@ export default function Header() {
                   <Link href="/wynajem-chlodni" className="w-full">❄️ Wynajem chłodni</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
+                  <Link href="/wynajem-przyczep-chlodniczych" className="w-full">🚛 Wynajem przyczep chłodniczych</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link href="/wymagania-auto-chlodnia-mroznia-izoterma" className="w-full">📋 Wymagania auto chłodnia</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -144,6 +147,9 @@ export default function Header() {
                 </Link>
                 <Link href="/wynajem-chlodni" className="block py-2 px-3 hover:bg-brand-light rounded-md transition-colors">
                   ❄️ Wynajem chłodni
+                </Link>
+                <Link href="/wynajem-przyczep-chlodniczych" className="block py-2 px-3 hover:bg-brand-light rounded-md transition-colors">
+                  🚛 Wynajem przyczep chłodniczych
                 </Link>
                 <Link href="/wyposazenie-samochodow-mrozni" className="block py-2 px-3 hover:bg-brand-light rounded-md transition-colors">
                   🔧 Wyposażenie
