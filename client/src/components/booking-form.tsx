@@ -70,6 +70,12 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
       if (tier) { dailyRate = findRate(tier); tierUsed = tier.period; }
     }
 
+    // fallback: jeśli żaden tier nie pasuje (np. cennik tylko z "doba"), użyj stawki dobowej
+    if (dailyRate === 0) {
+      const dobaTier = pricing.find(p => p.period === "doba");
+      if (dobaTier) { dailyRate = findRate(dobaTier); tierUsed = dobaTier.period; }
+    }
+
     if (dailyRate === 0) return null;
 
     const totalCost = dailyRate * days;
