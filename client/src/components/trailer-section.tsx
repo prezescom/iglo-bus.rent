@@ -5,10 +5,14 @@ const trailers = [
     id: "trailer-s",
     title: "Przyczepa chłodnicza (S)",
     group: "Przyczepa S",
-    image: "/images/ProAce City 1_1755593677474.JPG",
-    alt: "Przyczepa chłodnicza mała – wynajem",
+    image: "/images/przyczepa-S-zewnatrz.jpg",
+    alt: "Przyczepa chłodnicza jednoosiowa – wynajem Iglo-Bus Rent",
     capacity:
       "Wymiary wewnętrzne (d/s/w): 250 × 135 × 150 cm · DMC: 750 kg · kaucja - 1500 zł",
+    gallery: [
+      { src: "/images/przyczepa-S-zewnatrz.jpg", alt: "Przyczepa chłodnicza S – widok z zewnątrz", title: "Przyczepa S – agregat Thermo King" },
+      { src: "/images/przyczepa-S-wnetrze.jpg", alt: "Przyczepa chłodnicza S – wnętrze skrzyni ładunkowej", title: "Przyczepa S – wnętrze chłodni" },
+    ],
     pricing: [
       { period: "1–3 doby", price: "200 zł" },
       { period: "4–7 dób", price: "170 zł" },
@@ -21,14 +25,18 @@ const trailers = [
     id: "trailer-l",
     title: "Przyczepa chłodnicza (L)",
     group: "Przyczepa L",
-    image: "/images/ProAce Maxi 1_1755593677475.JPG",
-    alt: "Przyczepa chłodnicza duża – wynajem",
+    image: "/images/przyczepa-L-zewnatrz.jpg",
+    alt: "Przyczepa chłodnicza dwuosiowa – wynajem Iglo-Bus Rent",
     capacity:
-      "Wymiary wewnętrzne (d/s/w): 380 × 160 × 170 cm · DMC: 1300 kg · kaucja - 2000 zł",
+      "Wymiary wewnętrzne (d/s/w): 380 × 160 × 170 cm · DMC: 2000 kg · kaucja - 2000 zł",
+    gallery: [
+      { src: "/images/przyczepa-L-zewnatrz.jpg", alt: "Przyczepa chłodnicza L – widok z zewnątrz", title: "Przyczepa L – agregat Thermo King" },
+      { src: "/images/przyczepa-L-wnetrze.jpg", alt: "Przyczepa chłodnicza L – wnętrze skrzyni ładunkowej", title: "Przyczepa L – wnętrze z szynami" },
+    ],
     pricing: [
-      { period: "1–3 doby", price: "280 zł" },
-      { period: "4–7 dób", price: "240 zł" },
-      { period: "8–14 dób", price: "210 zł" },
+      { period: "1–3 doby", price: "250 zł" },
+      { period: "4–7 dób", price: "220 zł" },
+      { period: "8–14 dób", price: "200 zł" },
       { period: "15–29 dób", price: "180 zł" },
       { period: "30+ dni (miesięcznie)", price: "4 800 zł", highlighted: true },
     ],
