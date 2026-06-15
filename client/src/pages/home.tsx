@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import Header from "@/components/header";
 import Hero from "@/components/hero";
 import FleetSection from "@/components/fleet-section";
+import TrailerSection from "@/components/trailer-section";
 import HowItWorks from "@/components/how-it-works";
 import FaqSection from "@/components/faq-section";
 import Footer from "@/components/footer";
@@ -98,6 +99,7 @@ export default function Home() {
       <main>
         <Hero onPrimaryCtaClick={scrollToFleet} />
         <FleetSection />
+        <TrailerSection />
         <HowItWorks />
         <FaqSection />
       </main>

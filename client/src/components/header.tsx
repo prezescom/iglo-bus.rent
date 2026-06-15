@@ -48,6 +48,9 @@ export default function Header() {
                 <button onClick={() => scrollToSection("flota")} className="hover:text-brand-blue transition-colors">
                   Flota i cennik
                 </button>
+                <button onClick={() => scrollToSection("przyczepy")} className="hover:text-brand-blue transition-colors">
+                  Przyczepy
+                </button>
                 <button onClick={() => scrollToSection("jak-dziala")} className="hover:text-brand-blue transition-colors">
                   Jak to działa
                 </button>
@@ -58,6 +61,7 @@ export default function Header() {
             ) : (
               <>
                 <a href="/#flota" className="hover:text-brand-blue transition-colors">Flota i cennik</a>
+                <a href="/#przyczepy" className="hover:text-brand-blue transition-colors">Przyczepy</a>
                 <a href="/#jak-dziala" className="hover:text-brand-blue transition-colors">Jak to działa</a>
                 <a href="/#faq" className="hover:text-brand-blue transition-colors">FAQ</a>
               </>
@@ -113,6 +117,12 @@ export default function Header() {
                 className="block w-full text-left py-2 px-3 hover:bg-brand-light rounded-md transition-colors"
               >
                 Flota i cennik
+              </button>
+              <button
+                onClick={() => scrollToSection("przyczepy")}
+                className="block w-full text-left py-2 px-3 hover:bg-brand-light rounded-md transition-colors"
+              >
+                Przyczepy
               </button>
               <button
                 onClick={() => scrollToSection("jak-dziala")}
