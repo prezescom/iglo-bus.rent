@@ -8,6 +8,7 @@ type PageShellProps = {
   description: string;
   canonical: string;
   ogImage?: string;
+  jsonLd?: Record<string, unknown>[];
   children: ReactNode;
 };
 
@@ -16,6 +17,7 @@ export default function PageShell({
   description,
   canonical,
   ogImage = "https://www.iglo-bus.rent/images/og-home-1200.jpg",
+  jsonLd,
   children,
 }: PageShellProps) {
   return (
@@ -38,6 +40,12 @@ export default function PageShell({
         <meta name="twitter:title" content={title} />
         <meta name="twitter:description" content={description} />
         <meta name="twitter:image" content={ogImage} />
+
+        {jsonLd?.map((entry, index) => (
+          <script key={index} type="application/ld+json">
+            {JSON.stringify(entry)}
+          </script>
+        ))}
       </Helmet>
 
       <Header />
