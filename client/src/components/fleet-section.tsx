@@ -78,7 +78,7 @@ const vehicles = [
     alt: "Toyota ProAce Maxi - duży samochód chłodniczy",
     loadCapacityKg: 1105,
     grossWeightKg: 3500,
-    dimensionsInternal: { length: 302, width: 135, height: 180 },
+    dimensionsInternal: { length: 333, width: 157, height: 173 },
     dimensionsExternal: { length: 600, width: 230, height: 260 },
     depositPln: 2000,
     gallery: [

@@ -88,7 +88,7 @@ export default function Home() {
         item: {
           "@type": "Product",
           name: "Toyota ProAce Maxi – samochód chłodniczy (L)",
-          description: "Wynajem samochodu chłodniczego ProAce Maxi. Wymiary 302×135×180 cm, zakres −20°C do +20°C.",
+          description: "Wynajem samochodu chłodniczego ProAce Maxi. Wymiary 333×157×173 cm, zakres −20°C do +20°C.",
           offers: { "@type": "Offer", price: "450", priceCurrency: "PLN", priceSpecification: { unitText: "za dobę" } }
         }
       },
