@@ -31,7 +31,7 @@ const vehicles = [
     loadCapacityKg: 685,
     grossWeightKg: 2400,
     dimensionsInternal: { length: 175, width: 109, height: 104 },
-    dimensionsExternal: { length: 475, width: 210, height: 211 },
+    dimensionsExternal: { length: 475, width: 185, height: 211 },
     depositPln: 1000,
     gallery: [
       { src: proAceCityNew, alt: "Toyota ProAce City z agregatem chłodniczym", title: "ProAce City - pojazd z systemem chłodniczym" },
@@ -55,7 +55,7 @@ const vehicles = [
     loadCapacityKg: 950,
     grossWeightKg: 3100,
     dimensionsInternal: { length: 238, width: 125, height: 113 },
-    dimensionsExternal: { length: 530, width: 220, height: 218 },
+    dimensionsExternal: { length: 530, width: 193, height: 218 },
     depositPln: 1500,
     gallery: [
       { src: proAceNew, alt: "Toyota ProAce z otwartymi drzwiami bocznymi", title: "ProAce - dostęp do ładowni" },
@@ -79,7 +79,7 @@ const vehicles = [
     loadCapacityKg: 1105,
     grossWeightKg: 3500,
     dimensionsInternal: { length: 333, width: 157, height: 173 },
-    dimensionsExternal: { length: 600, width: 230, height: 260 },
+    dimensionsExternal: { length: 600, width: 205, height: 260 },
     depositPln: 2000,
     gallery: [
       { src: proAceMaxiNew, alt: "Toyota ProAce Maxi - nowy model", title: "ProAce Maxi - model 2024" },
