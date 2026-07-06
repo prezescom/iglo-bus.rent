@@ -28,8 +28,11 @@ const vehicles = [
     group: "Grupa S",
     image: proAceCityImg,
     alt: "Toyota ProAce City - kompaktowy samochód chłodniczy",
-    capacity:
-      "Wymiary wewnętrzne (d/s/w): 175 × 109 × 104 cm · Wymiary zewnętrzne (d/s/w): 475 × 210 × 211 cm · kaucja - 1000zł",
+    loadCapacityKg: 685,
+    grossWeightKg: 2400,
+    dimensionsInternal: { length: 175, width: 109, height: 104 },
+    dimensionsExternal: { length: 475, width: 210, height: 211 },
+    depositPln: 1000,
     gallery: [
       { src: proAceCityNew, alt: "Toyota ProAce City z agregatem chłodniczym", title: "ProAce City - pojazd z systemem chłodniczym" },
       { src: proAceCityInside, alt: "Toyota ProAce City - wnętrze chłodni z agregatem", title: "ProAce City - wnętrze z systemem Zanotti" },
@@ -49,8 +52,11 @@ const vehicles = [
     group: "Grupa M",
     image: proAceImg,
     alt: "Toyota ProAce - średni samochód chłodniczy",
-    capacity:
-      "Wymiary wewnętrzne (d/s/w): 238 × 125 × 113 cm · Wymiary zewnętrzne (d/s/w): 530 × 220 × 218 cm · kaucja - 1500zł",
+    loadCapacityKg: 950,
+    grossWeightKg: 3100,
+    dimensionsInternal: { length: 238, width: 125, height: 113 },
+    dimensionsExternal: { length: 530, width: 220, height: 218 },
+    depositPln: 1500,
     gallery: [
       { src: proAceNew, alt: "Toyota ProAce z otwartymi drzwiami bocznymi", title: "ProAce - dostęp do ładowni" },
       { src: proAceInside, alt: "Toyota ProAce - wnętrze chłodni z podłogą aluminiową", title: "ProAce - wnętrze z systemem chłodniczym" },
@@ -70,8 +76,11 @@ const vehicles = [
     group: "Grupa L",
     image: proAceMaxiImg,
     alt: "Toyota ProAce Maxi - duży samochód chłodniczy",
-    capacity:
-      "Wymiary wewnętrzne (d/s/w): 302 × 135 × 180 cm · Wymiary zewnętrzne (d/s/w): 600 × 230 × 260 cm · kaucja - 2000zł",
+    loadCapacityKg: 1105,
+    grossWeightKg: 3500,
+    dimensionsInternal: { length: 302, width: 135, height: 180 },
+    dimensionsExternal: { length: 600, width: 230, height: 260 },
+    depositPln: 2000,
     gallery: [
       { src: proAceMaxiNew, alt: "Toyota ProAce Maxi - nowy model", title: "ProAce Maxi - model 2024" },
       { src: proAceMaxiInside, alt: "Toyota ProAce Maxi - wnętrze chłodni", title: "ProAce Maxi - wnętrze chłodni" },

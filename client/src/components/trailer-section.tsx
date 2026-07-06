@@ -7,8 +7,9 @@ const trailers = [
     group: "Przyczepa S",
     image: "/images/przyczepa-S-wnetrze.jpg",
     alt: "Przyczepa chłodnicza jednoosiowa – wynajem Iglo-Bus Rent",
-    capacity:
-      "Wymiary wewnętrzne (d/s/w): 200 × 110 × 150 cm · DMC: 750 kg · kaucja - 1500 zł",
+    grossWeightKg: 750,
+    dimensionsInternal: { length: 200, width: 110, height: 150 },
+    depositPln: 1500,
     description: "Zakres temperatur (−20°C do +10°C), agregat z podtrzymaniem 230V, możliwy dowóz. Kaucja zwrotna wg umowy.",
     gallery: [
       { src: "/images/przyczepa-S-wnetrze.jpg", alt: "Przyczepa chłodnicza S – z zewnątrz", title: "Przyczepa S" },
@@ -25,8 +26,9 @@ const trailers = [
     group: "Przyczepa L",
     image: "/images/przyczepa-L-wnetrze.jpg",
     alt: "Przyczepa chłodnicza dwuosiowa – wynajem Iglo-Bus Rent",
-    capacity:
-      "Wymiary wewnętrzne (d/s/w): 300 × 160 × 180 cm · DMC: 2000 kg · kaucja - 2000 zł",
+    grossWeightKg: 2000,
+    dimensionsInternal: { length: 300, width: 160, height: 180 },
+    depositPln: 2000,
     description: "Zakres temperatur (−20°C do +10°C), agregat z podtrzymaniem 230V, możliwy dowóz. Kaucja zwrotna wg umowy.",
     gallery: [
       { src: "/images/przyczepa-L-wnetrze.jpg", alt: "Przyczepa chłodnicza L – widok z zewnątrz", title: "Przyczepa L" },

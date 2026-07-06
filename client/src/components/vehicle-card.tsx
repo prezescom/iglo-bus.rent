@@ -2,6 +2,7 @@ import { useState, KeyboardEvent } from "react";
 import { Camera } from "lucide-react";
 import BookingForm from "./booking-form";
 import PhotoGallery from "./photo-gallery";
+import VehicleSpecDetails, { type VehicleCardDimensions } from "./vehicle-spec-details";
 
 interface VehicleCardProps {
   vehicle: {
@@ -10,7 +11,11 @@ interface VehicleCardProps {
     group: string;
     image: string;
     alt: string;
-    capacity: string;
+    loadCapacityKg?: number;
+    grossWeightKg?: number;
+    dimensionsInternal: VehicleCardDimensions;
+    dimensionsExternal?: VehicleCardDimensions;
+    depositPln?: number;
     description?: string;
     gallery?: Array<{
       src: string;
@@ -93,7 +98,16 @@ export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
           )}
         </button>
 
-        <p className="text-sm text-slate-600 font-medium">{vehicle.capacity}</p>
+        <div className="mt-4">
+          <VehicleSpecDetails
+            loadCapacityKg={vehicle.loadCapacityKg}
+            grossWeightKg={vehicle.grossWeightKg}
+            dimensionsInternal={vehicle.dimensionsInternal}
+            dimensionsExternal={vehicle.dimensionsExternal}
+            depositPln={vehicle.depositPln}
+            testId={`vehicle-specs-${vehicle.id}`}
+          />
+        </div>
       </div>
 
       {vehicle.gallery && (

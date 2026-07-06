@@ -1,23 +1,17 @@
 import { useState, KeyboardEvent } from "react";
-import { Weight, Gauge, Box, Truck, ShieldCheck, Camera } from "lucide-react";
+import { Camera } from "lucide-react";
 import PhotoGallery from "./photo-gallery";
+import VehicleSpecDetails, {
+  defaultVehicleCardAccent,
+  type VehicleCardAccent,
+  type VehicleCardDimensions,
+} from "./vehicle-spec-details";
 
-export interface VehicleCardDimensions {
-  length: number;
-  width: number;
-  height: number;
-}
+export type { VehicleCardDimensions, VehicleCardAccent };
 
 export interface VehicleCardImage {
   src: string;
   alt: string;
-}
-
-export interface VehicleCardAccent {
-  /** tailwind text-color class applied to icons, badge label and big values */
-  text: string;
-  /** tailwind bg-color class applied to badge and the ładowność/DMC bar */
-  bg: string;
 }
 
 export interface VehicleCardVariant {
@@ -32,7 +26,8 @@ export interface VehicleCardVariant {
   /** DMC w kg — pomiń, gdy nie dotyczy danego typu pojazdu */
   grossWeightKg?: number;
   dimensionsInternal: VehicleCardDimensions;
-  dimensionsExternal: VehicleCardDimensions;
+  /** pomiń, gdy wymiary zewnętrzne nie są jeszcze znane/dotyczą pojazdu */
+  dimensionsExternal?: VehicleCardDimensions;
   /** kaucja w PLN — pomiń, aby ukryć pasek kaucji */
   depositPln?: number;
   accent?: VehicleCardAccent;
@@ -41,11 +36,6 @@ export interface VehicleCardVariant {
 interface VehicleCardProps {
   vehicle: VehicleCardVariant;
 }
-
-const defaultAccent: VehicleCardAccent = { text: "text-brand-blue", bg: "bg-brand-light" };
-
-const formatKg = (value: number) => `${value.toLocaleString("pl-PL")} kg`;
-const formatPln = (value: number) => `${value.toLocaleString("pl-PL")} zł`;
 
 export default function VehicleSpecCard({ vehicle }: VehicleCardProps) {
   const {
@@ -58,14 +48,11 @@ export default function VehicleSpecCard({ vehicle }: VehicleCardProps) {
     dimensionsInternal,
     dimensionsExternal,
     depositPln,
-    accent = defaultAccent,
+    accent = defaultVehicleCardAccent,
   } = vehicle;
 
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const hasGallery = Boolean(gallery && gallery.length > 0);
-  const hasLoadCapacity = typeof loadCapacityKg === "number";
-  const hasGrossWeight = typeof grossWeightKg === "number";
-  const hasDeposit = typeof depositPln === "number";
 
   const openGallery = () => {
     if (hasGallery) setIsGalleryOpen(true);
@@ -130,84 +117,17 @@ export default function VehicleSpecCard({ vehicle }: VehicleCardProps) {
         <PhotoGallery isOpen={isGalleryOpen} onClose={() => setIsGalleryOpen(false)} photos={gallery!} />
       )}
 
-      {(hasLoadCapacity || hasGrossWeight) && (
-        <div className={`mx-5 mt-4 rounded-lg px-4 py-3 flex items-stretch justify-center gap-4 ${accent.bg}`}>
-          {hasLoadCapacity && (
-            <div className="flex items-center gap-2">
-              <Weight className={`h-5 w-5 shrink-0 ${accent.text}`} />
-              <div className="leading-tight">
-                <div className="text-[11px] text-slate-500">ładowność</div>
-                <div className={`text-lg font-semibold ${accent.text}`}>{formatKg(loadCapacityKg!)}</div>
-              </div>
-            </div>
-          )}
-
-          {hasLoadCapacity && hasGrossWeight && <div className="w-px bg-slate-300/70 self-stretch" />}
-
-          {hasGrossWeight && (
-            <div className="flex items-center gap-2">
-              <Gauge className={`h-5 w-5 shrink-0 ${accent.text}`} />
-              <div className="leading-tight">
-                <div className="text-[11px] text-slate-500">DMC</div>
-                <div className={`text-lg font-semibold ${accent.text}`}>{formatKg(grossWeightKg!)}</div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className={`px-5 mt-4 ${hasDeposit ? "" : "pb-5"}`}>
-        <table
-          className="w-full text-sm border border-slate-200 rounded-lg overflow-hidden"
-          data-testid={`vehicle-spec-dimensions-${vehicle.id}`}
-        >
-          <thead>
-            <tr className="bg-slate-50 text-slate-500">
-              <th className="text-left font-medium px-3 py-2" />
-              <th className="text-right font-medium px-3 py-2">dł.</th>
-              <th className="text-right font-medium px-3 py-2">szer.</th>
-              <th className="text-right font-medium px-3 py-2">wys.</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            <tr>
-              <td className="px-3 py-2 text-slate-500">
-                <div className="flex items-center gap-1.5">
-                  <Box className="h-4 w-4 shrink-0" />
-                  wewn.
-                </div>
-              </td>
-              <td className="text-right px-3 py-2 font-medium text-slate-900">{dimensionsInternal.length}</td>
-              <td className="text-right px-3 py-2 font-medium text-slate-900">{dimensionsInternal.width}</td>
-              <td className="text-right px-3 py-2 font-medium text-slate-900">{dimensionsInternal.height}</td>
-            </tr>
-            <tr>
-              <td className="px-3 py-2 text-slate-500">
-                <div className="flex items-center gap-1.5">
-                  <Truck className="h-4 w-4 shrink-0" />
-                  zewn.
-                </div>
-              </td>
-              <td className="text-right px-3 py-2 font-medium text-slate-900">{dimensionsExternal.length}</td>
-              <td className="text-right px-3 py-2 font-medium text-slate-900">{dimensionsExternal.width}</td>
-              <td className="text-right px-3 py-2 font-medium text-slate-900">{dimensionsExternal.height}</td>
-            </tr>
-          </tbody>
-        </table>
-        <p className="text-[11px] text-slate-400 mt-1.5">wymiary w cm</p>
+      <div className="px-5 py-4">
+        <VehicleSpecDetails
+          loadCapacityKg={loadCapacityKg}
+          grossWeightKg={grossWeightKg}
+          dimensionsInternal={dimensionsInternal}
+          dimensionsExternal={dimensionsExternal}
+          depositPln={depositPln}
+          accent={accent}
+          testId={`vehicle-spec-details-${vehicle.id}`}
+        />
       </div>
-
-      {hasDeposit && (
-        <div className="mt-4 px-5 py-4 border-t border-slate-200 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-slate-600 text-sm">
-            <ShieldCheck className="h-4 w-4" />
-            <span>Kaucja</span>
-          </div>
-          <span className="text-xs font-semibold text-amber-800 bg-amber-100 px-3 py-1 rounded-full">
-            {formatPln(depositPln!)}
-          </span>
-        </div>
-      )}
     </div>
   );
 }
