@@ -32,9 +32,11 @@ const faqs = [
   },
   {
     question: "Gdzie mogę odebrać i zwrócić samochód?",
-    answer: "Standardowo odbiór oraz zwrot samochodu odbywa się w siedzibie wypożyczalni - Gliwicka 15b, Przyszowice." 
-      "Wynajmujesz na miesiąc? Dostarczymy go blisko Ciebie bez dodatkowych kosztów." 
-  "Potrzebujesz samochód pilnie (<48H)? Nasi kierowcy przywiozą go doliczając 5zł/km do kwoty wynajmu.",
+    answer: `Standardowo odbiór oraz zwrot samochodu odbywa się w siedzibie wypożyczalni – Gliwicka 15b, Przyszowice.
+
+Wynajmujesz na miesiąc? Dostarczymy go blisko Ciebie bez dodatkowych kosztów.
+
+Potrzebujesz samochodu pilnie (<48h)? Nasi kierowcy przywiozą go, doliczając 5 zł/km do kwoty wynajmu.`,
   },  
 ];
 
@@ -57,7 +59,7 @@ export default function FaqSection() {
               <AccordionTrigger className="font-bold text-lg text-brand-dark py-6 hover:no-underline">
                 {faq.question}
               </AccordionTrigger>
-              <AccordionContent className="text-slate-600 text-sm leading-relaxed pb-6">
+              <AccordionContent className="text-slate-600 text-sm leading-relaxed pb-6 whitespace-pre-line">
                 {faq.answer}
               </AccordionContent>
             </AccordionItem>
