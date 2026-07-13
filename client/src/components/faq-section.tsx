@@ -32,7 +32,9 @@ const faqs = [
   },
   {
     question: "Gdzie mogę odebrać i zwrócić samochód?",
-    answer: "Standardowo odbiór oraz zwrot samochodu odbywa się w siedzibie wypożyczalni - Gliwicka 15b, Przyszowice. Przy wynajmie na ponad 23dni, przywieziemy samochód pod wskazany adres na terenie województwa śląskiego. Wynajmując na ponad 90dni, przywieziemy samochód pod wskazany adres na terenie całego kraju. W innych przypadkach naliczamy opłatę 5zł/km.",
+    answer: "Standardowo odbiór oraz zwrot samochodu odbywa się w siedzibie wypożyczalni - Gliwicka 15b, Przyszowice." 
+      "Wynajmujesz na miesiąc? Dostarczymy go blisko Ciebie bez dodatkowych kosztów." 
+  "Potrzebujesz samochód pilnie (<48H)? Nasi kierowcy przywiozą go doliczając 5zł/km do kwoty wynajmu.",
   },  
 ];
 
