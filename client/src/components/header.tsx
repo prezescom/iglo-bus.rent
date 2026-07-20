@@ -48,9 +48,6 @@ export default function Header() {
                 <button onClick={() => scrollToSection("flota")} className="hover:text-brand-blue transition-colors">
                   Flota i cennik
                 </button>
-                <button onClick={() => scrollToSection("przyczepy")} className="hover:text-brand-blue transition-colors">
-                  Przyczepy
-                </button>
                 <button onClick={() => scrollToSection("jak-dziala")} className="hover:text-brand-blue transition-colors">
                   Jak to działa
                 </button>
@@ -61,7 +58,6 @@ export default function Header() {
             ) : (
               <>
                 <a href="/#flota" className="hover:text-brand-blue transition-colors">Flota i cennik</a>
-                <a href="/#przyczepy" className="hover:text-brand-blue transition-colors">Przyczepy</a>
                 <a href="/#jak-dziala" className="hover:text-brand-blue transition-colors">Jak to działa</a>
                 <a href="/#faq" className="hover:text-brand-blue transition-colors">FAQ</a>
               </>
@@ -78,9 +74,6 @@ export default function Header() {
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/wynajem-chlodni" className="w-full">❄️ Wynajem chłodni</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/wynajem-przyczep-chlodniczych" className="w-full">🚛 Wynajem przyczep chłodniczych</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/wymagania-auto-chlodnia-mroznia-izoterma" className="w-full">📋 Wymagania auto chłodnia</Link>
@@ -122,12 +115,6 @@ export default function Header() {
                 Flota i cennik
               </button>
               <button
-                onClick={() => scrollToSection("przyczepy")}
-                className="block w-full text-left py-2 px-3 hover:bg-brand-light rounded-md transition-colors"
-              >
-                Przyczepy
-              </button>
-              <button
                 onClick={() => scrollToSection("jak-dziala")}
                 className="block w-full text-left py-2 px-3 hover:bg-brand-light rounded-md transition-colors"
               >
@@ -147,9 +134,6 @@ export default function Header() {
                 </Link>
                 <Link href="/wynajem-chlodni" className="block py-2 px-3 hover:bg-brand-light rounded-md transition-colors">
                   ❄️ Wynajem chłodni
-                </Link>
-                <Link href="/wynajem-przyczep-chlodniczych" className="block py-2 px-3 hover:bg-brand-light rounded-md transition-colors">
-                  🚛 Wynajem przyczep chłodniczych
                 </Link>
                 <Link href="/wyposazenie-samochodow-mrozni" className="block py-2 px-3 hover:bg-brand-light rounded-md transition-colors">
                   🔧 Wyposażenie
