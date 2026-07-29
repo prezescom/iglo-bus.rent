@@ -81,6 +81,12 @@ async function render() {
   } else if (view === "history") {
     pageTitle.textContent = "Zakończone wynajmy";
     renderHistory();
+  } else if (view === "vehicles") {
+    pageTitle.textContent = "Baza pojazdów";
+    renderVehicles();
+  } else if (view === "vehicle") {
+    pageTitle.textContent = param ? "Edytuj pojazd" : "Nowy pojazd";
+    renderVehicleForm(param);
   }
 }
 
@@ -102,6 +108,7 @@ async function renderList() {
   appEl.replaceChildren(tpl.content.cloneNode(true));
   appEl.querySelector('[data-action="new-handover"]').addEventListener("click", () => navigate("handover"));
   appEl.querySelector('[data-action="view-history"]').addEventListener("click", () => navigate("history"));
+  appEl.querySelector('[data-action="view-vehicles"]').addEventListener("click", () => navigate("vehicles"));
 
   const listEl = document.getElementById("rentalList");
   try {
@@ -187,13 +194,135 @@ function formatDate(timestampMs) {
   return new Date(timestampMs).toLocaleDateString("pl-PL");
 }
 
+// ---------- VEHICLES (baza pojazdów) ----------
+function normalizePlateId(plate) {
+  return (plate || "").trim().toUpperCase().replace(/\s+/g, "");
+}
+
+async function fetchVehicles() {
+  const snap = await getDocs(collection(db, "vehicles"));
+  return snap.docs.map((d) => d.data()).sort((a, b) => (a.plate || "").localeCompare(b.plate || ""));
+}
+
+async function renderVehicles() {
+  const tpl = document.getElementById("tpl-vehicles");
+  appEl.replaceChildren(tpl.content.cloneNode(true));
+  appEl.querySelector('[data-action="new-vehicle"]').addEventListener("click", () => navigate("vehicle"));
+
+  const listEl = document.getElementById("vehicleList");
+  try {
+    const vehicles = await fetchVehicles();
+    if (vehicles.length === 0) {
+      listEl.innerHTML = '<p class="muted">Brak pojazdów w bazie.</p>';
+      return;
+    }
+    listEl.innerHTML = "";
+    vehicles.forEach((v) => {
+      const card = document.createElement("div");
+      card.className = "rental-card";
+      card.innerHTML = `
+        <div class="plate">${escapeHtml(v.make || "")} ${escapeHtml(v.model || "")} • ${escapeHtml(v.plate)}</div>
+        <div class="tenant">VIN: ${escapeHtml(v.vin || "—")}</div>
+        <div class="tenant">Ostatni przebieg: ${v.lastMileage ? v.lastMileage + " km" : "—"}</div>
+        <div class="tenant">Serwis olejowy: ${v.lastOilServiceDate || "—"} • Serwis chłodni: ${v.lastCoolingServiceDate || "—"}</div>
+        <button class="btn btn-secondary" data-id="${v.plateId}">Edytuj</button>
+      `;
+      card.querySelector("button").addEventListener("click", () => navigate(`vehicle/${v.plateId}`));
+      listEl.appendChild(card);
+    });
+  } catch (e) {
+    listEl.innerHTML = `<p class="error">Błąd wczytywania: ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+async function renderVehicleForm(plateId) {
+  const tpl = document.getElementById("tpl-vehicle-form");
+  appEl.replaceChildren(tpl.content.cloneNode(true));
+  const form = document.getElementById("vehicleForm");
+  const errorEl = document.getElementById("vehicleFormError");
+  const submitBtn = document.getElementById("vehicleSubmitBtn");
+
+  if (plateId) {
+    try {
+      const snap = await getDoc(doc(db, "vehicles", plateId));
+      if (snap.exists()) {
+        const v = snap.data();
+        form.elements["plate"].value = v.plate || "";
+        form.elements["make"].value = v.make || "";
+        form.elements["model"].value = v.model || "";
+        form.elements["vin"].value = v.vin || "";
+        form.elements["lastOilServiceDate"].value = v.lastOilServiceDate || "";
+        form.elements["lastCoolingServiceDate"].value = v.lastCoolingServiceDate || "";
+        form.elements["lastMileage"].value = v.lastMileage || "";
+      }
+    } catch (e) {
+      errorEl.textContent = "Błąd wczytywania: " + e.message;
+      errorEl.hidden = false;
+    }
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errorEl.hidden = true;
+    const fd = new FormData(form);
+    const plate = fd.get("plate").trim();
+    const newPlateId = normalizePlateId(plate);
+
+    const vehicle = {
+      plateId: newPlateId,
+      plate,
+      make: fd.get("make") || "",
+      model: fd.get("model") || "",
+      vin: fd.get("vin") || "",
+      lastOilServiceDate: fd.get("lastOilServiceDate") || "",
+      lastCoolingServiceDate: fd.get("lastCoolingServiceDate") || "",
+      lastMileage: fd.get("lastMileage") || ""
+    };
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Zapisywanie…";
+    try {
+      await setDoc(doc(db, "vehicles", newPlateId), vehicle);
+      showToast("Zapisano pojazd.");
+      navigate("vehicles");
+    } catch (err) {
+      errorEl.textContent = "Błąd zapisu: " + err.message;
+      errorEl.hidden = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Zapisz pojazd";
+    }
+  });
+}
+
 // ---------- HANDOVER VIEW ----------
-function renderHandover() {
+async function renderHandover() {
   const tpl = document.getElementById("tpl-handover");
   appEl.replaceChildren(tpl.content.cloneNode(true));
   wirePhotoStrip();
   sigPad = initSignaturePad(document.getElementById("sigPad"));
   appEl.querySelector('[data-action="clear-sig"]').addEventListener("click", () => sigPad.clear());
+
+  const plateInput = document.getElementById("handoverForm").elements["vehiclePlate"];
+  const modelInput = document.getElementById("handoverForm").elements["vehicleModel"];
+  let knownVehicles = [];
+  try {
+    knownVehicles = await fetchVehicles();
+    const datalist = document.getElementById("knownPlates");
+    knownVehicles.forEach((v) => {
+      const option = document.createElement("option");
+      option.value = v.plate;
+      datalist.appendChild(option);
+    });
+  } catch (e) {
+    // Brak dostępu do bazy pojazdów nie powinien blokować wydania — po
+    // prostu nie będzie podpowiedzi/autouzupełniania modelu.
+  }
+  plateInput.addEventListener("change", () => {
+    const match = knownVehicles.find((v) => normalizePlateId(v.plate) === normalizePlateId(plateInput.value));
+    if (match) {
+      modelInput.value = `${match.make || ""} ${match.model || ""}`.trim();
+    }
+  });
 
   document.getElementById("handoverForm").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -216,16 +345,32 @@ function renderHandover() {
       vehicleFuelAtHandover: fd.get("fuel"),
       vehicleMileageAtReturn: "",
       vehicleFuelAtReturn: "",
+      distanceTraveled: "",
       tenantName: fd.get("tenantName"),
-      tenantIdNumber: fd.get("tenantId"),
+      tenantLicenseNumber: fd.get("tenantLicense"),
       tenantPhone: fd.get("tenantPhone"),
       tenantEmail: fd.get("tenantEmail"),
+      tenantStreet: fd.get("tenantStreet") || "",
+      tenantHouseNumber: fd.get("tenantHouseNumber") || "",
+      tenantApartmentNumber: fd.get("tenantApartmentNumber") || "",
+      tenantPostalCode: fd.get("tenantPostalCode") || "",
+      tenantCity: fd.get("tenantCity") || "",
       lessorEmail: LESSOR_EMAIL,
       handoverTimestamp: Date.now(),
       returnTimestamp: 0,
       closedTimestamp: 0,
       handoverNotes: fd.get("notes") || "",
       returnNotes: "",
+      handoverBodyCondition: fd.get("bodyCondition"),
+      handoverPassengerAreaCondition: fd.get("passengerAreaCondition"),
+      handoverCargoAreaCondition: fd.get("cargoAreaCondition"),
+      returnBodyCondition: "",
+      returnPassengerAreaCondition: "",
+      returnCargoAreaCondition: "",
+      equipmentShelf: form.elements["equipmentShelf"].checked,
+      equipmentCargoBar: form.elements["equipmentCargoBar"].checked,
+      equipmentStraps: form.elements["equipmentStraps"].checked,
+      equipmentPowerCable: form.elements["equipmentPowerCable"].checked,
       handoverPhotoUrls: [],
       returnPhotoUrls: [],
       handoverSignatureUrl: "",
@@ -309,11 +454,17 @@ async function renderReturn(rentalId) {
 
     const fd = new FormData(formEl);
     const now = Date.now();
+    const mileageAtReturn = fd.get("mileage");
+    const distanceTraveled = Number(mileageAtReturn) - Number(record.vehicleMileageAtHandover);
     const updated = {
       ...record,
-      vehicleMileageAtReturn: fd.get("mileage"),
+      vehicleMileageAtReturn: mileageAtReturn,
       vehicleFuelAtReturn: fd.get("fuel"),
+      distanceTraveled: Number.isFinite(distanceTraveled) ? distanceTraveled : "",
       returnNotes: fd.get("notes") || "",
+      returnBodyCondition: fd.get("bodyCondition"),
+      returnPassengerAreaCondition: fd.get("passengerAreaCondition"),
+      returnCargoAreaCondition: fd.get("cargoAreaCondition"),
       returnTimestamp: now,
       closedTimestamp: now, // uruchamia 10-dniowy zegar czyszczenia
       status: "zwrocony"
@@ -335,7 +486,19 @@ async function renderReturn(rentalId) {
       await setDoc(doc(db, "rentals", rentalId), updated);
       await sendProtocolEmail(rentalId, "zwrot", pdfUrl, updated.tenantEmail, updated.lessorEmail);
 
-      showToast("Zapisano i wysłano protokół zwrotu.");
+      // Zaktualizuj ostatni przebieg w bazie pojazdów, jeśli pojazd tam jest.
+      try {
+        await setDoc(
+          doc(db, "vehicles", normalizePlateId(updated.vehiclePlate)),
+          { lastMileage: mileageAtReturn },
+          { merge: true }
+        );
+      } catch (e) {
+        // Brak wpisu pojazdu w bazie nie powinien blokować zapisu zwrotu.
+      }
+
+      const distanceMsg = Number.isFinite(distanceTraveled) ? ` (przejechano ${distanceTraveled} km)` : "";
+      showToast(`Zapisano i wysłano protokół zwrotu${distanceMsg}.`);
       navigate("list");
     } catch (err) {
       errorEl.textContent = "Błąd zapisu: " + err.message;

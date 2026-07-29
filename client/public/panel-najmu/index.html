@@ -25,6 +25,7 @@
   <section class="view">
     <button class="btn btn-primary btn-block" data-action="new-handover">+ Nowe wydanie pojazdu</button>
     <button class="btn btn-secondary btn-block" data-action="view-history">Zakończone wynajmy</button>
+    <button class="btn btn-secondary btn-block" data-action="view-vehicles">Baza pojazdów</button>
     <div id="rentalList" class="rental-list">
       <p class="muted">Wczytywanie…</p>
     </div>
@@ -40,13 +41,64 @@
   </section>
 </template>
 
+<template id="tpl-vehicles">
+  <section class="view">
+    <button class="btn btn-primary btn-block" data-action="new-vehicle">+ Dodaj pojazd</button>
+    <div id="vehicleList" class="rental-list">
+      <p class="muted">Wczytywanie…</p>
+    </div>
+  </section>
+</template>
+
+<template id="tpl-vehicle-form">
+  <section class="view">
+    <form id="vehicleForm" class="form">
+      <fieldset>
+        <legend>Pojazd</legend>
+        <label>Nr rejestracyjny
+          <input name="plate" required />
+        </label>
+        <label>Marka
+          <input name="make" />
+        </label>
+        <label>Model
+          <input name="model" />
+        </label>
+        <label>VIN
+          <input name="vin" />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Serwis i przebieg</legend>
+        <label>Ostatni serwis olejowy
+          <input name="lastOilServiceDate" type="date" />
+        </label>
+        <label>Ostatni serwis chłodni
+          <input name="lastCoolingServiceDate" type="date" />
+        </label>
+        <label>Ostatni zarejestrowany przebieg (km)
+          <input name="lastMileage" inputmode="numeric" />
+        </label>
+      </fieldset>
+
+      <p id="vehicleFormError" class="error" hidden></p>
+
+      <button type="submit" class="btn btn-primary btn-block" id="vehicleSubmitBtn">
+        Zapisz pojazd
+      </button>
+    </form>
+  </section>
+</template>
+
 <template id="tpl-handover">
   <section class="view">
     <form id="handoverForm" class="form">
       <fieldset>
         <legend>Pojazd</legend>
         <label>Nr rejestracyjny
-          <input name="vehiclePlate" required />
+          <input name="vehiclePlate" list="knownPlates" required />
+          <datalist id="knownPlates"></datalist>
         </label>
         <label>Model pojazdu
           <input name="vehicleModel" required />
@@ -66,8 +118,8 @@
         <label>Imię i nazwisko
           <input name="tenantName" required />
         </label>
-        <label>Nr dokumentu tożsamości
-          <input name="tenantId" required />
+        <label>Numer blankietu prawa jazdy
+          <input name="tenantLicense" required />
         </label>
         <label>Telefon
           <input name="tenantPhone" type="tel" required />
@@ -78,7 +130,68 @@
       </fieldset>
 
       <fieldset>
-        <legend>Uwagi / stan pojazdu</legend>
+        <legend>Adres najemcy</legend>
+        <div class="row">
+          <label>Ulica
+            <input name="tenantStreet" required />
+          </label>
+          <label>Nr domu
+            <input name="tenantHouseNumber" required />
+          </label>
+        </div>
+        <div class="row">
+          <label>Nr mieszkania
+            <input name="tenantApartmentNumber" />
+          </label>
+          <label>Kod pocztowy
+            <input name="tenantPostalCode" required />
+          </label>
+        </div>
+        <label>Miejscowość
+          <input name="tenantCity" required />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Stan pojazdu</legend>
+        <label>Karoseria
+          <select name="bodyCondition">
+            <option value="czysta">Czysta</option>
+            <option value="brudna">Brudna</option>
+          </select>
+        </label>
+        <label>Przestrzeń pasażerska
+          <select name="passengerAreaCondition">
+            <option value="czysta">Czysta</option>
+            <option value="brudna">Brudna</option>
+          </select>
+        </label>
+        <label>Przestrzeń ładunkowa
+          <select name="cargoAreaCondition">
+            <option value="czysta">Czysta</option>
+            <option value="brudna">Brudna</option>
+          </select>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Przekazane wyposażenie</legend>
+        <label class="checkbox-label">
+          <input type="checkbox" name="equipmentShelf" /> Półka double-deck
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="equipmentCargoBar" /> Poprzeczka do blokowania ładunku
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="equipmentStraps" /> Zapinki (6 szt.)
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="equipmentPowerCable" /> Kabel do zasilania chłodni na postoju
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Uwagi</legend>
         <textarea name="notes" rows="3"></textarea>
       </fieldset>
 
@@ -120,8 +233,30 @@
             <input name="fuel" required />
           </label>
         </div>
-        <label>Uwagi / stan pojazdu
+        <label>Uwagi
           <textarea name="notes" rows="3"></textarea>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Stan pojazdu</legend>
+        <label>Karoseria
+          <select name="bodyCondition">
+            <option value="czysta">Czysta</option>
+            <option value="brudna">Brudna</option>
+          </select>
+        </label>
+        <label>Przestrzeń pasażerska
+          <select name="passengerAreaCondition">
+            <option value="czysta">Czysta</option>
+            <option value="brudna">Brudna</option>
+          </select>
+        </label>
+        <label>Przestrzeń ładunkowa
+          <select name="cargoAreaCondition">
+            <option value="czysta">Czysta</option>
+            <option value="brudna">Brudna</option>
+          </select>
         </label>
       </fieldset>
 

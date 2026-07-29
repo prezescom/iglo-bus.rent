@@ -35,17 +35,54 @@ export async function generateProtocolPdf(record, phase, signatureDataUrl) {
     line("Przebieg (zwrot):", `${record.vehicleMileageAtReturn} km`);
     line("Paliwo (zwrot):", record.vehicleFuelAtReturn);
     line("Data zwrotu:", formatDate(record.returnTimestamp));
+    if (record.distanceTraveled !== "" && record.distanceTraveled != null) {
+      line("Przebyty przebieg:", `${record.distanceTraveled} km`);
+    }
   }
 
   y += 10;
   line("Najemca:", record.tenantName);
-  line("Nr dokumentu:", record.tenantIdNumber);
+  line("Nr blankietu prawa jazdy:", record.tenantLicenseNumber);
   line("Telefon:", record.tenantPhone);
   line("E-mail:", record.tenantEmail);
+  line("Adres:", formatAddress(record));
 
   y += 10;
   doc.setFont(undefined, "bold");
-  doc.text("Uwagi / stan pojazdu:", left, y);
+  doc.text("Stan pojazdu:", left, y);
+  y += 20;
+  doc.setFont(undefined, "normal");
+  if (phase === "wydanie") {
+    line("Karoseria:", record.handoverBodyCondition);
+    line("Przestrzeń pasażerska:", record.handoverPassengerAreaCondition);
+    line("Przestrzeń ładunkowa:", record.handoverCargoAreaCondition);
+  } else {
+    line("Karoseria:", record.returnBodyCondition);
+    line("Przestrzeń pasażerska:", record.returnPassengerAreaCondition);
+    line("Przestrzeń ładunkowa:", record.returnCargoAreaCondition);
+  }
+
+  if (phase === "wydanie") {
+    y += 10;
+    doc.setFont(undefined, "bold");
+    doc.text("Przekazane wyposażenie:", left, y);
+    y += 16;
+    doc.setFont(undefined, "normal");
+    const equipment = [
+      record.equipmentShelf && "Półka double-deck",
+      record.equipmentCargoBar && "Poprzeczka do blokowania ładunku",
+      record.equipmentStraps && "Zapinki (6 szt.)",
+      record.equipmentPowerCable && "Kabel do zasilania chłodni na postoju"
+    ].filter(Boolean);
+    const equipmentText = equipment.length ? equipment.join(", ") : "brak";
+    const wrappedEquipment = doc.splitTextToSize(equipmentText, 500);
+    doc.text(wrappedEquipment, left, y);
+    y += wrappedEquipment.length * 14 + 10;
+  }
+
+  y += 10;
+  doc.setFont(undefined, "bold");
+  doc.text("Uwagi:", left, y);
   y += 16;
   doc.setFont(undefined, "normal");
   const notes = phase === "wydanie" ? record.handoverNotes : record.returnNotes;
@@ -66,4 +103,11 @@ export async function generateProtocolPdf(record, phase, signatureDataUrl) {
 function formatDate(ts) {
   if (!ts) return "-";
   return new Date(ts).toLocaleString("pl-PL");
+}
+
+function formatAddress(record) {
+  const streetPart = [record.tenantStreet, record.tenantHouseNumber].filter(Boolean).join(" ");
+  const streetWithApt = record.tenantApartmentNumber ? `${streetPart}/${record.tenantApartmentNumber}` : streetPart;
+  const cityPart = [record.tenantPostalCode, record.tenantCity].filter(Boolean).join(" ");
+  return [streetWithApt, cityPart].filter(Boolean).join(", ");
 }
