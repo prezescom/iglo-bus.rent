@@ -1,9 +1,9 @@
 // Schemat pojazdu (4 widoki) do zaznaczania uszkodzeń.
-// Przepływ: dotknięcie nakładki aktywuje pole na JEDNO zaznaczenie -> dotknięcie
-// miejsca uszkodzenia stawia znacznik "na próbę" (pomarańczowy) i pokazuje
-// przycisk "Zatwierdź" -> zatwierdzenie zapisuje znacznik na czerwono i wraca
-// do stanu nieaktywnego (nakładka wraca), więc kolejne zaznaczenie znów
-// wymaga świadomej aktywacji.
+// Przepływ: dotknięcie nakładki aktywuje pole (raz, na cały czas edycji) ->
+// dotknięcie miejsca uszkodzenia stawia znacznik "na próbę" (pomarańczowy)
+// i pokazuje przycisk "Zatwierdź" -> zatwierdzenie zapisuje znacznik na
+// czerwono i pole zostaje aktywne, gotowe od razu na kolejne zaznaczenie.
+// "Wyczyść wszystkie zaznaczenia" resetuje wszystko, w tym aktywację.
 export function initDamageMap({ canvas, overlay, confirmBtn, diagramUrl }) {
   const ctx = canvas.getContext("2d");
   let marks = [];
@@ -76,7 +76,8 @@ export function initDamageMap({ canvas, overlay, confirmBtn, diagramUrl }) {
     marks.push(pendingMark);
     pendingMark = null;
     confirmBtn.hidden = true;
-    overlay.hidden = false;
+    // Pole zostaje aktywne — nie trzeba aktywować od nowa dla kolejnego
+    // zaznaczenia, jeśli jest więcej niż jedno uszkodzenie do oznaczenia.
     redraw();
   }
 
