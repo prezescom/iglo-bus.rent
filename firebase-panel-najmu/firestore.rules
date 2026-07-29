@@ -1,0 +1,11 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Single-operator app: any authenticated user (i.e. you, signed in via
+    // Firebase Auth in the app) can read/write. Tighten further if you ever
+    // add more employees with separate accounts.
+    match /rentals/{rentalId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

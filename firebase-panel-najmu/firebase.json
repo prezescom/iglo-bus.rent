@@ -1,0 +1,12 @@
+{
+  "functions": {
+    "source": "functions"
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "bucket": "iglo-bus.firebasestorage.app",
+    "rules": "storage.rules"
+  }
+}

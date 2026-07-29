@@ -1,0 +1,13 @@
+{
+  "name": "Wypożyczalnia — Protokoły",
+  "short_name": "Protokoły",
+  "start_url": "/panel-najmu/",
+  "scope": "/panel-najmu/",
+  "display": "standalone",
+  "background_color": "#F5F6F8",
+  "theme_color": "#14304d",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
