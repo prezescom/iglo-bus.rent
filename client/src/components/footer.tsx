@@ -43,7 +43,7 @@ export default function Footer() {
               <p>
                 Adres:{" "}
                 <a 
-                  href="https://www.google.com/maps/search/?api=1&query=Gliwicka+15b,+44-178+Przyszowice"
+                  href="https://maps.app.goo.gl/HHsdXgeZWMpkHRqy9"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-brand-blue hover:underline cursor-pointer"
