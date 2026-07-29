@@ -14,6 +14,12 @@
 
 * { box-sizing: border-box; }
 
+/* Wiele klas w tym pliku (np. .btn, .form, .damage-map-overlay) ustawia
+   własne "display", co inaczej nadpisywałoby wbudowane display:none
+   atrybutu hidden — bez tej reguły elementy "hidden" i tak by się
+   pokazywały, mimo poprawnie ustawionego atrybutu w JS. */
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   max-width: 100%;
