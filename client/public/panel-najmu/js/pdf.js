@@ -10,7 +10,7 @@ export async function generateProtocolPdf(record, phase, signatureDataUrl) {
   doc.setFontSize(16);
   doc.setFont(undefined, "bold");
   doc.text(
-    phase === "wydanie" ? "PROTOKÓŁ WYDANIA POJAZDU" : "PROTOKÓŁ ZWROTU POJAZDU",
+    pl(phase === "wydanie" ? "PROTOKÓŁ WYDANIA POJAZDU" : "PROTOKÓŁ ZWROTU POJAZDU"),
     left, y
   );
   y += 30;
@@ -18,10 +18,16 @@ export async function generateProtocolPdf(record, phase, signatureDataUrl) {
   doc.setFontSize(11);
   const line = (label, value) => {
     doc.setFont(undefined, "bold");
-    doc.text(label, left, y);
+    doc.text(pl(label), left, y);
     doc.setFont(undefined, "normal");
-    doc.text(String(value || "-"), left + 150, y);
+    doc.text(pl(String(value || "-")), left + 150, y);
     y += 20;
+  };
+  const heading = (text) => {
+    doc.setFont(undefined, "bold");
+    doc.text(pl(text), left, y);
+    y += 20;
+    doc.setFont(undefined, "normal");
   };
 
   line("Pojazd:", record.vehicleModel);
@@ -48,10 +54,7 @@ export async function generateProtocolPdf(record, phase, signatureDataUrl) {
   line("Adres:", formatAddress(record));
 
   y += 10;
-  doc.setFont(undefined, "bold");
-  doc.text("Stan pojazdu:", left, y);
-  y += 20;
-  doc.setFont(undefined, "normal");
+  heading("Stan pojazdu:");
   if (phase === "wydanie") {
     line("Karoseria:", record.handoverBodyCondition);
     line("Przestrzeń pasażerska:", record.handoverPassengerAreaCondition);
@@ -64,34 +67,28 @@ export async function generateProtocolPdf(record, phase, signatureDataUrl) {
 
   if (phase === "wydanie") {
     y += 10;
-    doc.setFont(undefined, "bold");
-    doc.text("Przekazane wyposażenie:", left, y);
-    y += 16;
-    doc.setFont(undefined, "normal");
+    heading("Przekazane wyposażenie:");
     const equipment = [
       record.equipmentShelf && "Półka double-deck",
       record.equipmentCargoBar && "Poprzeczka do blokowania ładunku",
       record.equipmentStraps && "Zapinki (6 szt.)",
       record.equipmentPowerCable && "Kabel do zasilania chłodni na postoju"
     ].filter(Boolean);
-    const equipmentText = equipment.length ? equipment.join(", ") : "brak";
+    const equipmentText = pl(equipment.length ? equipment.join(", ") : "brak");
     const wrappedEquipment = doc.splitTextToSize(equipmentText, 500);
     doc.text(wrappedEquipment, left, y);
     y += wrappedEquipment.length * 14 + 10;
   }
 
   y += 10;
-  doc.setFont(undefined, "bold");
-  doc.text("Uwagi:", left, y);
-  y += 16;
-  doc.setFont(undefined, "normal");
+  heading("Uwagi:");
   const notes = phase === "wydanie" ? record.handoverNotes : record.returnNotes;
-  const wrapped = doc.splitTextToSize(notes || "-", 500);
+  const wrapped = doc.splitTextToSize(pl(notes || "-"), 500);
   doc.text(wrapped, left, y);
   y += wrapped.length * 14 + 20;
 
   doc.setFont(undefined, "bold");
-  doc.text("Podpis najemcy:", left, y);
+  doc.text(pl("Podpis najemcy:"), left, y);
   y += 10;
   if (signatureDataUrl) {
     doc.addImage(signatureDataUrl, "PNG", left, y, 220, 80);
@@ -110,4 +107,17 @@ function formatAddress(record) {
   const streetWithApt = record.tenantApartmentNumber ? `${streetPart}/${record.tenantApartmentNumber}` : streetPart;
   const cityPart = [record.tenantPostalCode, record.tenantCity].filter(Boolean).join(" ");
   return [streetWithApt, cityPart].filter(Boolean).join(", ");
+}
+
+// jsPDF's built-in fonts (Helvetica/Times/Courier) only support WinAnsi —
+// Polish diacritics (ą ć ę ł ń ó ś ź ż) are missing glyphs/widths there,
+// which garbles and overlaps whole lines. Transliterate to ASCII so the
+// PDF renders correctly without needing to embed a custom Unicode font.
+const PL_MAP = {
+  ą: "a", ć: "c", ę: "e", ł: "l", ń: "n", ó: "o", ś: "s", ź: "z", ż: "z",
+  Ą: "A", Ć: "C", Ę: "E", Ł: "L", Ń: "N", Ó: "O", Ś: "S", Ź: "Z", Ż: "Z"
+};
+
+function pl(str) {
+  return String(str ?? "").replace(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, (ch) => PL_MAP[ch] || ch);
 }
