@@ -3,7 +3,7 @@ import { initSignaturePad } from "./signature.js";
 import { initDamageMap } from "./damage-map.js";
 import { generateProtocolPdf } from "./pdf.js";
 
-const DAMAGE_MAP_DIAGRAM_URL = "/panel-najmu/img/van-diagram.svg";
+const DAMAGE_MAP_DIAGRAM_URL = "/panel-najmu/img/van-diagram.png";
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {

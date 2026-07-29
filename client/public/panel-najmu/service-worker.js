@@ -8,7 +8,7 @@ const SHELL_FILES = [
   "/panel-najmu/js/damage-map.js",
   "/panel-najmu/js/pdf.js",
   "/panel-najmu/js/firebase-config.js",
-  "/panel-najmu/img/van-diagram.svg",
+  "/panel-najmu/img/van-diagram.png",
   "/panel-najmu/manifest.json"
 ];
 
