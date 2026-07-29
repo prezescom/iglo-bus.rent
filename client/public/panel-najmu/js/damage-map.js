@@ -53,6 +53,12 @@ export function initDamageMap({ canvas, overlay, confirmBtn, diagramUrl }) {
 
   function activate(e) {
     e.preventDefault();
+    // Zamknij ewentualną klawiaturę ekranową z poprzednio aktywnego pola —
+    // inaczej jej zwijanie tuż po dotknięciu może przesunąć układ i sprawić
+    // wrażenie, że dotyk trafił w zupełnie inne pole.
+    if (document.activeElement && document.activeElement.blur) {
+      document.activeElement.blur();
+    }
     overlay.hidden = true;
   }
 

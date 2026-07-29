@@ -94,13 +94,31 @@ function ensureModal() {
   window.addEventListener("orientationchange", () => {
     if (!modalEl.hidden) setTimeout(() => modalEl._resizeAndClear(), 50);
   });
+  // Na iOS Safari zwijanie/rozwijanie klawiatury ekranowej nie zawsze
+  // wywołuje window "resize" — visualViewport jest w tym bardziej niezawodny.
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", () => {
+      if (!modalEl.hidden) modalEl._resizeAndClear();
+    });
+  }
 }
 
 function openModal(onConfirmCallback) {
   ensureModal();
+  // Jeśli jakieś pole tekstowe miało otwartą klawiaturę ekranową, zamknij ją
+  // najpierw — inaczej jej zwijanie w trakcie otwierania panelu przesuwa
+  // pomiary rozmiaru i canvas/przyciski wychodzą poza właściwe miejsce.
+  if (document.activeElement && document.activeElement.blur) {
+    document.activeElement.blur();
+  }
   onConfirm = onConfirmCallback;
   modalEl.hidden = false;
   requestAnimationFrame(() => modalEl._resizeAndClear());
+  // Dodatkowy przelicz po chwili — na wypadek, gdyby zwijanie klawiatury
+  // wciąż trwało animacją w momencie pierwszego pomiaru.
+  setTimeout(() => {
+    if (!modalEl.hidden) modalEl._resizeAndClear();
+  }, 350);
 }
 
 function closeModal() {
