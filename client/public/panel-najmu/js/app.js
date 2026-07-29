@@ -78,6 +78,9 @@ async function render() {
   } else if (view === "return") {
     pageTitle.textContent = "Zwrot pojazdu";
     renderReturn(param);
+  } else if (view === "history") {
+    pageTitle.textContent = "Zakończone wynajmy";
+    renderHistory();
   }
 }
 
@@ -98,6 +101,7 @@ async function renderList() {
   const tpl = document.getElementById("tpl-list");
   appEl.replaceChildren(tpl.content.cloneNode(true));
   appEl.querySelector('[data-action="new-handover"]').addEventListener("click", () => navigate("handover"));
+  appEl.querySelector('[data-action="view-history"]').addEventListener("click", () => navigate("history"));
 
   const listEl = document.getElementById("rentalList");
   try {
@@ -123,6 +127,64 @@ async function renderList() {
   } catch (e) {
     listEl.innerHTML = `<p class="error">Błąd wczytywania: ${escapeHtml(e.message)}</p>`;
   }
+}
+
+// ---------- HISTORY VIEW (zakończone wynajmy) ----------
+async function renderHistory() {
+  const tpl = document.getElementById("tpl-history");
+  appEl.replaceChildren(tpl.content.cloneNode(true));
+
+  const listEl = document.getElementById("historyList");
+  const filterInput = document.getElementById("historyFilter");
+
+  let closedRentals = [];
+  try {
+    const q = query(collection(db, "rentals"), where("status", "==", "zwrocony"));
+    const snap = await getDocs(q);
+    closedRentals = snap.docs.map((d) => d.data());
+    // Najnowsze zwroty na górze — sortowanie po stronie klienta, bo
+    // wynajmów zamkniętych jest mało (kasowane po 10 dniach).
+    closedRentals.sort((a, b) => (b.closedTimestamp || 0) - (a.closedTimestamp || 0));
+  } catch (e) {
+    listEl.innerHTML = `<p class="error">Błąd wczytywania: ${escapeHtml(e.message)}</p>`;
+    return;
+  }
+
+  function renderFiltered() {
+    const filterValue = filterInput.value.trim().toLowerCase();
+    const filtered = filterValue
+      ? closedRentals.filter((r) => (r.vehiclePlate || "").toLowerCase().includes(filterValue))
+      : closedRentals;
+
+    if (filtered.length === 0) {
+      listEl.innerHTML = '<p class="muted">Brak zakończonych wynajmów.</p>';
+      return;
+    }
+
+    listEl.innerHTML = "";
+    filtered.forEach((r) => {
+      const card = document.createElement("div");
+      card.className = "rental-card";
+      const returnDate = r.closedTimestamp ? formatDate(r.closedTimestamp) : "—";
+      const pdfLink = r.returnProtocolPdfUrl
+        ? `<a class="btn-text" href="${r.returnProtocolPdfUrl}" target="_blank" rel="noopener">Protokół zwrotu (PDF)</a>`
+        : "";
+      card.innerHTML = `
+        <div class="plate">${escapeHtml(r.vehicleModel)} • ${escapeHtml(r.vehiclePlate)}</div>
+        <div class="tenant">Najemca: ${escapeHtml(r.tenantName)}</div>
+        <div class="tenant">Data zakończenia: ${returnDate}</div>
+        ${pdfLink}
+      `;
+      listEl.appendChild(card);
+    });
+  }
+
+  filterInput.addEventListener("input", renderFiltered);
+  renderFiltered();
+}
+
+function formatDate(timestampMs) {
+  return new Date(timestampMs).toLocaleDateString("pl-PL");
 }
 
 // ---------- HANDOVER VIEW ----------

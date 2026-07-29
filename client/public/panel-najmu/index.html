@@ -24,7 +24,17 @@
 <template id="tpl-list">
   <section class="view">
     <button class="btn btn-primary btn-block" data-action="new-handover">+ Nowe wydanie pojazdu</button>
+    <button class="btn btn-secondary btn-block" data-action="view-history">Zakończone wynajmy</button>
     <div id="rentalList" class="rental-list">
+      <p class="muted">Wczytywanie…</p>
+    </div>
+  </section>
+</template>
+
+<template id="tpl-history">
+  <section class="view">
+    <input type="search" id="historyFilter" placeholder="Szukaj po nr rejestracyjnym…" />
+    <div id="historyList" class="rental-list">
       <p class="muted">Wczytywanie…</p>
     </div>
   </section>
