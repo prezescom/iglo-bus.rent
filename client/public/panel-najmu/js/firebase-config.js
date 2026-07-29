@@ -10,7 +10,7 @@ export const firebaseConfig = {
 };
 
 // Adres e-mail wynajmującego (Ciebie) — kopia każdego protokołu tu trafia.
-export const LESSOR_EMAIL = "biuro@iglo-bus.rent";
+export const LESSOR_EMAIL = "kontakt@iglo-bus.rent";
 
 // Region, w którym wdrożone są Cloud Functions (musi zgadzać się z functions/index.js)
 export const FUNCTIONS_REGION = "europe-west1";

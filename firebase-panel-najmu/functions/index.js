@@ -25,7 +25,7 @@ const RETENTION_DAYS = 10;
 
 // Adres skrzynki Zoho, z której wysyłane są protokoły — to nie jest sekret
 // (widoczny publicznie na stronie), więc trzyma się go wprost w kodzie.
-const ZOHO_USER = "biuro@iglo-bus.rent";
+const ZOHO_USER = "kontakt@iglo-bus.rent";
 
 // Hasło do tej skrzynki — jedyna prawdziwa tajemnica, trzymana w Secret Manager.
 const zohoPass = defineSecret("ZOHO_PASS");

@@ -25,9 +25,9 @@ Zostały 3 rzeczy do zrobienia po Twojej stronie, zanim to zadziała na produkcj
    cd functions && npm install && cd ..
    firebase deploy --only functions,firestore:rules,storage
    ```
-   `firebase functions:secrets:set ZOHO_PASS` zapyta o wartość — wpisz hasło do skrzynki `biuro@iglo-bus.rent` (nie będzie widoczne na ekranie podczas wpisywania, to normalne). Trafia bezpośrednio do Google Secret Manager, nie do pliku w repo.
+   `firebase functions:secrets:set ZOHO_PASS` zapyta o wartość — wpisz hasło do skrzynki `kontakt@iglo-bus.rent` (nie będzie widoczne na ekranie podczas wpisywania, to normalne). Trafia bezpośrednio do Google Secret Manager, nie do pliku w repo.
 
-   Sam adres nadawcy (`biuro@iglo-bus.rent`) jest wpisany wprost w [`firebase-panel-najmu/functions/index.js`](firebase-panel-najmu/functions/index.js) — zmień go tam, jeśli kiedyś będzie inny.
+   Sam adres nadawcy (`kontakt@iglo-bus.rent`) jest wpisany wprost w [`firebase-panel-najmu/functions/index.js`](firebase-panel-najmu/functions/index.js) — zmień go tam, jeśli kiedyś będzie inny.
 
    Wysyłka maili idzie przez SMTP Twojej istniejącej skrzynki Zoho (`smtp.zoho.eu`, port 465) — nie zakładamy osobnego konta u zewnętrznego dostawcy. W ustawieniach Zoho Mail upewnij się, że dostęp **IMAP/POP/SMTP** jest włączony dla tego konta (Zoho Mail → Settings → Mail Accounts → [Twój adres] → IMAP Access, tam też zwykle jest przełącznik dla SMTP).
 
