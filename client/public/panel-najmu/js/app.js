@@ -308,9 +308,13 @@ async function renderHandover() {
     preview: document.getElementById("sigPreview"),
     editBtn: document.getElementById("sigEditBtn")
   });
-  damageMap = initDamageMap(document.getElementById("damageMap"), DAMAGE_MAP_DIAGRAM_URL);
+  damageMap = initDamageMap({
+    canvas: document.getElementById("damageMap"),
+    overlay: document.getElementById("damageMapOverlay"),
+    confirmBtn: document.getElementById("damageMapConfirmBtn"),
+    diagramUrl: DAMAGE_MAP_DIAGRAM_URL
+  });
   appEl.querySelector('[data-action="clear-damage-map"]').addEventListener("click", () => damageMap.clear());
-  wireDamageMapOverlay();
 
   const plateInput = document.getElementById("handoverForm").elements["vehiclePlate"];
   const modelInput = document.getElementById("handoverForm").elements["vehicleModel"];
@@ -457,9 +461,13 @@ async function renderReturn(rentalId) {
     preview: document.getElementById("sigPreview"),
     editBtn: document.getElementById("sigEditBtn")
   });
-  damageMap = initDamageMap(document.getElementById("damageMap"), DAMAGE_MAP_DIAGRAM_URL);
+  damageMap = initDamageMap({
+    canvas: document.getElementById("damageMap"),
+    overlay: document.getElementById("damageMapOverlay"),
+    confirmBtn: document.getElementById("damageMapConfirmBtn"),
+    diagramUrl: DAMAGE_MAP_DIAGRAM_URL
+  });
   appEl.querySelector('[data-action="clear-damage-map"]').addEventListener("click", () => damageMap.clear());
-  wireDamageMapOverlay();
 
   formEl.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -549,14 +557,6 @@ function wirePhotoStrip() {
   });
 }
 
-function wireDamageMapOverlay() {
-  const overlay = document.getElementById("damageMapOverlay");
-  // Pierwsze dotknięcie tylko odsłania schemat — nie stawia znacznika —
-  // żeby samo przewijanie formularza nigdy nie zaznaczyło uszkodzenia.
-  overlay.addEventListener("click", () => {
-    overlay.hidden = true;
-  });
-}
 
 async function uploadPhotos(rentalId, phase) {
   const urls = [];

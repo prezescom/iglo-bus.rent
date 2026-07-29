@@ -133,8 +133,16 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 
 }
 .signature-modal-inner {
   position: absolute; top: 50%; left: 50%;
+}
+/* Ekran w pionie: obróć panel o 90°, żeby podpis i tak był w poziomie. */
+.signature-modal-inner.is-rotated {
   width: 100vh; height: 100vw;
   transform: translate(-50%, -50%) rotate(90deg);
+}
+/* Ekran już w poziomie: bez obrotu, panel po prostu wypełnia ekran. */
+.signature-modal-inner.is-flat {
+  width: 100vw; height: 100vh;
+  transform: translate(-50%, -50%);
 }
 .signature-modal-canvas {
   position: absolute; top: 0; left: 0; right: 0; bottom: 64px;

@@ -73,9 +73,15 @@ function ensureModal() {
     if (callback) callback(dataUrl);
   });
 
+  const inner = modalEl.querySelector(".signature-modal-inner");
   modalEl._resizeAndClear = () => {
-    // Wymiary bufora ustawiane po realnym wyrenderowaniu (obróconego)
-    // panelu, żeby podpis był ostry i zgodny 1:1 z dotykiem/myszą.
+    // Obracamy panel tylko wtedy, gdy ekran faktycznie jest w pionie —
+    // jeśli urządzenie już jest trzymane poziomo, obrót tylko by przeszkadzał.
+    const portrait = window.innerHeight >= window.innerWidth;
+    inner.classList.toggle("is-rotated", portrait);
+    inner.classList.toggle("is-flat", !portrait);
+    // Wymiary bufora ustawiane po realnym wyrenderowaniu panelu, żeby
+    // podpis był ostry i zgodny 1:1 z dotykiem/myszą.
     const rect = modalCanvas.getBoundingClientRect();
     modalCanvas.width = Math.round(rect.width);
     modalCanvas.height = Math.round(rect.height);
@@ -84,6 +90,9 @@ function ensureModal() {
 
   window.addEventListener("resize", () => {
     if (!modalEl.hidden) modalEl._resizeAndClear();
+  });
+  window.addEventListener("orientationchange", () => {
+    if (!modalEl.hidden) setTimeout(() => modalEl._resizeAndClear(), 50);
   });
 }
 
