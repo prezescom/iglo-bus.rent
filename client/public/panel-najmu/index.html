@@ -26,6 +26,7 @@
     <button class="btn btn-primary btn-block" data-action="new-handover">+ Nowe wydanie pojazdu</button>
     <button class="btn btn-secondary btn-block" data-action="view-history">Zakończone wynajmy</button>
     <button class="btn btn-secondary btn-block" data-action="view-vehicles">Baza pojazdów</button>
+    <button class="btn btn-secondary btn-block" data-action="view-tenants">Baza najemców</button>
     <div id="rentalList" class="rental-list">
       <p class="muted">Wczytywanie…</p>
     </div>
@@ -91,6 +92,75 @@
   </section>
 </template>
 
+<template id="tpl-tenants">
+  <section class="view">
+    <button class="btn btn-primary btn-block" data-action="new-tenant">+ Dodaj najemcę</button>
+    <div id="tenantList" class="rental-list">
+      <p class="muted">Wczytywanie…</p>
+    </div>
+  </section>
+</template>
+
+<template id="tpl-tenant-form">
+  <section class="view">
+    <form id="tenantForm" class="form">
+      <fieldset>
+        <legend>Najemca</legend>
+        <label>Typ najemcy
+          <select name="tenantType" id="tenantFormTypeSelect">
+            <option value="osoba">Osoba prywatna</option>
+            <option value="firma">Firma</option>
+          </select>
+        </label>
+        <label id="tenantFormPeselWrap">PESEL
+          <input name="pesel" />
+        </label>
+        <label id="tenantFormNipWrap" hidden>NIP
+          <input name="nip" />
+        </label>
+        <label id="tenantFormNameLabel">Imię i nazwisko
+          <input name="name" required />
+        </label>
+        <label>Telefon
+          <input name="phone" type="tel" />
+        </label>
+        <label>E-mail
+          <input name="email" type="email" />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Adres</legend>
+        <div class="row">
+          <label>Ulica
+            <input name="street" />
+          </label>
+          <label>Nr domu
+            <input name="houseNumber" />
+          </label>
+        </div>
+        <div class="row">
+          <label>Nr mieszkania
+            <input name="apartmentNumber" />
+          </label>
+          <label>Kod pocztowy
+            <input name="postalCode" />
+          </label>
+        </div>
+        <label>Miejscowość
+          <input name="city" />
+        </label>
+      </fieldset>
+
+      <p id="tenantFormError" class="error" hidden></p>
+
+      <button type="submit" class="btn btn-primary btn-block" id="tenantSubmitBtn">
+        Zapisz najemcę
+      </button>
+    </form>
+  </section>
+</template>
+
 <template id="tpl-handover">
   <section class="view">
     <form id="handoverForm" class="form">
@@ -115,17 +185,38 @@
 
       <fieldset>
         <legend>Najemca</legend>
-        <label>Imię i nazwisko
-          <input name="tenantName" required />
+        <label>Typ najemcy
+          <select name="tenantType" id="tenantTypeSelect">
+            <option value="osoba">Osoba prywatna</option>
+            <option value="firma">Firma</option>
+          </select>
         </label>
-        <label>Numer blankietu prawa jazdy
-          <input name="tenantLicense" required />
+        <label id="tenantPeselWrap">PESEL
+          <input name="tenantPesel" list="knownTenantsPesel" />
+        </label>
+        <label id="tenantNipWrap" hidden>NIP
+          <input name="tenantNip" list="knownTenantsNip" />
+        </label>
+        <datalist id="knownTenantsPesel"></datalist>
+        <datalist id="knownTenantsNip"></datalist>
+        <label id="tenantNameLabel">Imię i nazwisko
+          <input name="tenantName" required />
         </label>
         <label>Telefon
           <input name="tenantPhone" type="tel" required />
         </label>
         <label>E-mail
           <input name="tenantEmail" type="email" required />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Kierowca</legend>
+        <label>Imię i nazwisko kierowcy
+          <input name="driverName" required />
+        </label>
+        <label>Numer blankietu prawa jazdy
+          <input name="driverLicense" required />
         </label>
       </fieldset>
 

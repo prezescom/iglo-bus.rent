@@ -30,6 +30,14 @@ const ZOHO_USER = "kontakt@iglo-bus.rent";
 // Hasło do tej skrzynki — jedyna prawdziwa tajemnica, trzymana w Secret Manager.
 const zohoPass = defineSecret("ZOHO_PASS");
 
+function formatDateRRMMDD(timestamp) {
+  const d = timestamp ? new Date(timestamp) : new Date();
+  const rr = String(d.getFullYear() % 100).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${rr}${mm}${dd}`;
+}
+
 function getTransporter() {
   return nodemailer.createTransport({
     host: "smtp.zoho.eu",
@@ -49,7 +57,7 @@ function getTransporter() {
 exports.sendProtocolEmail = onCall(
   { region: REGION, secrets: [zohoPass] },
   async (request) => {
-    const { rentalId, phase, pdfUrl, tenantEmail, lessorEmail } = request.data;
+    const { rentalId, phase, pdfUrl, tenantEmail, lessorEmail, vehiclePlate, timestamp } = request.data;
 
     if (!pdfUrl || !tenantEmail || !lessorEmail) {
       throw new HttpsError(
@@ -58,9 +66,10 @@ exports.sendProtocolEmail = onCall(
       );
     }
 
+    const subjectSuffix = `${vehiclePlate || rentalId} ${formatDateRRMMDD(timestamp)}`;
     const subject = phase === "wydanie"
-      ? `Protokół wydania pojazdu — ${rentalId}`
-      : `Protokół zwrotu pojazdu — ${rentalId}`;
+      ? `Protokół wydania pojazdu — ${subjectSuffix}`
+      : `Protokół zwrotu pojazdu — ${subjectSuffix}`;
 
     const bodyText = phase === "wydanie"
       ? "W załączniku przesyłamy podpisany protokół wydania pojazdu."

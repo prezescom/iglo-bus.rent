@@ -91,6 +91,12 @@ async function render() {
   } else if (view === "vehicle") {
     pageTitle.textContent = param ? "Edytuj pojazd" : "Nowy pojazd";
     renderVehicleForm(param);
+  } else if (view === "tenants") {
+    pageTitle.textContent = "Baza najemców";
+    renderTenants();
+  } else if (view === "tenant") {
+    pageTitle.textContent = param ? "Edytuj najemcę" : "Nowy najemca";
+    renderTenantForm(param);
   }
 }
 
@@ -113,6 +119,7 @@ async function renderList() {
   appEl.querySelector('[data-action="new-handover"]').addEventListener("click", () => navigate("handover"));
   appEl.querySelector('[data-action="view-history"]').addEventListener("click", () => navigate("history"));
   appEl.querySelector('[data-action="view-vehicles"]').addEventListener("click", () => navigate("vehicles"));
+  appEl.querySelector('[data-action="view-tenants"]').addEventListener("click", () => navigate("tenants"));
 
   const listEl = document.getElementById("rentalList");
   try {
@@ -298,6 +305,141 @@ async function renderVehicleForm(plateId) {
   });
 }
 
+// ---------- TENANTS (baza najemców) ----------
+function normalizeTenantId(value) {
+  return (value || "").trim().toUpperCase().replace(/[\s-]/g, "");
+}
+
+async function fetchTenants() {
+  const snap = await getDocs(collection(db, "tenants"));
+  return snap.docs.map((d) => d.data()).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+}
+
+async function renderTenants() {
+  const tpl = document.getElementById("tpl-tenants");
+  appEl.replaceChildren(tpl.content.cloneNode(true));
+  appEl.querySelector('[data-action="new-tenant"]').addEventListener("click", () => navigate("tenant"));
+
+  const listEl = document.getElementById("tenantList");
+  try {
+    const tenants = await fetchTenants();
+    if (tenants.length === 0) {
+      listEl.innerHTML = '<p class="muted">Brak najemców w bazie.</p>';
+      return;
+    }
+    listEl.innerHTML = "";
+    tenants.forEach((t) => {
+      const isCompany = t.tenantType === "firma";
+      const card = document.createElement("div");
+      card.className = "rental-card";
+      card.innerHTML = `
+        <div class="plate">${escapeHtml(t.name)}</div>
+        <div class="tenant">${isCompany ? "NIP" : "PESEL"}: ${escapeHtml(isCompany ? t.nip : t.pesel)}</div>
+        <div class="tenant">Telefon: ${escapeHtml(t.phone || "—")} • E-mail: ${escapeHtml(t.email || "—")}</div>
+        <button class="btn btn-secondary" data-id="${t.tenantId}">Edytuj</button>
+      `;
+      card.querySelector("button").addEventListener("click", () => navigate(`tenant/${t.tenantId}`));
+      listEl.appendChild(card);
+    });
+  } catch (e) {
+    listEl.innerHTML = `<p class="error">Błąd wczytywania: ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+function wireTenantTypeToggle(typeSelect, peselWrap, nipWrap, nameLabel) {
+  function apply() {
+    const isCompany = typeSelect.value === "firma";
+    peselWrap.hidden = isCompany;
+    nipWrap.hidden = !isCompany;
+    nameLabel.firstChild.textContent = isCompany ? "Nazwa firmy" : "Imię i nazwisko";
+  }
+  typeSelect.addEventListener("change", apply);
+  apply();
+}
+
+async function renderTenantForm(tenantId) {
+  const tpl = document.getElementById("tpl-tenant-form");
+  appEl.replaceChildren(tpl.content.cloneNode(true));
+  const form = document.getElementById("tenantForm");
+  const errorEl = document.getElementById("tenantFormError");
+  const submitBtn = document.getElementById("tenantSubmitBtn");
+
+  wireTenantTypeToggle(
+    document.getElementById("tenantFormTypeSelect"),
+    document.getElementById("tenantFormPeselWrap"),
+    document.getElementById("tenantFormNipWrap"),
+    document.getElementById("tenantFormNameLabel")
+  );
+
+  if (tenantId) {
+    try {
+      const snap = await getDoc(doc(db, "tenants", tenantId));
+      if (snap.exists()) {
+        const t = snap.data();
+        form.elements["tenantType"].value = t.tenantType || "osoba";
+        form.elements["tenantType"].dispatchEvent(new Event("change"));
+        form.elements["pesel"].value = t.pesel || "";
+        form.elements["nip"].value = t.nip || "";
+        form.elements["name"].value = t.name || "";
+        form.elements["phone"].value = t.phone || "";
+        form.elements["email"].value = t.email || "";
+        form.elements["street"].value = t.street || "";
+        form.elements["houseNumber"].value = t.houseNumber || "";
+        form.elements["apartmentNumber"].value = t.apartmentNumber || "";
+        form.elements["postalCode"].value = t.postalCode || "";
+        form.elements["city"].value = t.city || "";
+      }
+    } catch (e) {
+      errorEl.textContent = "Błąd wczytywania: " + e.message;
+      errorEl.hidden = false;
+    }
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errorEl.hidden = true;
+    const fd = new FormData(form);
+    const tenantType = fd.get("tenantType");
+    const isCompany = tenantType === "firma";
+    const identifier = isCompany ? fd.get("nip") : fd.get("pesel");
+    const newTenantId = normalizeTenantId(identifier);
+
+    if (!newTenantId) {
+      errorEl.textContent = isCompany ? "Podaj NIP." : "Podaj PESEL.";
+      errorEl.hidden = false;
+      return;
+    }
+
+    const tenant = {
+      tenantId: newTenantId,
+      tenantType,
+      pesel: isCompany ? "" : fd.get("pesel") || "",
+      nip: isCompany ? fd.get("nip") || "" : "",
+      name: fd.get("name") || "",
+      phone: fd.get("phone") || "",
+      email: fd.get("email") || "",
+      street: fd.get("street") || "",
+      houseNumber: fd.get("houseNumber") || "",
+      apartmentNumber: fd.get("apartmentNumber") || "",
+      postalCode: fd.get("postalCode") || "",
+      city: fd.get("city") || ""
+    };
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Zapisywanie…";
+    try {
+      await setDoc(doc(db, "tenants", newTenantId), tenant);
+      showToast("Zapisano najemcę.");
+      navigate("tenants");
+    } catch (err) {
+      errorEl.textContent = "Błąd zapisu: " + err.message;
+      errorEl.hidden = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Zapisz najemcę";
+    }
+  });
+}
+
 // ---------- HANDOVER VIEW ----------
 async function renderHandover() {
   const tpl = document.getElementById("tpl-handover");
@@ -338,6 +480,45 @@ async function renderHandover() {
     }
   });
 
+  const handoverForm = document.getElementById("handoverForm");
+  wireTenantTypeToggle(
+    document.getElementById("tenantTypeSelect"),
+    document.getElementById("tenantPeselWrap"),
+    document.getElementById("tenantNipWrap"),
+    document.getElementById("tenantNameLabel")
+  );
+
+  let knownTenants = [];
+  try {
+    knownTenants = await fetchTenants();
+    const peselList = document.getElementById("knownTenantsPesel");
+    const nipList = document.getElementById("knownTenantsNip");
+    knownTenants.forEach((t) => {
+      const option = document.createElement("option");
+      option.value = t.tenantType === "firma" ? t.nip : t.pesel;
+      option.label = t.name;
+      (t.tenantType === "firma" ? nipList : peselList).appendChild(option);
+    });
+  } catch (e) {
+    // Brak dostępu do bazy najemców nie powinien blokować wydania — po
+    // prostu nie będzie podpowiedzi/autouzupełniania danych najemcy.
+  }
+
+  function autofillTenant(inputEl) {
+    const match = knownTenants.find((t) => normalizeTenantId(t.tenantType === "firma" ? t.nip : t.pesel) === normalizeTenantId(inputEl.value));
+    if (!match) return;
+    handoverForm.elements["tenantName"].value = match.name || "";
+    handoverForm.elements["tenantPhone"].value = match.phone || "";
+    handoverForm.elements["tenantEmail"].value = match.email || "";
+    handoverForm.elements["tenantStreet"].value = match.street || "";
+    handoverForm.elements["tenantHouseNumber"].value = match.houseNumber || "";
+    handoverForm.elements["tenantApartmentNumber"].value = match.apartmentNumber || "";
+    handoverForm.elements["tenantPostalCode"].value = match.postalCode || "";
+    handoverForm.elements["tenantCity"].value = match.city || "";
+  }
+  handoverForm.elements["tenantPesel"].addEventListener("change", (e) => autofillTenant(e.target));
+  handoverForm.elements["tenantNip"].addEventListener("change", (e) => autofillTenant(e.target));
+
   document.getElementById("handoverForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const form = e.target;
@@ -360,8 +541,10 @@ async function renderHandover() {
       vehicleMileageAtReturn: "",
       vehicleFuelAtReturn: "",
       distanceTraveled: "",
+      tenantType: fd.get("tenantType"),
       tenantName: fd.get("tenantName"),
-      tenantLicenseNumber: fd.get("tenantLicense"),
+      tenantNip: fd.get("tenantNip") || "",
+      tenantPesel: fd.get("tenantPesel") || "",
       tenantPhone: fd.get("tenantPhone"),
       tenantEmail: fd.get("tenantEmail"),
       tenantStreet: fd.get("tenantStreet") || "",
@@ -369,6 +552,8 @@ async function renderHandover() {
       tenantApartmentNumber: fd.get("tenantApartmentNumber") || "",
       tenantPostalCode: fd.get("tenantPostalCode") || "",
       tenantCity: fd.get("tenantCity") || "",
+      driverName: fd.get("driverName"),
+      driverLicenseNumber: fd.get("driverLicense"),
       lessorEmail: LESSOR_EMAIL,
       handoverTimestamp: Date.now(),
       returnTimestamp: 0,
@@ -408,7 +593,8 @@ async function renderHandover() {
       const damageMapUrl = await uploadDamageMap(docRef.id, "wydanie");
       const sigDataUrl = sigPad.toDataUrl();
       const damageMapDataUrl = damageMap.toDataUrl();
-      const pdfBlob = await generateProtocolPdf(record, "wydanie", sigDataUrl, damageMapDataUrl);
+      const photoDataUrls = await Promise.all(currentPhotos.map(fileToDataUrl));
+      const pdfBlob = await generateProtocolPdf(record, "wydanie", sigDataUrl, damageMapDataUrl, photoDataUrls);
       const pdfUrl = await uploadPdf(docRef.id, "wydanie", pdfBlob);
 
       await setDoc(docRef, {
@@ -419,7 +605,7 @@ async function renderHandover() {
         handoverProtocolPdfUrl: pdfUrl
       });
 
-      await sendProtocolEmail(docRef.id, "wydanie", pdfUrl, record.tenantEmail, LESSOR_EMAIL);
+      await sendProtocolEmail(docRef.id, "wydanie", pdfUrl, record.tenantEmail, LESSOR_EMAIL, record.vehiclePlate, record.handoverTimestamp);
 
       showToast("Zapisano i wysłano protokół wydania.");
       navigate("list");
@@ -507,7 +693,8 @@ async function renderReturn(rentalId) {
       const damageMapUrl = await uploadDamageMap(rentalId, "zwrot");
       const sigDataUrl = sigPad.toDataUrl();
       const damageMapDataUrl = damageMap.toDataUrl();
-      const pdfBlob = await generateProtocolPdf(updated, "zwrot", sigDataUrl, damageMapDataUrl);
+      const photoDataUrls = await Promise.all(currentPhotos.map(fileToDataUrl));
+      const pdfBlob = await generateProtocolPdf(updated, "zwrot", sigDataUrl, damageMapDataUrl, photoDataUrls);
       const pdfUrl = await uploadPdf(rentalId, "zwrot", pdfBlob);
 
       updated.returnPhotoUrls = photoUrls;
@@ -516,7 +703,7 @@ async function renderReturn(rentalId) {
       updated.returnProtocolPdfUrl = pdfUrl;
 
       await setDoc(doc(db, "rentals", rentalId), updated);
-      await sendProtocolEmail(rentalId, "zwrot", pdfUrl, updated.tenantEmail, updated.lessorEmail);
+      await sendProtocolEmail(rentalId, "zwrot", pdfUrl, updated.tenantEmail, updated.lessorEmail, updated.vehiclePlate, updated.returnTimestamp);
 
       // Zaktualizuj ostatni przebieg w bazie pojazdów, jeśli pojazd tam jest.
       try {
@@ -558,6 +745,15 @@ function wirePhotoStrip() {
 }
 
 
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 async function uploadPhotos(rentalId, phase) {
   const urls = [];
   for (const file of currentPhotos) {
@@ -589,9 +785,9 @@ async function uploadPdf(rentalId, phase, blob) {
   return getDownloadURL(r);
 }
 
-async function sendProtocolEmail(rentalId, phase, pdfUrl, tenantEmail, lessorEmail) {
+async function sendProtocolEmail(rentalId, phase, pdfUrl, tenantEmail, lessorEmail, vehiclePlate, timestamp) {
   const callable = httpsCallable(functions, "sendProtocolEmail");
-  await callable({ rentalId, phase, pdfUrl, tenantEmail, lessorEmail });
+  await callable({ rentalId, phase, pdfUrl, tenantEmail, lessorEmail, vehiclePlate, timestamp });
 }
 
 function escapeHtml(str) {
