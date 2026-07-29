@@ -1,6 +1,6 @@
 // Generuje jednostronicowy protokół PDF (wydania lub zwrotu).
 // Wymaga globalnego window.jspdf (wgrywanego przez CDN w index.html).
-export async function generateProtocolPdf(record, phase, signatureDataUrl) {
+export async function generateProtocolPdf(record, phase, signatureDataUrl, damageMapDataUrl) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "pt", format: "a4" });
 
@@ -92,6 +92,14 @@ export async function generateProtocolPdf(record, phase, signatureDataUrl) {
   y += 10;
   if (signatureDataUrl) {
     doc.addImage(signatureDataUrl, "PNG", left, y, 220, 80);
+  }
+
+  if (damageMapDataUrl) {
+    doc.addPage();
+    doc.setFontSize(14);
+    doc.setFont(undefined, "bold");
+    doc.text(pl("Schemat pojazdu — zaznaczone uszkodzenia"), left, 50);
+    doc.addImage(damageMapDataUrl, "PNG", left, 70, 500, 333);
   }
 
   return doc.output("blob");

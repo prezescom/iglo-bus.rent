@@ -1,6 +1,9 @@
 import { firebaseConfig, LESSOR_EMAIL, FUNCTIONS_REGION } from "./firebase-config.js";
 import { initSignaturePad } from "./signature.js";
+import { initDamageMap } from "./damage-map.js";
 import { generateProtocolPdf } from "./pdf.js";
+
+const DAMAGE_MAP_DIAGRAM_URL = "/panel-najmu/img/van-diagram.svg";
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -28,6 +31,7 @@ const backBtn = document.getElementById("backBtn");
 
 let currentPhotos = []; // array of { blob, previewUrl }
 let sigPad = null;
+let damageMap = null;
 
 // ---------- Auth (anonymous — single operator, no login screen needed) ----------
 let authReadyPromise;
@@ -301,6 +305,8 @@ async function renderHandover() {
   wirePhotoStrip();
   sigPad = initSignaturePad(document.getElementById("sigPad"));
   appEl.querySelector('[data-action="clear-sig"]').addEventListener("click", () => sigPad.clear());
+  damageMap = initDamageMap(document.getElementById("damageMap"), DAMAGE_MAP_DIAGRAM_URL);
+  appEl.querySelector('[data-action="clear-damage-map"]').addEventListener("click", () => damageMap.clear());
 
   const plateInput = document.getElementById("handoverForm").elements["vehiclePlate"];
   const modelInput = document.getElementById("handoverForm").elements["vehicleModel"];
@@ -375,6 +381,8 @@ async function renderHandover() {
       returnPhotoUrls: [],
       handoverSignatureUrl: "",
       returnSignatureUrl: "",
+      handoverDamageMapUrl: "",
+      returnDamageMapUrl: "",
       handoverProtocolPdfUrl: "",
       returnProtocolPdfUrl: "",
       status: "wydany"
@@ -389,14 +397,17 @@ async function renderHandover() {
 
       const photoUrls = await uploadPhotos(docRef.id, "wydanie");
       const sigUrl = await uploadSignature(docRef.id, "wydanie");
+      const damageMapUrl = await uploadDamageMap(docRef.id, "wydanie");
       const sigDataUrl = sigPad.toDataUrl();
-      const pdfBlob = await generateProtocolPdf(record, "wydanie", sigDataUrl);
+      const damageMapDataUrl = damageMap.toDataUrl();
+      const pdfBlob = await generateProtocolPdf(record, "wydanie", sigDataUrl, damageMapDataUrl);
       const pdfUrl = await uploadPdf(docRef.id, "wydanie", pdfBlob);
 
       await setDoc(docRef, {
         ...record,
         handoverPhotoUrls: photoUrls,
         handoverSignatureUrl: sigUrl,
+        handoverDamageMapUrl: damageMapUrl,
         handoverProtocolPdfUrl: pdfUrl
       });
 
@@ -439,6 +450,8 @@ async function renderReturn(rentalId) {
   wirePhotoStrip();
   sigPad = initSignaturePad(document.getElementById("sigPad"));
   appEl.querySelector('[data-action="clear-sig"]').addEventListener("click", () => sigPad.clear());
+  damageMap = initDamageMap(document.getElementById("damageMap"), DAMAGE_MAP_DIAGRAM_URL);
+  appEl.querySelector('[data-action="clear-damage-map"]').addEventListener("click", () => damageMap.clear());
 
   formEl.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -475,12 +488,15 @@ async function renderReturn(rentalId) {
     try {
       const photoUrls = await uploadPhotos(rentalId, "zwrot");
       const sigUrl = await uploadSignature(rentalId, "zwrot");
+      const damageMapUrl = await uploadDamageMap(rentalId, "zwrot");
       const sigDataUrl = sigPad.toDataUrl();
-      const pdfBlob = await generateProtocolPdf(updated, "zwrot", sigDataUrl);
+      const damageMapDataUrl = damageMap.toDataUrl();
+      const pdfBlob = await generateProtocolPdf(updated, "zwrot", sigDataUrl, damageMapDataUrl);
       const pdfUrl = await uploadPdf(rentalId, "zwrot", pdfBlob);
 
       updated.returnPhotoUrls = photoUrls;
       updated.returnSignatureUrl = sigUrl;
+      updated.returnDamageMapUrl = damageMapUrl;
       updated.returnProtocolPdfUrl = pdfUrl;
 
       await setDoc(doc(db, "rentals", rentalId), updated);
@@ -539,6 +555,13 @@ async function uploadPhotos(rentalId, phase) {
 async function uploadSignature(rentalId, phase) {
   const blob = await sigPad.toBlob();
   const r = ref(storage, `rentals/${rentalId}/${phase}/signature.png`);
+  await uploadBytes(r, blob);
+  return getDownloadURL(r);
+}
+
+async function uploadDamageMap(rentalId, phase) {
+  const blob = await damageMap.toBlob();
+  const r = ref(storage, `rentals/${rentalId}/${phase}/uszkodzenia.png`);
   await uploadBytes(r, blob);
   return getDownloadURL(r);
 }
