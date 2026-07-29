@@ -175,8 +175,11 @@
       </fieldset>
 
       <fieldset>
-        <legend>Schemat uszkodzeń (dotknij, aby zaznaczyć)</legend>
-        <canvas id="damageMap" class="damage-map" width="600" height="400"></canvas>
+        <legend>Schemat uszkodzeń</legend>
+        <div class="damage-map-wrap">
+          <canvas id="damageMap" class="damage-map" width="600" height="400"></canvas>
+          <div class="damage-map-overlay" id="damageMapOverlay">Dotknij, aby zaznaczyć uszkodzenia</div>
+        </div>
         <button type="button" class="btn btn-text" data-action="clear-damage-map">Wyczyść zaznaczenia</button>
       </fieldset>
 
@@ -212,8 +215,9 @@
 
       <fieldset>
         <legend>Podpis najemcy</legend>
-        <canvas id="sigPad" class="sig-pad" width="600" height="220"></canvas>
-        <button type="button" class="btn btn-text" data-action="clear-sig">Wyczyść podpis</button>
+        <div class="sig-placeholder" id="sigPlaceholder">Dotknij, aby podpisać</div>
+        <img class="sig-preview" id="sigPreview" alt="Podpis najemcy" hidden />
+        <button type="button" class="btn btn-text" id="sigEditBtn" hidden>Podpisz ponownie</button>
       </fieldset>
 
       <p id="formError" class="error" hidden></p>
@@ -267,8 +271,11 @@
       </fieldset>
 
       <fieldset>
-        <legend>Schemat uszkodzeń (dotknij, aby zaznaczyć)</legend>
-        <canvas id="damageMap" class="damage-map" width="600" height="400"></canvas>
+        <legend>Schemat uszkodzeń</legend>
+        <div class="damage-map-wrap">
+          <canvas id="damageMap" class="damage-map" width="600" height="400"></canvas>
+          <div class="damage-map-overlay" id="damageMapOverlay">Dotknij, aby zaznaczyć uszkodzenia</div>
+        </div>
         <button type="button" class="btn btn-text" data-action="clear-damage-map">Wyczyść zaznaczenia</button>
       </fieldset>
 
@@ -283,8 +290,9 @@
 
       <fieldset>
         <legend>Podpis najemcy</legend>
-        <canvas id="sigPad" class="sig-pad" width="600" height="220"></canvas>
-        <button type="button" class="btn btn-text" data-action="clear-sig">Wyczyść podpis</button>
+        <div class="sig-placeholder" id="sigPlaceholder">Dotknij, aby podpisać</div>
+        <img class="sig-preview" id="sigPreview" alt="Podpis najemcy" hidden />
+        <button type="button" class="btn btn-text" id="sigEditBtn" hidden>Podpisz ponownie</button>
       </fieldset>
 
       <p id="formError" class="error" hidden></p>
@@ -295,6 +303,17 @@
     </form>
   </section>
 </template>
+
+<div id="signatureModal" class="signature-modal" hidden>
+  <div class="signature-modal-inner">
+    <canvas id="modalSigCanvas" class="signature-modal-canvas"></canvas>
+    <div class="signature-modal-actions">
+      <button type="button" class="btn btn-secondary" id="modalSigClear">Wyczyść</button>
+      <button type="button" class="btn btn-secondary" id="modalSigCancel">Anuluj</button>
+      <button type="button" class="btn btn-primary" id="modalSigConfirm">Zatwierdź podpis</button>
+    </div>
+  </div>
+</div>
 
 <div id="toast" class="toast" hidden></div>
 

@@ -1,5 +1,5 @@
 import { firebaseConfig, LESSOR_EMAIL, FUNCTIONS_REGION } from "./firebase-config.js";
-import { initSignaturePad } from "./signature.js";
+import { initSignatureField } from "./signature.js";
 import { initDamageMap } from "./damage-map.js";
 import { generateProtocolPdf } from "./pdf.js";
 
@@ -303,10 +303,14 @@ async function renderHandover() {
   const tpl = document.getElementById("tpl-handover");
   appEl.replaceChildren(tpl.content.cloneNode(true));
   wirePhotoStrip();
-  sigPad = initSignaturePad(document.getElementById("sigPad"));
-  appEl.querySelector('[data-action="clear-sig"]').addEventListener("click", () => sigPad.clear());
+  sigPad = initSignatureField({
+    placeholder: document.getElementById("sigPlaceholder"),
+    preview: document.getElementById("sigPreview"),
+    editBtn: document.getElementById("sigEditBtn")
+  });
   damageMap = initDamageMap(document.getElementById("damageMap"), DAMAGE_MAP_DIAGRAM_URL);
   appEl.querySelector('[data-action="clear-damage-map"]').addEventListener("click", () => damageMap.clear());
+  wireDamageMapOverlay();
 
   const plateInput = document.getElementById("handoverForm").elements["vehiclePlate"];
   const modelInput = document.getElementById("handoverForm").elements["vehicleModel"];
@@ -448,10 +452,14 @@ async function renderReturn(rentalId) {
   formEl.hidden = false;
 
   wirePhotoStrip();
-  sigPad = initSignaturePad(document.getElementById("sigPad"));
-  appEl.querySelector('[data-action="clear-sig"]').addEventListener("click", () => sigPad.clear());
+  sigPad = initSignatureField({
+    placeholder: document.getElementById("sigPlaceholder"),
+    preview: document.getElementById("sigPreview"),
+    editBtn: document.getElementById("sigEditBtn")
+  });
   damageMap = initDamageMap(document.getElementById("damageMap"), DAMAGE_MAP_DIAGRAM_URL);
   appEl.querySelector('[data-action="clear-damage-map"]').addEventListener("click", () => damageMap.clear());
+  wireDamageMapOverlay();
 
   formEl.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -538,6 +546,15 @@ function wirePhotoStrip() {
     img.src = URL.createObjectURL(file);
     strip.appendChild(img);
     input.value = "";
+  });
+}
+
+function wireDamageMapOverlay() {
+  const overlay = document.getElementById("damageMapOverlay");
+  // Pierwsze dotknięcie tylko odsłania schemat — nie stawia znacznika —
+  // żeby samo przewijanie formularza nigdy nie zaznaczyło uszkodzenia.
+  overlay.addEventListener("click", () => {
+    overlay.hidden = true;
   });
 }
 
