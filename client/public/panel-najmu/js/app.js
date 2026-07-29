@@ -30,6 +30,21 @@ let currentPhotos = []; // array of { blob, previewUrl }
 let sigPad = null;
 
 // ---------- Auth (anonymous — single operator, no login screen needed) ----------
+let authReadyPromise;
+function waitForAuthReady() {
+  if (!authReadyPromise) {
+    authReadyPromise = new Promise((resolve) => {
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (user) {
+          unsubscribe();
+          resolve(user);
+        }
+      });
+    });
+  }
+  return authReadyPromise;
+}
+
 onAuthStateChanged(auth, (user) => {
   if (!user) signInAnonymously(auth).catch((e) => showToast("Błąd logowania: " + e.message));
 });
@@ -48,7 +63,8 @@ function navigate(hash) {
   location.hash = hash;
 }
 
-function render() {
+async function render() {
+  await waitForAuthReady();
   const { view, param } = currentRoute();
   currentPhotos = [];
   backBtn.hidden = view === "list";
