@@ -745,7 +745,25 @@ function wirePhotoStrip() {
 }
 
 
-function fileToDataUrl(file) {
+// Aparaty zapisują zdjęcie zrobione w poziomie w oryginalnej orientacji
+// czujnika (często pionowej) plus znacznik EXIF "obróć przy wyświetlaniu".
+// Zwykłe <img> ten znacznik respektuje, ale PDF go ignoruje — dlatego
+// dekodujemy zdjęcie z uwzględnieniem EXIF i zapisujemy piksele już
+// poprawnie obrócone, zanim trafią do protokołu.
+async function fileToDataUrl(file) {
+  if (typeof createImageBitmap === "function") {
+    try {
+      const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      const canvas = document.createElement("canvas");
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      canvas.getContext("2d").drawImage(bitmap, 0, 0);
+      bitmap.close();
+      return canvas.toDataURL("image/jpeg", 0.9);
+    } catch (e) {
+      // Spadamy do zwykłego odczytu pliku, jeśli dekodowanie się nie uda.
+    }
+  }
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);

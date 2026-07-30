@@ -10,6 +10,14 @@ export async function generateProtocolPdf(record, phase, signatureDataUrl, damag
   const pageHeight = doc.internal.pageSize.getHeight();
   let y = 50;
 
+  try {
+    const logoDataUrl = await getLogoDataUrl();
+    const logoSize = 55;
+    doc.addImage(logoDataUrl, "PNG", pageWidth - left - logoSize, 25, logoSize, logoSize);
+  } catch (e) {
+    // Brak logo nie powinien blokować generowania protokołu.
+  }
+
   doc.setFontSize(16);
   doc.setFont("Roboto", "bold");
   doc.text(
@@ -190,14 +198,23 @@ let cachedFontsBase64 = null;
 function getFontsBase64() {
   if (!cachedFontsBase64) {
     cachedFontsBase64 = Promise.all([
-      loadFontAsBase64("/panel-najmu/fonts/Roboto-Regular.ttf"),
-      loadFontAsBase64("/panel-najmu/fonts/Roboto-Bold.ttf")
+      fetchAsBase64("/panel-najmu/fonts/Roboto-Regular.ttf"),
+      fetchAsBase64("/panel-najmu/fonts/Roboto-Bold.ttf")
     ]);
   }
   return cachedFontsBase64;
 }
 
-async function loadFontAsBase64(url) {
+let cachedLogoDataUrl = null;
+
+function getLogoDataUrl() {
+  if (!cachedLogoDataUrl) {
+    cachedLogoDataUrl = fetchAsBase64("/panel-najmu/img/logo.png").then((b64) => `data:image/png;base64,${b64}`);
+  }
+  return cachedLogoDataUrl;
+}
+
+async function fetchAsBase64(url) {
   const buffer = await fetch(url).then((r) => r.arrayBuffer());
   const bytes = new Uint8Array(buffer);
   let binary = "";

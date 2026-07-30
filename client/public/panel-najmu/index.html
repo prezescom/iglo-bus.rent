@@ -399,11 +399,14 @@
 
 <div id="signatureModal" class="signature-modal" hidden>
   <div class="signature-modal-inner">
-    <canvas id="modalSigCanvas" class="signature-modal-canvas"></canvas>
-    <div class="signature-modal-actions">
-      <button type="button" class="btn btn-secondary" id="modalSigClear">Wyczyść</button>
-      <button type="button" class="btn btn-secondary" id="modalSigCancel">Anuluj</button>
-      <button type="button" class="btn btn-primary" id="modalSigConfirm">Zatwierdź podpis</button>
+    <div class="signature-rotate-hint" id="modalSigRotateHint">Obróć telefon poziomo, aby podpisać</div>
+    <div class="signature-modal-canvas-wrap" id="modalSigCanvasWrap" hidden>
+      <canvas id="modalSigCanvas" class="signature-modal-canvas"></canvas>
+      <div class="signature-modal-actions">
+        <button type="button" class="btn btn-secondary" id="modalSigClear">Wyczyść</button>
+        <button type="button" class="btn btn-secondary" id="modalSigCancel">Anuluj</button>
+        <button type="button" class="btn btn-primary" id="modalSigConfirm">Zatwierdź podpis</button>
+      </div>
     </div>
   </div>
 </div>
