@@ -210,6 +210,27 @@ function normalizePlateId(plate) {
   return (plate || "").trim().toUpperCase().replace(/\s+/g, "");
 }
 
+async function fetchVehicleDamageMarks(plate) {
+  const snap = await getDoc(doc(db, "vehicles", normalizePlateId(plate)));
+  return snap.exists() ? snap.data().lastDamageMapMarks || [] : [];
+}
+
+async function updateVehicleDamageMarks(plate, marks) {
+  await setDoc(doc(db, "vehicles", normalizePlateId(plate)), { lastDamageMapMarks: marks }, { merge: true });
+}
+
+// Zwraca aktywny (jeszcze niezwrócony) wynajem dla danego pojazdu, jeśli
+// istnieje — używane do zablokowania otwarcia drugiego wydania na ten sam
+// pojazd, zanim poprzedni wynajem zostanie zamknięty zwrotem.
+async function findActiveRentalForPlate(plate) {
+  const targetId = normalizePlateId(plate);
+  if (!targetId) return null;
+  const q = query(collection(db, "rentals"), where("status", "==", "wydany"));
+  const snap = await getDocs(q);
+  const match = snap.docs.find((d) => normalizePlateId(d.data().vehiclePlate) === targetId);
+  return match ? match.data() : null;
+}
+
 async function fetchVehicles() {
   const snap = await getDocs(collection(db, "vehicles"));
   return snap.docs.map((d) => d.data()).sort((a, b) => (a.plate || "").localeCompare(b.plate || ""));
@@ -473,10 +494,23 @@ async function renderHandover() {
     // Brak dostępu do bazy pojazdów nie powinien blokować wydania — po
     // prostu nie będzie podpowiedzi/autouzupełniania modelu.
   }
-  plateInput.addEventListener("change", () => {
+  plateInput.addEventListener("change", async () => {
     const match = knownVehicles.find((v) => normalizePlateId(v.plate) === normalizePlateId(plateInput.value));
     if (match) {
       modelInput.value = `${match.make || ""} ${match.model || ""}`.trim();
+    }
+    try {
+      damageMap.setMarks(await fetchVehicleDamageMarks(plateInput.value));
+    } catch (e) {
+      // Brak dostępu do zapisanego schematu nie powinien blokować wydania.
+    }
+    try {
+      const activeRental = await findActiveRentalForPlate(plateInput.value);
+      if (activeRental) {
+        showToast(`Uwaga: ten pojazd jest już wynajęty (najemca: ${activeRental.tenantName || "?"}).`);
+      }
+    } catch (e) {
+      // Brak możliwości sprawdzenia nie powinien blokować wydania.
     }
   });
 
@@ -533,6 +567,14 @@ async function renderHandover() {
     }
 
     const fd = new FormData(form);
+
+    const activeRental = await findActiveRentalForPlate(fd.get("vehiclePlate")).catch(() => null);
+    if (activeRental) {
+      errorEl.textContent = `Ten pojazd jest już wynajęty (najemca: ${activeRental.tenantName || "?"}) — najpierw zarejestruj zwrot.`;
+      errorEl.hidden = false;
+      return;
+    }
+
     const record = {
       vehiclePlate: fd.get("vehiclePlate"),
       vehicleModel: fd.get("vehicleModel"),
@@ -607,6 +649,14 @@ async function renderHandover() {
 
       await sendProtocolEmail(docRef.id, "wydanie", pdfUrl, record.tenantEmail, LESSOR_EMAIL, record.vehiclePlate, record.handoverTimestamp);
 
+      // Zapisz aktualny schemat uszkodzeń w bazie pojazdu, żeby podpowiadał
+      // się przy zwrocie tego wynajmu i przy kolejnym wydaniu tego pojazdu.
+      try {
+        await updateVehicleDamageMarks(record.vehiclePlate, damageMap.getMarks());
+      } catch (e) {
+        // Brak wpisu pojazdu w bazie nie powinien blokować zapisu wydania.
+      }
+
       showToast("Zapisano i wysłano protokół wydania.");
       navigate("list");
     } catch (err) {
@@ -654,6 +704,11 @@ async function renderReturn(rentalId) {
     diagramUrl: DAMAGE_MAP_DIAGRAM_URL
   });
   appEl.querySelector('[data-action="clear-damage-map"]').addEventListener("click", () => damageMap.clear());
+  try {
+    damageMap.setMarks(await fetchVehicleDamageMarks(record.vehiclePlate));
+  } catch (e) {
+    // Brak zapisanego schematu nie powinien blokować zwrotu.
+  }
 
   formEl.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -705,11 +760,13 @@ async function renderReturn(rentalId) {
       await setDoc(doc(db, "rentals", rentalId), updated);
       await sendProtocolEmail(rentalId, "zwrot", pdfUrl, updated.tenantEmail, updated.lessorEmail, updated.vehiclePlate, updated.returnTimestamp);
 
-      // Zaktualizuj ostatni przebieg w bazie pojazdów, jeśli pojazd tam jest.
+      // Zaktualizuj ostatni przebieg i schemat uszkodzeń w bazie pojazdów,
+      // żeby przy kolejnym wydaniu tego pojazdu podpowiedziały się aktualne
+      // dane, jeśli pojazd tam jest.
       try {
         await setDoc(
           doc(db, "vehicles", normalizePlateId(updated.vehiclePlate)),
-          { lastMileage: mileageAtReturn },
+          { lastMileage: mileageAtReturn, lastDamageMapMarks: damageMap.getMarks() },
           { merge: true }
         );
       } catch (e) {

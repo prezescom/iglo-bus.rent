@@ -100,6 +100,19 @@ export function initDamageMap({ canvas, overlay, confirmBtn, diagramUrl }) {
       overlay.hidden = false;
       redraw();
     },
+    // Podmienia zaznaczenia na podpowiedziane z bazy pojazdu (np. to, co
+    // zostało zaznaczone przy wydaniu — punkt startowy dla zwrotu, albo to,
+    // co zostało przy ostatnim zwrocie — punkt startowy dla kolejnego
+    // wydania tego samego pojazdu). Pole i tak wymaga aktywacji, żeby
+    // dodać nowe zaznaczenie.
+    setMarks: (newMarks) => {
+      marks = Array.isArray(newMarks) ? newMarks.map(({ x, y }) => ({ x, y })) : [];
+      pendingMark = null;
+      confirmBtn.hidden = true;
+      overlay.hidden = false;
+      redraw();
+    },
+    getMarks: () => marks.map(({ x, y }) => ({ x, y })),
     toBlob: () => new Promise((resolve) => canvas.toBlob(resolve, "image/png")),
     toDataUrl: () => canvas.toDataURL("image/png")
   };
