@@ -17,11 +17,14 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
+const path = require("path");
 
 admin.initializeApp();
 
 const REGION = "europe-west1";
 const RETENTION_DAYS = 10;
+const LOGO_PATH = path.join(__dirname, "assets", "logo.png");
+const LOGO_CID = "iglobuslogo";
 
 // Adres skrzynki Zoho, z której wysyłane są protokoły — to nie jest sekret
 // (widoczny publicznie na stronie), więc trzyma się go wprost w kodzie.
@@ -71,9 +74,38 @@ exports.sendProtocolEmail = onCall(
       ? `Protokół wydania pojazdu — ${subjectSuffix}`
       : `Protokół zwrotu pojazdu — ${subjectSuffix}`;
 
-    const bodyText = phase === "wydanie"
-      ? "W załączniku przesyłamy podpisany protokół wydania pojazdu."
-      : "W załączniku przesyłamy podpisany protokół zwrotu pojazdu.";
+    const phaseWord = phase === "wydanie" ? "wydania" : "zwrotu";
+    const bodyText = `Szanowni Państwo,
+
+W załączeniu protokół ${phaseWord} pojazdu.
+
+Pozdrawiam,
+Jacek Małachowski
+
+iglo-bus.rent | Wypożyczalnia samochodów mroźni i chłodni
++48 530 410 504
+kontakt@iglo-bus.rent
+www.iglo-bus.rent
+
+Dostawa w całej Polsce • −20 °C do +20 °C • Rejestracja temperatury`;
+    const bodyHtml = `
+      <div style="font-family: Verdana, sans-serif; font-size: 10pt; color: #000;">
+        <p>Szanowni Państwo,</p>
+        <p>W załączeniu protokół ${phaseWord} pojazdu.</p>
+        <p><a href="${pdfUrl}">Pobierz protokół PDF</a></p>
+        <div style="margin-top: 16px;">
+          <p style="margin: 0;">Pozdrawiam,</p>
+          <p style="margin: 0; font-weight: bold;">Jacek Małachowski</p>
+          <p style="margin: 12px 0 0;">iglo-bus.rent | Wypożyczalnia samochodów mroźni i chłodni</p>
+          <p style="margin: 0;">+48 530 410 504</p>
+          <p style="margin: 0;">kontakt@iglo-bus.rent</p>
+          <img src="cid:${LOGO_CID}" alt="IGLO-BUS.rent" width="110" style="display: block; margin: 14px 0;" />
+          <p style="margin: 0 0 8px;"><a href="https://www.iglo-bus.rent" style="color: #1E5F8C; text-decoration: underline;">www.iglo-bus.rent</a></p>
+          <hr style="border: none; border-top: 1px solid #999; width: 250px; margin: 0 0 8px; text-align: left;" />
+          <p style="margin: 0; font-size: 9pt; color: #444;">Dostawa w całej Polsce • −20 °C do +20 °C • Rejestracja temperatury</p>
+        </div>
+      </div>
+    `;
 
     try {
       await getTransporter().sendMail({
@@ -81,7 +113,8 @@ exports.sendProtocolEmail = onCall(
         to: [tenantEmail, lessorEmail],
         subject,
         text: bodyText,
-        html: `<p>${bodyText}</p><p><a href="${pdfUrl}">Pobierz protokół PDF</a></p>`,
+        html: bodyHtml,
+        attachments: [{ filename: "logo.png", path: LOGO_PATH, cid: LOGO_CID }],
       });
       return { success: true };
     } catch (err) {
