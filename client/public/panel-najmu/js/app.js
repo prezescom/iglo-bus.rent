@@ -367,6 +367,61 @@ async function renderTenants() {
   }
 }
 
+// Własna podpowiedź (zamiast natywnego <datalist>, które na sporej części
+// przeglądarek mobilnych w ogóle nie pokazuje listy sugestii). getItems()
+// jest wywoływane na bieżąco, więc może zwracać dane wczytane asynchronicznie
+// już po podłączeniu pola. Wybór podpowiedzi ustawia wartość i wywołuje
+// prawdziwe zdarzenie "change", więc reszta kodu (autouzupełnianie itd.)
+// działa bez zmian.
+function wireAutocomplete(input, getItems) {
+  const list = document.createElement("div");
+  list.className = "autocomplete-list";
+  list.hidden = true;
+  input.insertAdjacentElement("afterend", list);
+
+  function renderItems(items) {
+    list.innerHTML = "";
+    if (!items.length) {
+      list.hidden = true;
+      return;
+    }
+    items.slice(0, 8).forEach((item) => {
+      const row = document.createElement("div");
+      row.className = "autocomplete-item";
+      row.innerHTML = item.sub
+        ? `${escapeHtml(item.label)}<span class="ac-sub">${escapeHtml(item.sub)}</span>`
+        : escapeHtml(item.label);
+      // mousedown (nie click) + preventDefault, żeby "blur" pola nie schował
+      // listy zanim zdąży się zarejestrować wybór.
+      row.addEventListener("mousedown", (e) => e.preventDefault());
+      row.addEventListener("click", () => {
+        input.value = item.value;
+        list.hidden = true;
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      list.appendChild(row);
+    });
+    list.hidden = false;
+  }
+
+  function filterAndRender() {
+    const q = input.value.trim().toLowerCase();
+    const items = getItems();
+    const filtered = q
+      ? items.filter((it) => it.label.toLowerCase().includes(q) || it.value.toLowerCase().includes(q))
+      : items;
+    renderItems(filtered);
+  }
+
+  input.addEventListener("input", filterAndRender);
+  input.addEventListener("focus", filterAndRender);
+  input.addEventListener("blur", () => {
+    setTimeout(() => {
+      list.hidden = true;
+    }, 150);
+  });
+}
+
 function wireTenantTypeToggle(typeSelect, peselWrap, nipWrap, nameLabel) {
   function apply() {
     const isCompany = typeSelect.value === "firma";
@@ -475,29 +530,34 @@ async function renderHandover() {
     canvas: document.getElementById("damageMap"),
     overlay: document.getElementById("damageMapOverlay"),
     confirmBtn: document.getElementById("damageMapConfirmBtn"),
+    discardBtn: document.getElementById("damageMapDiscardBtn"),
+    pendingActions: document.getElementById("damageMapPendingActions"),
     diagramUrl: DAMAGE_MAP_DIAGRAM_URL
   });
   appEl.querySelector('[data-action="clear-damage-map"]').addEventListener("click", () => damageMap.clear());
 
-  const plateInput = document.getElementById("handoverForm").elements["vehiclePlate"];
+  const plateInput = document.getElementById("vehiclePlateInput");
   const modelInput = document.getElementById("handoverForm").elements["vehicleModel"];
+  const vinInput = document.getElementById("handoverForm").elements["vehicleVin"];
   let knownVehicles = [];
   try {
     knownVehicles = await fetchVehicles();
-    const datalist = document.getElementById("knownPlates");
-    knownVehicles.forEach((v) => {
-      const option = document.createElement("option");
-      option.value = v.plate;
-      datalist.appendChild(option);
-    });
   } catch (e) {
     // Brak dostępu do bazy pojazdów nie powinien blokować wydania — po
     // prostu nie będzie podpowiedzi/autouzupełniania modelu.
   }
+  wireAutocomplete(plateInput, () =>
+    knownVehicles.map((v) => ({
+      value: v.plate,
+      label: v.plate,
+      sub: [v.make, v.model].filter(Boolean).join(" ")
+    }))
+  );
   plateInput.addEventListener("change", async () => {
     const match = knownVehicles.find((v) => normalizePlateId(v.plate) === normalizePlateId(plateInput.value));
     if (match) {
       modelInput.value = `${match.make || ""} ${match.model || ""}`.trim();
+      vinInput.value = match.vin || "";
     }
     try {
       damageMap.setMarks(await fetchVehicleDamageMarks(plateInput.value));
@@ -525,18 +585,20 @@ async function renderHandover() {
   let knownTenants = [];
   try {
     knownTenants = await fetchTenants();
-    const peselList = document.getElementById("knownTenantsPesel");
-    const nipList = document.getElementById("knownTenantsNip");
-    knownTenants.forEach((t) => {
-      const option = document.createElement("option");
-      option.value = t.tenantType === "firma" ? t.nip : t.pesel;
-      option.label = t.name;
-      (t.tenantType === "firma" ? nipList : peselList).appendChild(option);
-    });
   } catch (e) {
     // Brak dostępu do bazy najemców nie powinien blokować wydania — po
     // prostu nie będzie podpowiedzi/autouzupełniania danych najemcy.
   }
+  wireAutocomplete(document.getElementById("tenantPeselInput"), () =>
+    knownTenants
+      .filter((t) => t.tenantType !== "firma")
+      .map((t) => ({ value: t.pesel, label: t.name, sub: t.pesel }))
+  );
+  wireAutocomplete(document.getElementById("tenantNipInput"), () =>
+    knownTenants
+      .filter((t) => t.tenantType === "firma")
+      .map((t) => ({ value: t.nip, label: t.name, sub: t.nip }))
+  );
 
   function autofillTenant(inputEl) {
     const match = knownTenants.find((t) => normalizeTenantId(t.tenantType === "firma" ? t.nip : t.pesel) === normalizeTenantId(inputEl.value));
@@ -578,6 +640,7 @@ async function renderHandover() {
     const record = {
       vehiclePlate: fd.get("vehiclePlate"),
       vehicleModel: fd.get("vehicleModel"),
+      vehicleVin: fd.get("vehicleVin") || "",
       vehicleMileageAtHandover: fd.get("mileage"),
       vehicleFuelAtHandover: fd.get("fuel"),
       vehicleMileageAtReturn: "",
@@ -628,14 +691,19 @@ async function renderHandover() {
     try {
       const docRef = doc(collection(db, "rentals"));
       record.id = docRef.id;
-      await setDoc(docRef, record);
 
-      const photoUrls = await uploadPhotos(docRef.id, "wydanie");
-      const sigUrl = await uploadSignature(docRef.id, "wydanie");
-      const damageMapUrl = await uploadDamageMap(docRef.id, "wydanie");
+      // Wszystkie te operacje są od siebie niezależne — równolegle zamiast
+      // po kolei, żeby zapis i wysyłka protokołu nie trwały niepotrzebnie
+      // długo (suma czasów zamiast najdłuższego z nich).
+      const [, photoUrls, sigUrl, damageMapUrl, photoDataUrls] = await Promise.all([
+        setDoc(docRef, record),
+        uploadPhotos(docRef.id, "wydanie"),
+        uploadSignature(docRef.id, "wydanie"),
+        uploadDamageMap(docRef.id, "wydanie"),
+        Promise.all(currentPhotos.map(fileToDataUrl))
+      ]);
       const sigDataUrl = sigPad.toDataUrl();
       const damageMapDataUrl = damageMap.toDataUrl();
-      const photoDataUrls = await Promise.all(currentPhotos.map(fileToDataUrl));
       const pdfBlob = await generateProtocolPdf(record, "wydanie", sigDataUrl, damageMapDataUrl, photoDataUrls);
       const pdfUrl = await uploadPdf(docRef.id, "wydanie", pdfBlob);
 
@@ -701,6 +769,8 @@ async function renderReturn(rentalId) {
     canvas: document.getElementById("damageMap"),
     overlay: document.getElementById("damageMapOverlay"),
     confirmBtn: document.getElementById("damageMapConfirmBtn"),
+    discardBtn: document.getElementById("damageMapDiscardBtn"),
+    pendingActions: document.getElementById("damageMapPendingActions"),
     diagramUrl: DAMAGE_MAP_DIAGRAM_URL
   });
   appEl.querySelector('[data-action="clear-damage-map"]').addEventListener("click", () => damageMap.clear());
@@ -708,6 +778,27 @@ async function renderReturn(rentalId) {
     damageMap.setMarks(await fetchVehicleDamageMarks(record.vehiclePlate));
   } catch (e) {
     // Brak zapisanego schematu nie powinien blokować zwrotu.
+  }
+
+  // Pokaż do potwierdzenia tylko to wyposażenie, które faktycznie zostało
+  // przekazane przy wydaniu — domyślnie zaznaczone (zakładamy, że wraca),
+  // operator odznacza to, czego brakuje.
+  const equipmentOptions = [
+    { field: "equipmentShelf", label: "Półka double-deck" },
+    { field: "equipmentCargoBar", label: "Poprzeczka do blokowania ładunku" },
+    { field: "equipmentStraps", label: "Zapinki (6 szt.)" },
+    { field: "equipmentPowerCable", label: "Kabel do zasilania chłodni na postoju" }
+  ].filter((opt) => record[opt.field]);
+
+  if (equipmentOptions.length) {
+    document.getElementById("returnEquipmentFieldset").hidden = false;
+    const container = document.getElementById("returnEquipmentContainer");
+    equipmentOptions.forEach((opt) => {
+      const label = document.createElement("label");
+      label.className = "checkbox-label";
+      label.innerHTML = `<input type="checkbox" name="return_${opt.field}" checked /> ${escapeHtml(opt.label)}`;
+      container.appendChild(label);
+    });
   }
 
   formEl.addEventListener("submit", async (e) => {
@@ -726,6 +817,12 @@ async function renderReturn(rentalId) {
     const now = Date.now();
     const mileageAtReturn = fd.get("mileage");
     const distanceTraveled = Number(mileageAtReturn) - Number(record.vehicleMileageAtHandover);
+
+    const returnedEquipment = {};
+    equipmentOptions.forEach((opt) => {
+      returnedEquipment[opt.field] = formEl.elements[`return_${opt.field}`].checked;
+    });
+
     const updated = {
       ...record,
       vehicleMileageAtReturn: mileageAtReturn,
@@ -735,6 +832,7 @@ async function renderReturn(rentalId) {
       returnBodyCondition: fd.get("bodyCondition"),
       returnPassengerAreaCondition: fd.get("passengerAreaCondition"),
       returnCargoAreaCondition: fd.get("cargoAreaCondition"),
+      returnedEquipment,
       returnTimestamp: now,
       closedTimestamp: now, // uruchamia 10-dniowy zegar czyszczenia
       status: "zwrocony"
@@ -743,12 +841,15 @@ async function renderReturn(rentalId) {
     submitBtn.disabled = true;
     submitBtn.textContent = "Zapisywanie…";
     try {
-      const photoUrls = await uploadPhotos(rentalId, "zwrot");
-      const sigUrl = await uploadSignature(rentalId, "zwrot");
-      const damageMapUrl = await uploadDamageMap(rentalId, "zwrot");
+      // Równolegle zamiast po kolei — patrz komentarz przy wydaniu pojazdu.
+      const [photoUrls, sigUrl, damageMapUrl, photoDataUrls] = await Promise.all([
+        uploadPhotos(rentalId, "zwrot"),
+        uploadSignature(rentalId, "zwrot"),
+        uploadDamageMap(rentalId, "zwrot"),
+        Promise.all(currentPhotos.map(fileToDataUrl))
+      ]);
       const sigDataUrl = sigPad.toDataUrl();
       const damageMapDataUrl = damageMap.toDataUrl();
-      const photoDataUrls = await Promise.all(currentPhotos.map(fileToDataUrl));
       const pdfBlob = await generateProtocolPdf(updated, "zwrot", sigDataUrl, damageMapDataUrl, photoDataUrls);
       const pdfUrl = await uploadPdf(rentalId, "zwrot", pdfBlob);
 
@@ -830,14 +931,14 @@ async function fileToDataUrl(file) {
 }
 
 async function uploadPhotos(rentalId, phase) {
-  const urls = [];
-  for (const file of currentPhotos) {
-    const path = `rentals/${rentalId}/${phase}/${crypto.randomUUID()}.jpg`;
-    const r = ref(storage, path);
-    await uploadBytes(r, file);
-    urls.push(await getDownloadURL(r));
-  }
-  return urls;
+  return Promise.all(
+    currentPhotos.map(async (file) => {
+      const path = `rentals/${rentalId}/${phase}/${crypto.randomUUID()}.jpg`;
+      const r = ref(storage, path);
+      await uploadBytes(r, file);
+      return getDownloadURL(r);
+    })
+  );
 }
 
 async function uploadSignature(rentalId, phase) {

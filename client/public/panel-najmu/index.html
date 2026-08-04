@@ -166,12 +166,14 @@
     <form id="handoverForm" class="form">
       <fieldset>
         <legend>Pojazd</legend>
-        <label>Nr rejestracyjny
-          <input name="vehiclePlate" list="knownPlates" required />
-          <datalist id="knownPlates"></datalist>
+        <label class="autocomplete-wrap">Nr rejestracyjny
+          <input name="vehiclePlate" id="vehiclePlateInput" autocomplete="off" required />
         </label>
         <label>Model pojazdu
           <input name="vehicleModel" required />
+        </label>
+        <label>VIN
+          <input name="vehicleVin" />
         </label>
         <div class="row">
           <label>Przebieg (km)
@@ -191,14 +193,12 @@
             <option value="firma">Firma</option>
           </select>
         </label>
-        <label id="tenantPeselWrap">PESEL
-          <input name="tenantPesel" list="knownTenantsPesel" />
+        <label id="tenantPeselWrap" class="autocomplete-wrap">PESEL
+          <input name="tenantPesel" id="tenantPeselInput" autocomplete="off" />
         </label>
-        <label id="tenantNipWrap" hidden>NIP
-          <input name="tenantNip" list="knownTenantsNip" />
+        <label id="tenantNipWrap" class="autocomplete-wrap" hidden>NIP
+          <input name="tenantNip" id="tenantNipInput" autocomplete="off" />
         </label>
-        <datalist id="knownTenantsPesel"></datalist>
-        <datalist id="knownTenantsNip"></datalist>
         <label id="tenantNameLabel">Imię i nazwisko
           <input name="tenantName" required />
         </label>
@@ -271,7 +271,10 @@
           <canvas id="damageMap" class="damage-map" width="600" height="400"></canvas>
           <div class="damage-map-overlay" id="damageMapOverlay">Dotknij, aby zaznaczyć uszkodzenie</div>
         </div>
-        <button type="button" class="btn btn-primary btn-block" id="damageMapConfirmBtn" hidden>Zatwierdź zaznaczenie</button>
+        <div class="damage-map-pending-actions" id="damageMapPendingActions" hidden>
+          <button type="button" class="btn btn-secondary" id="damageMapDiscardBtn">Odrzuć</button>
+          <button type="button" class="btn btn-primary" id="damageMapConfirmBtn">Zatwierdź zaznaczenie</button>
+        </div>
         <button type="button" class="btn btn-text" data-action="clear-damage-map">Wyczyść wszystkie zaznaczenia</button>
       </fieldset>
 
@@ -368,8 +371,16 @@
           <canvas id="damageMap" class="damage-map" width="600" height="400"></canvas>
           <div class="damage-map-overlay" id="damageMapOverlay">Dotknij, aby zaznaczyć uszkodzenie</div>
         </div>
-        <button type="button" class="btn btn-primary btn-block" id="damageMapConfirmBtn" hidden>Zatwierdź zaznaczenie</button>
+        <div class="damage-map-pending-actions" id="damageMapPendingActions" hidden>
+          <button type="button" class="btn btn-secondary" id="damageMapDiscardBtn">Odrzuć</button>
+          <button type="button" class="btn btn-primary" id="damageMapConfirmBtn">Zatwierdź zaznaczenie</button>
+        </div>
         <button type="button" class="btn btn-text" data-action="clear-damage-map">Wyczyść wszystkie zaznaczenia</button>
+      </fieldset>
+
+      <fieldset id="returnEquipmentFieldset" hidden>
+        <legend>Zwracane wyposażenie</legend>
+        <div id="returnEquipmentContainer"></div>
       </fieldset>
 
       <fieldset>

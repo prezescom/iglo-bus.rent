@@ -1,10 +1,12 @@
 // Schemat pojazdu (4 widoki) do zaznaczania uszkodzeń.
 // Przepływ: dotknięcie nakładki aktywuje pole (raz, na cały czas edycji) ->
 // dotknięcie miejsca uszkodzenia stawia znacznik "na próbę" (pomarańczowy)
-// i pokazuje przycisk "Zatwierdź" -> zatwierdzenie zapisuje znacznik na
-// czerwono i pole zostaje aktywne, gotowe od razu na kolejne zaznaczenie.
-// "Wyczyść wszystkie zaznaczenia" resetuje wszystko, w tym aktywację.
-export function initDamageMap({ canvas, overlay, confirmBtn, diagramUrl }) {
+// i pokazuje przyciski "Zatwierdź"/"Odrzuć" -> zatwierdzenie zapisuje
+// znacznik na czerwono, odrzucenie go kasuje. Pole zostaje aktywne, gotowe
+// od razu na kolejne zaznaczenie. Niezatwierdzony (pomarańczowy) znacznik
+// nigdy nie trafia do eksportu (toDataUrl/toBlob/getMarks) — nawet jeśli
+// ktoś zapomni go zatwierdzić lub odrzucić przed zapisaniem protokołu.
+export function initDamageMap({ canvas, overlay, confirmBtn, discardBtn, pendingActions, diagramUrl }) {
   const ctx = canvas.getContext("2d");
   let marks = [];
   let pendingMark = null;
@@ -67,7 +69,7 @@ export function initDamageMap({ canvas, overlay, confirmBtn, diagramUrl }) {
     e.preventDefault();
     const { x, y } = posFromEvent(e);
     pendingMark = { x, y };
-    confirmBtn.hidden = false;
+    pendingActions.hidden = false;
     redraw();
   }
 
@@ -75,9 +77,15 @@ export function initDamageMap({ canvas, overlay, confirmBtn, diagramUrl }) {
     if (!pendingMark) return;
     marks.push(pendingMark);
     pendingMark = null;
-    confirmBtn.hidden = true;
+    pendingActions.hidden = true;
     // Pole zostaje aktywne — nie trzeba aktywować od nowa dla kolejnego
     // zaznaczenia, jeśli jest więcej niż jedno uszkodzenie do oznaczenia.
+    redraw();
+  }
+
+  function discardMark() {
+    pendingMark = null;
+    pendingActions.hidden = true;
     redraw();
   }
 
@@ -88,15 +96,28 @@ export function initDamageMap({ canvas, overlay, confirmBtn, diagramUrl }) {
   canvas.addEventListener("click", handleCanvasTap);
   canvas.addEventListener("touchend", handleCanvasTap, { passive: false });
   confirmBtn.addEventListener("click", confirmMark);
+  discardBtn.addEventListener("click", discardMark);
 
   redraw();
+
+  // Eksport, który celowo pomija ewentualny niezatwierdzony znacznik —
+  // odrzuca go "po cichu" (bez czyszczenia UI), żeby zapis protokołu nigdy
+  // nie zawierał czegoś, czego operator nie zdążył potwierdzić.
+  function redrawWithoutPending() {
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (imageReady) {
+      ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+    }
+    marks.forEach(({ x, y }) => drawMark(x, y, "#C0392B"));
+  }
 
   return {
     isEmpty: () => marks.length === 0,
     clear: () => {
       marks = [];
       pendingMark = null;
-      confirmBtn.hidden = true;
+      pendingActions.hidden = true;
       overlay.hidden = false;
       redraw();
     },
@@ -108,12 +129,18 @@ export function initDamageMap({ canvas, overlay, confirmBtn, diagramUrl }) {
     setMarks: (newMarks) => {
       marks = Array.isArray(newMarks) ? newMarks.map(({ x, y }) => ({ x, y })) : [];
       pendingMark = null;
-      confirmBtn.hidden = true;
+      pendingActions.hidden = true;
       overlay.hidden = false;
       redraw();
     },
     getMarks: () => marks.map(({ x, y }) => ({ x, y })),
-    toBlob: () => new Promise((resolve) => canvas.toBlob(resolve, "image/png")),
-    toDataUrl: () => canvas.toDataURL("image/png")
+    toBlob: () => {
+      redrawWithoutPending();
+      return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+    },
+    toDataUrl: () => {
+      redrawWithoutPending();
+      return canvas.toDataURL("image/png");
+    }
   };
 }

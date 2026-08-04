@@ -12,8 +12,8 @@ export async function generateProtocolPdf(record, phase, signatureDataUrl, damag
 
   try {
     const logoDataUrl = await getLogoDataUrl();
-    const logoSize = 55;
-    doc.addImage(logoDataUrl, "PNG", pageWidth - left - logoSize, 25, logoSize, logoSize);
+    const logoSize = 85;
+    doc.addImage(logoDataUrl, "PNG", pageWidth - left - logoSize, 20, logoSize, logoSize);
   } catch (e) {
     // Brak logo nie powinien blokować generowania protokołu.
   }
@@ -30,8 +30,13 @@ export async function generateProtocolPdf(record, phase, signatureDataUrl, damag
   const line = (label, value) => {
     doc.setFont("Roboto", "bold");
     doc.text(label, left, y);
+    // Kolumna wartości standardowo zaczyna się w stałym miejscu, ale dla
+    // dłuższych etykiet (np. wyposażenia) poszerza się, żeby tekst się nie
+    // nakładał — 150pt starcza tylko dla krótszych etykiet.
+    const labelWidth = doc.getTextWidth(label);
     doc.setFont("Roboto", "normal");
-    doc.text(String(value || "-"), left + 150, y);
+    const valueX = Math.max(left + 150, left + labelWidth + 10);
+    doc.text(String(value || "-"), valueX, y);
     y += 20;
   };
   const heading = (text) => {
@@ -43,6 +48,7 @@ export async function generateProtocolPdf(record, phase, signatureDataUrl, damag
 
   line("Pojazd:", record.vehicleModel);
   line("Nr rejestracyjny:", record.vehiclePlate);
+  line("VIN:", record.vehicleVin);
 
   if (phase === "wydanie") {
     line("Przebieg (wydanie):", `${record.vehicleMileageAtHandover} km`);
@@ -97,6 +103,18 @@ export async function generateProtocolPdf(record, phase, signatureDataUrl, damag
     const wrappedEquipment = doc.splitTextToSize(equipmentText, 500);
     doc.text(wrappedEquipment, left, y);
     y += wrappedEquipment.length * 14 + 10;
+  } else if (record.returnedEquipment && Object.keys(record.returnedEquipment).length) {
+    y += 10;
+    heading("Zwrócone wyposażenie:");
+    const equipmentLabels = {
+      equipmentShelf: "Półka double-deck",
+      equipmentCargoBar: "Poprzeczka do blokowania ładunku",
+      equipmentStraps: "Zapinki (6 szt.)",
+      equipmentPowerCable: "Kabel do zasilania chłodni na postoju"
+    };
+    Object.entries(record.returnedEquipment).forEach(([field, returned]) => {
+      line(`${equipmentLabels[field] || field}:`, returned ? "Zwrócone" : "NIE ZWRÓCONE");
+    });
   }
 
   y += 10;
@@ -158,7 +176,23 @@ export async function generateProtocolPdf(record, phase, signatureDataUrl, damag
     }
   }
 
+  addFooterToAllPages(doc, left, pageWidth, pageHeight);
+
   return doc.output("blob");
+}
+
+function addFooterToAllPages(doc, left, pageWidth, pageHeight) {
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setFont("Roboto", "normal");
+    doc.setTextColor(130);
+    const footerY = pageHeight - 20;
+    doc.text("iglo-bus.rent — kontakt@iglo-bus.rent", left, footerY);
+    doc.text(`Strona ${i} z ${pageCount}`, pageWidth - left, footerY, { align: "right" });
+    doc.setTextColor(0);
+  }
 }
 
 function loadImage(src) {

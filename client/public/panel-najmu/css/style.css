@@ -76,6 +76,22 @@ body {
 .rental-card .tenant { color: var(--muted); font-size: 14px; }
 
 .form { display: flex; flex-direction: column; gap: 18px; }
+
+/* Własna podpowiedź zamiast natywnego <datalist>, które na części
+   przeglądarek mobilnych w ogóle nie pokazuje listy. */
+.autocomplete-wrap { position: relative; }
+.autocomplete-list {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 50; margin-top: 2px;
+  background: white; border: 1px solid var(--line); border-radius: 8px;
+  max-height: 220px; overflow-y: auto; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+.autocomplete-item {
+  padding: 10px 12px; font-size: 15px; color: var(--ink); cursor: pointer;
+  border-bottom: 1px solid var(--line);
+}
+.autocomplete-item:last-child { border-bottom: none; }
+.autocomplete-item .ac-sub { display: block; font-size: 12px; color: var(--muted); }
+.autocomplete-item:active { background: var(--bg); }
 fieldset {
   border: 1px solid var(--line); border-radius: var(--radius);
   padding: 14px; background: var(--surface); display: flex; flex-direction: column; gap: 10px;
@@ -133,6 +149,8 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 
   color: var(--muted); font-size: 14px; font-weight: 600; text-align: center;
   cursor: pointer; padding: 12px; touch-action: manipulation;
 }
+.damage-map-pending-actions { display: flex; gap: 8px; }
+.damage-map-pending-actions .btn { flex: 1; }
 
 /* Podpis w poziomie: zamiast symulować obrót przez CSS (co gryzło się z
    naturalnym obrotem strony przez przeglądarkę i dawało podwójny obrót),
