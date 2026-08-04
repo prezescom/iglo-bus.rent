@@ -554,6 +554,7 @@ async function renderContractForm() {
 
   const contractTypeSelect = document.getElementById("contractTypeSelect");
   const jednostkowaFieldset = document.getElementById("contractJednostkowaFieldset");
+  const signatureFormWrap = document.getElementById("contractSignatureFormWrap");
 
   let selectedTenant = null;
   let selectedVehicle = null;
@@ -614,12 +615,16 @@ async function renderContractForm() {
     vehicleSummaryEl.hidden = false;
   });
 
-  function updateJednostkowaFieldsVisibility() {
+  function updateConditionalFieldsVisibility() {
     jednostkowaFieldset.hidden = !(partyTypeSelect.value === "konsument" && contractTypeSelect.value === "jednostkowa");
+    // Dla Firmy zarówno "Umowa" jak i "Umowa najmu jednostkowego" korzystają
+    // z tego samego dokumentu (osobna umowa ramowa ma własny szablon), więc
+    // forma podpisu dotyczy obu tych wyborów, nie tylko "Umowa".
+    signatureFormWrap.hidden = !(partyTypeSelect.value === "firma" && contractTypeSelect.value !== "ramowa");
   }
-  partyTypeSelect.addEventListener("change", updateJednostkowaFieldsVisibility);
-  contractTypeSelect.addEventListener("change", updateJednostkowaFieldsVisibility);
-  updateJednostkowaFieldsVisibility();
+  partyTypeSelect.addEventListener("change", updateConditionalFieldsVisibility);
+  contractTypeSelect.addEventListener("change", updateConditionalFieldsVisibility);
+  updateConditionalFieldsVisibility();
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -639,7 +644,8 @@ async function renderContractForm() {
     const fd = new FormData(form);
     const partyType = fd.get("contractPartyType");
     const contractType = fd.get("contractType");
-    const templateKey = resolveTemplateKey(partyType, contractType);
+    const signatureForm = fd.get("contractSignatureForm");
+    const templateKey = resolveTemplateKey(partyType, contractType, signatureForm);
 
     const formData = {
       contractDate: formatDatePl(fd.get("contractDate")),

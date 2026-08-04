@@ -10,16 +10,23 @@ const TEMPLATE_FILES = {
   konsument_ramowa: "/panel-najmu/contracts/templates/umowa-ramowa-konsument.docx",
   konsument_jednostkowa: "/panel-najmu/contracts/templates/umowa-najmu-jednostkowego-konsument.docx",
   firma_ramowa: "/panel-najmu/contracts/templates/umowa-ramowa-firma.docx",
-  firma_scalona: "/panel-najmu/contracts/templates/umowa-najmu-scalona-epodpis.docx"
+  firma_scalona_elektroniczna: "/panel-najmu/contracts/templates/umowa-najmu-scalona-epodpis.docx",
+  firma_scalona_papierowa: "/panel-najmu/contracts/templates/umowa-najmu-scalona-papierowa.docx"
 };
 
+// Szablony, w których w oryginalnym pliku Word brakuje otwierającego "["
+// przed "kod_pocztowy]" (literówka źródłowa) — patrz generateContractDocx.
+const TEMPLATES_NEEDING_KOD_POCZTOWY_FIX = new Set(["firma_scalona_elektroniczna", "firma_scalona_papierowa"]);
+
 // Dla Firmy nie ma osobnego wariantu "umowa najmu jednostkowego" — jeden
-// samodzielny dokument (do podpisu elektronicznego) łączy umowę ramową
-// i najem konkretnego pojazdu, więc zarówno "Umowa" jak i "Umowa najmu
-// jednostkowego" prowadzą do tego samego pliku dla Firmy.
-export function resolveTemplateKey(partyType, contractType) {
+// samodzielny dokument łączy umowę ramową i najem konkretnego pojazdu, więc
+// zarówno "Umowa" jak i "Umowa najmu jednostkowego" prowadzą do tego samego
+// dokumentu dla Firmy — w wersji do podpisu elektronicznego lub papierowej,
+// zależnie od signatureForm.
+export function resolveTemplateKey(partyType, contractType, signatureForm) {
   if (partyType === "firma") {
-    return contractType === "ramowa" ? "firma_ramowa" : "firma_scalona";
+    if (contractType === "ramowa") return "firma_ramowa";
+    return signatureForm === "papierowa" ? "firma_scalona_papierowa" : "firma_scalona_elektroniczna";
   }
   if (contractType === "ramowa") return "konsument_ramowa";
   if (contractType === "jednostkowa") return "konsument_jednostkowa";
@@ -121,7 +128,7 @@ function buildTemplateData(templateKey, { tenant, vehicle, form }) {
         umowa_od: form.periodFrom,
         umowa_do: form.periodTo
       };
-    case "firma_scalona":
+    case "firma_scalona_elektroniczna":
       return {
         data_zawarcia: form.contractDate,
         "nazwa firmy": tenant.name,
@@ -135,6 +142,24 @@ function buildTemplateData(templateKey, { tenant, vehicle, form }) {
         nr_rejestracyjny: vehicle.plate,
         VIN: vehicle.vin,
         czynsz: form.rentAmount,
+        umowa_od: form.periodFrom,
+        umowa_do: form.periodTo
+      };
+    case "firma_scalona_papierowa":
+      return {
+        data_zawarcia: form.contractDate,
+        "nazwa firmy": tenant.name,
+        NIP: tenant.nip,
+        KRS: tenant.krs,
+        ulica: street,
+        kod_pocztowy: tenant.postalCode,
+        Miejscowość: tenant.city,
+        reprezentant: tenant.representative,
+        "model samochodu": vehicle.model,
+        nr_rejestracyjny: vehicle.plate,
+        VIN: vehicle.vin,
+        czynsz: form.rentAmount,
+        kaucja: form.depositAmount,
         umowa_od: form.periodFrom,
         umowa_do: form.periodTo
       };
@@ -153,10 +178,10 @@ export async function generateContractDocx(templateKey, ctx) {
 
   const zip = new window.PizZip(buffer);
 
-  if (templateKey === "firma_scalona") {
-    // W oryginalnym wzorze brakuje otwierającego "[" przed "kod_pocztowy]"
-    // (literówka w pliku źródłowym „Umowa najmu scalona epodpis.docx") — bez
-    // tej poprawki pole nie zostałoby podstawione.
+  if (TEMPLATES_NEEDING_KOD_POCZTOWY_FIX.has(templateKey)) {
+    // W oryginalnych wzorach brakuje otwierającego "[" przed "kod_pocztowy]"
+    // (literówka w plikach źródłowych „Umowa najmu scalona…") — bez tej
+    // poprawki pole nie zostałoby podstawione.
     const xmlPath = "word/document.xml";
     const xml = zip.file(xmlPath).asText();
     zip.file(xmlPath, xml.replace("<w:t>kod_pocztowy]</w:t>", "<w:t>[kod_pocztowy]</w:t>"));
