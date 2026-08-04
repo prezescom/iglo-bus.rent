@@ -78,6 +78,15 @@ export async function generateProtocolPdf(record, phase, signatureDataUrl, damag
         ["DATA ZWROTU", formatDate(record.returnTimestamp)]
       ];
   y = drawInfoStrip(doc, y, contentWidth, infoItems);
+  if (!isHandover && record.distanceTraveled !== "" && record.distanceTraveled != null) {
+    y += 14;
+    doc.setFont("Roboto", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(...COLOR_MUTED);
+    doc.text(`Przebyty przebieg w trakcie wynajmu: ${record.distanceTraveled} km`, LEFT, y);
+    doc.setTextColor(...COLOR_INK);
+    y += 6;
+  }
   y += 12;
 
   // ---- Najemca ----
@@ -116,15 +125,7 @@ export async function generateProtocolPdf(record, phase, signatureDataUrl, damag
         ["Przestrzeń ładunkowa", record.returnCargoAreaCondition]
       ];
   y = drawConditionTable(doc, y, contentWidth, conditionRows);
-  if (!isHandover && record.distanceTraveled !== "" && record.distanceTraveled != null) {
-    doc.setFont("Roboto", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(...COLOR_MUTED);
-    doc.text(`Przebyty przebieg w trakcie wynajmu: ${record.distanceTraveled} km`, LEFT, y + 12);
-    y += 22;
-  } else {
-    y += 8;
-  }
+  y += 8;
 
   // ---- Wyposażenie | Uwagi (dwie kolumny) ----
   const equipmentTitle = isHandover ? "PRZEKAZANE WYPOSAŻENIE" : "ZWRÓCONE WYPOSAŻENIE";
