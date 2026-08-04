@@ -771,7 +771,8 @@ async function renderReturn(rentalId) {
     confirmBtn: document.getElementById("damageMapConfirmBtn"),
     discardBtn: document.getElementById("damageMapDiscardBtn"),
     pendingActions: document.getElementById("damageMapPendingActions"),
-    diagramUrl: DAMAGE_MAP_DIAGRAM_URL
+    diagramUrl: DAMAGE_MAP_DIAGRAM_URL,
+    distinguishOrigin: true
   });
   appEl.querySelector('[data-action="clear-damage-map"]').addEventListener("click", () => damageMap.clear());
   try {

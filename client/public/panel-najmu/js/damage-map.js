@@ -6,9 +6,20 @@
 // od razu na kolejne zaznaczenie. Niezatwierdzony (pomarańczowy) znacznik
 // nigdy nie trafia do eksportu (toDataUrl/toBlob/getMarks) — nawet jeśli
 // ktoś zapomni go zatwierdzić lub odrzucić przed zapisaniem protokołu.
-export function initDamageMap({ canvas, overlay, confirmBtn, discardBtn, pendingActions, diagramUrl }) {
+//
+// Gdy distinguishOrigin=true (protokół zwrotu), znaczniki wczytane przez
+// setMarks() (czyli zaznaczone wcześniej, przy wydaniu) są rysowane w innym
+// kolorze niż te potwierdzone w bieżącej sesji (nowe, stwierdzone przy
+// zwrocie) — tak, by na protokole było widać, które uszkodzenie dotyczy
+// kończonego wynajmu. Przy wydaniu (distinguishOrigin=false) rozróżnianie
+// nie jest potrzebne, więc wszystkie potwierdzone znaczniki są czerwone.
+const EXISTING_MARK_COLOR = "#1E5F8C";
+const NEW_MARK_COLOR = "#C0392B";
+const PENDING_MARK_COLOR = "#D98E2A";
+
+export function initDamageMap({ canvas, overlay, confirmBtn, discardBtn, pendingActions, diagramUrl, distinguishOrigin }) {
   const ctx = canvas.getContext("2d");
-  let marks = [];
+  let marks = []; // { x, y, isNew }
   let pendingMark = null;
   let imageReady = false;
 
@@ -19,14 +30,18 @@ export function initDamageMap({ canvas, overlay, confirmBtn, discardBtn, pending
   };
   bgImage.src = diagramUrl;
 
+  function colorFor(isNew) {
+    return distinguishOrigin && !isNew ? EXISTING_MARK_COLOR : NEW_MARK_COLOR;
+  }
+
   function redraw() {
     ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     if (imageReady) {
       ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
     }
-    marks.forEach(({ x, y }) => drawMark(x, y, "#C0392B"));
-    if (pendingMark) drawMark(pendingMark.x, pendingMark.y, "#D98E2A");
+    marks.forEach(({ x, y, isNew }) => drawMark(x, y, colorFor(isNew)));
+    if (pendingMark) drawMark(pendingMark.x, pendingMark.y, PENDING_MARK_COLOR);
   }
 
   function drawMark(x, y, color) {
@@ -75,7 +90,7 @@ export function initDamageMap({ canvas, overlay, confirmBtn, discardBtn, pending
 
   function confirmMark() {
     if (!pendingMark) return;
-    marks.push(pendingMark);
+    marks.push({ ...pendingMark, isNew: true });
     pendingMark = null;
     pendingActions.hidden = true;
     // Pole zostaje aktywne — nie trzeba aktywować od nowa dla kolejnego
@@ -109,7 +124,7 @@ export function initDamageMap({ canvas, overlay, confirmBtn, discardBtn, pending
     if (imageReady) {
       ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
     }
-    marks.forEach(({ x, y }) => drawMark(x, y, "#C0392B"));
+    marks.forEach(({ x, y, isNew }) => drawMark(x, y, colorFor(isNew)));
   }
 
   return {
@@ -127,7 +142,7 @@ export function initDamageMap({ canvas, overlay, confirmBtn, discardBtn, pending
     // wydania tego samego pojazdu). Pole i tak wymaga aktywacji, żeby
     // dodać nowe zaznaczenie.
     setMarks: (newMarks) => {
-      marks = Array.isArray(newMarks) ? newMarks.map(({ x, y }) => ({ x, y })) : [];
+      marks = Array.isArray(newMarks) ? newMarks.map(({ x, y }) => ({ x, y, isNew: false })) : [];
       pendingMark = null;
       pendingActions.hidden = true;
       overlay.hidden = false;
