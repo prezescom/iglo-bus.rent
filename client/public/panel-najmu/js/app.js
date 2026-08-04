@@ -2,6 +2,7 @@ import { firebaseConfig, LESSOR_EMAIL, FUNCTIONS_REGION } from "./firebase-confi
 import { initSignatureField } from "./signature.js";
 import { initDamageMap } from "./damage-map.js";
 import { generateProtocolPdf } from "./pdf.js";
+import { generateContractDocx, resolveTemplateKey } from "./contracts.js";
 
 const DAMAGE_MAP_DIAGRAM_URL = "/panel-najmu/img/van-diagram.png";
 
@@ -97,6 +98,9 @@ async function render() {
   } else if (view === "tenant") {
     pageTitle.textContent = param ? "Edytuj najemcę" : "Nowy najemca";
     renderTenantForm(param);
+  } else if (view === "contract") {
+    pageTitle.textContent = "Wygeneruj umowę";
+    renderContractForm();
   }
 }
 
@@ -120,6 +124,7 @@ async function renderList() {
   appEl.querySelector('[data-action="view-history"]').addEventListener("click", () => navigate("history"));
   appEl.querySelector('[data-action="view-vehicles"]').addEventListener("click", () => navigate("vehicles"));
   appEl.querySelector('[data-action="view-tenants"]').addEventListener("click", () => navigate("tenants"));
+  appEl.querySelector('[data-action="new-contract"]').addEventListener("click", () => navigate("contract"));
 
   const listEl = document.getElementById("rentalList");
   try {
@@ -422,12 +427,16 @@ function wireAutocomplete(input, getItems) {
   });
 }
 
-function wireTenantTypeToggle(typeSelect, peselWrap, nipWrap, nameLabel) {
+function wireTenantTypeToggle(typeSelect, peselWrap, nipWrap, nameLabel, extraWraps) {
+  const { idNumberWrap, krsWrap, representativeWrap } = extraWraps || {};
   function apply() {
     const isCompany = typeSelect.value === "firma";
     peselWrap.hidden = isCompany;
     nipWrap.hidden = !isCompany;
     nameLabel.firstChild.textContent = isCompany ? "Nazwa firmy" : "Imię i nazwisko";
+    if (idNumberWrap) idNumberWrap.hidden = isCompany;
+    if (krsWrap) krsWrap.hidden = !isCompany;
+    if (representativeWrap) representativeWrap.hidden = !isCompany;
   }
   typeSelect.addEventListener("change", apply);
   apply();
@@ -444,7 +453,12 @@ async function renderTenantForm(tenantId) {
     document.getElementById("tenantFormTypeSelect"),
     document.getElementById("tenantFormPeselWrap"),
     document.getElementById("tenantFormNipWrap"),
-    document.getElementById("tenantFormNameLabel")
+    document.getElementById("tenantFormNameLabel"),
+    {
+      idNumberWrap: document.getElementById("tenantFormIdNumberWrap"),
+      krsWrap: document.getElementById("tenantFormKrsWrap"),
+      representativeWrap: document.getElementById("tenantFormRepresentativeWrap")
+    }
   );
 
   if (tenantId) {
@@ -455,7 +469,10 @@ async function renderTenantForm(tenantId) {
         form.elements["tenantType"].value = t.tenantType || "osoba";
         form.elements["tenantType"].dispatchEvent(new Event("change"));
         form.elements["pesel"].value = t.pesel || "";
+        form.elements["idNumber"].value = t.idNumber || "";
         form.elements["nip"].value = t.nip || "";
+        form.elements["krs"].value = t.krs || "";
+        form.elements["representative"].value = t.representative || "";
         form.elements["name"].value = t.name || "";
         form.elements["phone"].value = t.phone || "";
         form.elements["email"].value = t.email || "";
@@ -490,7 +507,10 @@ async function renderTenantForm(tenantId) {
       tenantId: newTenantId,
       tenantType,
       pesel: isCompany ? "" : fd.get("pesel") || "",
+      idNumber: isCompany ? "" : fd.get("idNumber") || "",
       nip: isCompany ? fd.get("nip") || "" : "",
+      krs: isCompany ? fd.get("krs") || "" : "",
+      representative: isCompany ? fd.get("representative") || "" : "",
       name: fd.get("name") || "",
       phone: fd.get("phone") || "",
       email: fd.get("email") || "",
@@ -514,6 +534,164 @@ async function renderTenantForm(tenantId) {
       submitBtn.textContent = "Zapisz najemcę";
     }
   });
+}
+
+// ---------- CONTRACT VIEW ----------
+async function renderContractForm() {
+  const tpl = document.getElementById("tpl-contract");
+  appEl.replaceChildren(tpl.content.cloneNode(true));
+
+  const form = document.getElementById("contractForm");
+  const errorEl = document.getElementById("contractFormError");
+  const submitBtn = document.getElementById("contractSubmitBtn");
+
+  const tenantSearchInput = document.getElementById("contractTenantSearch");
+  const tenantSummaryEl = document.getElementById("contractTenantSummary");
+  const partyTypeSelect = document.getElementById("contractPartyType");
+
+  const vehiclePlateInput = document.getElementById("contractVehiclePlateInput");
+  const vehicleSummaryEl = document.getElementById("contractVehicleSummary");
+
+  const contractTypeSelect = document.getElementById("contractTypeSelect");
+  const jednostkowaFieldset = document.getElementById("contractJednostkowaFieldset");
+
+  let selectedTenant = null;
+  let selectedVehicle = null;
+
+  let knownTenants = [];
+  try {
+    knownTenants = await fetchTenants();
+  } catch (e) {
+    // Brak dostępu do bazy najemców nie powinien blokować reszty formularza.
+  }
+  let knownVehicles = [];
+  try {
+    knownVehicles = await fetchVehicles();
+  } catch (e) {
+    // Brak dostępu do bazy pojazdów nie powinien blokować reszty formularza.
+  }
+
+  wireAutocomplete(tenantSearchInput, () =>
+    knownTenants.map((t) => ({
+      value: t.tenantId,
+      label: t.name,
+      sub: t.tenantType === "firma" ? `NIP: ${t.nip}` : `PESEL: ${t.pesel}`
+    }))
+  );
+  tenantSearchInput.addEventListener("change", () => {
+    selectedTenant = knownTenants.find((t) => t.tenantId === tenantSearchInput.value) || null;
+    if (!selectedTenant) {
+      tenantSummaryEl.hidden = true;
+      return;
+    }
+    const isCompany = selectedTenant.tenantType === "firma";
+    partyTypeSelect.value = isCompany ? "firma" : "konsument";
+    const addressParts = [selectedTenant.street, selectedTenant.houseNumber].filter(Boolean).join(" ");
+    const address = [
+      selectedTenant.apartmentNumber ? `${addressParts}/${selectedTenant.apartmentNumber}` : addressParts,
+      [selectedTenant.postalCode, selectedTenant.city].filter(Boolean).join(" ")
+    ].filter(Boolean).join(", ");
+    tenantSummaryEl.textContent = isCompany
+      ? `${selectedTenant.name} · NIP ${selectedTenant.nip || "-"} · KRS ${selectedTenant.krs || "-"} · ${address || "brak adresu"}`
+      : `${selectedTenant.name} · PESEL ${selectedTenant.pesel || "-"} · dowód: ${selectedTenant.idNumber || "-"} · ${address || "brak adresu"}`;
+    tenantSummaryEl.hidden = false;
+  });
+
+  wireAutocomplete(vehiclePlateInput, () =>
+    knownVehicles.map((v) => ({
+      value: v.plate,
+      label: v.plate,
+      sub: [v.make, v.model].filter(Boolean).join(" ")
+    }))
+  );
+  vehiclePlateInput.addEventListener("change", () => {
+    selectedVehicle = knownVehicles.find((v) => normalizePlateId(v.plate) === normalizePlateId(vehiclePlateInput.value)) || null;
+    if (!selectedVehicle) {
+      vehicleSummaryEl.hidden = true;
+      return;
+    }
+    vehicleSummaryEl.textContent = `${[selectedVehicle.make, selectedVehicle.model].filter(Boolean).join(" ")} · VIN ${selectedVehicle.vin || "-"}`;
+    vehicleSummaryEl.hidden = false;
+  });
+
+  function updateJednostkowaFieldsVisibility() {
+    jednostkowaFieldset.hidden = !(partyTypeSelect.value === "konsument" && contractTypeSelect.value === "jednostkowa");
+  }
+  partyTypeSelect.addEventListener("change", updateJednostkowaFieldsVisibility);
+  contractTypeSelect.addEventListener("change", updateJednostkowaFieldsVisibility);
+  updateJednostkowaFieldsVisibility();
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errorEl.hidden = true;
+
+    if (!selectedTenant) {
+      errorEl.textContent = "Wybierz najemcę z bazy.";
+      errorEl.hidden = false;
+      return;
+    }
+    if (!selectedVehicle) {
+      errorEl.textContent = "Wybierz pojazd z bazy.";
+      errorEl.hidden = false;
+      return;
+    }
+
+    const fd = new FormData(form);
+    const partyType = fd.get("contractPartyType");
+    const contractType = fd.get("contractType");
+    const templateKey = resolveTemplateKey(partyType, contractType);
+
+    const formData = {
+      contractDate: formatDatePl(fd.get("contractDate")),
+      periodFrom: formatDatePl(fd.get("periodFrom")),
+      periodTo: formatDatePl(fd.get("periodTo")),
+      rentAmount: fd.get("rentAmount") || "",
+      depositAmount: fd.get("depositAmount") || "",
+      ramowaDate: formatDatePl(fd.get("ramowaDate")),
+      applicationDate: formatDatePl(fd.get("applicationDate")),
+      confirmationDate: formatDatePl(fd.get("confirmationDate")),
+      handoverPlace: fd.get("handoverPlace") || "",
+      returnPlace: fd.get("returnPlace") || "",
+      vatAmount: fd.get("vatAmount") || "",
+      grossRentAmount: fd.get("grossRentAmount") || ""
+    };
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Generowanie…";
+    try {
+      const blob = await generateContractDocx(templateKey, {
+        tenant: selectedTenant,
+        vehicle: selectedVehicle,
+        form: formData
+      });
+      const fileName = `Umowa_${selectedVehicle.plate}_${fd.get("contractDate") || ""}.docx`;
+      downloadBlob(blob, fileName);
+      showToast("Wygenerowano umowę.");
+    } catch (err) {
+      errorEl.textContent = "Błąd generowania umowy: " + err.message;
+      errorEl.hidden = false;
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Generuj umowę (.docx)";
+    }
+  });
+}
+
+function formatDatePl(isoDate) {
+  if (!isoDate) return "";
+  const [y, m, d] = isoDate.split("-");
+  return `${d}.${m}.${y}`;
+}
+
+function downloadBlob(blob, fileName) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 // ---------- HANDOVER VIEW ----------
