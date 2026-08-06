@@ -225,6 +225,20 @@ function storageFilePrefix(plate, timestampMs) {
   return `${normalizePlateId(plate)}-${formatDateRRMMDD(timestampMs)}`;
 }
 
+// ID wynajmu (= nazwa dokumentu w Firestore = nazwa folderu w Storage) w
+// postaci [nr_rejestracyjny]-[RRMMDD]-[indeks] zamiast losowego ID — z tego
+// samego powodu co nazwy plików wyżej: żeby folder w konsoli Firebase też
+// dało się odnaleźć po numerze rejestracyjnym. Indeks odróżnia ewentualne
+// kolejne wynajmy tego samego pojazdu tego samego dnia.
+async function generateReadableRentalId(plate, timestampMs) {
+  const prefix = storageFilePrefix(plate, timestampMs);
+  for (let index = 1; ; index++) {
+    const candidate = `${prefix}-${index}`;
+    const snap = await getDoc(doc(db, "rentals", candidate));
+    if (!snap.exists()) return candidate;
+  }
+}
+
 // ---------- VEHICLES (baza pojazdów) ----------
 function normalizePlateId(plate) {
   return (plate || "").trim().toUpperCase().replace(/\s+/g, "");
@@ -888,7 +902,8 @@ async function renderHandover() {
     submitBtn.disabled = true;
     submitBtn.textContent = "Zapisywanie…";
     try {
-      const docRef = doc(collection(db, "rentals"));
+      const rentalId = await generateReadableRentalId(record.vehiclePlate, record.handoverTimestamp);
+      const docRef = doc(db, "rentals", rentalId);
       record.id = docRef.id;
 
       // Wszystkie te operacje są od siebie niezależne — równolegle zamiast
