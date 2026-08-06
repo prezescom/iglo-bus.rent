@@ -253,12 +253,12 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
                   type="button"
                   id={`date-from-${vehicleTitle}`}
                   className={cn(
-                    "relative w-full px-3 py-2 border border-slate-300 rounded-lg text-left focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue",
+                    "relative w-full px-3 py-2 border border-slate-300 rounded-lg text-left text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue",
                     !dateFrom && "text-slate-400"
                   )}
                   data-testid="input-date-from"
                 >
-                  {dateFrom ? format(fromYMD(dateFrom)!, "d MMMM yyyy", { locale: pl }) : "Wybierz datę"}
+                  {dateFrom ? format(fromYMD(dateFrom)!, "dd.MM.yyyy") : "Wybierz datę"}
                   <CalendarIcon className="absolute right-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
                 </button>
               </PopoverTrigger>
@@ -284,12 +284,12 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
                   type="button"
                   id={`date-to-${vehicleTitle}`}
                   className={cn(
-                    "relative w-full px-3 py-2 border border-slate-300 rounded-lg text-left focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue",
+                    "relative w-full px-3 py-2 border border-slate-300 rounded-lg text-left text-base md:text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue",
                     !dateTo && "text-slate-400"
                   )}
                   data-testid="input-date-to"
                 >
-                  {dateTo ? format(fromYMD(dateTo)!, "d MMMM yyyy", { locale: pl }) : "Wybierz datę"}
+                  {dateTo ? format(fromYMD(dateTo)!, "dd.MM.yyyy") : "Wybierz datę"}
                   <CalendarIcon className="absolute right-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
                 </button>
               </PopoverTrigger>
