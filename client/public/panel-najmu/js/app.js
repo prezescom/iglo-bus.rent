@@ -210,6 +210,21 @@ function formatDate(timestampMs) {
   return new Date(timestampMs).toLocaleDateString("pl-PL");
 }
 
+function formatDateRRMMDD(timestampMs) {
+  const d = new Date(timestampMs || Date.now());
+  const rr = String(d.getFullYear() % 100).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${rr}${mm}${dd}`;
+}
+
+// Prefiks nazw plików w Storage — [nr_rejestracyjny][RRMMDD], żeby dało się
+// odnaleźć pliki konkretnego protokołu wyszukiwarką w konsoli Firebase, bez
+// przeklikiwania się przez foldery nazwane losowym ID wynajmu.
+function storageFilePrefix(plate, timestampMs) {
+  return `${normalizePlateId(plate)}-${formatDateRRMMDD(timestampMs)}`;
+}
+
 // ---------- VEHICLES (baza pojazdów) ----------
 function normalizePlateId(plate) {
   return (plate || "").trim().toUpperCase().replace(/\s+/g, "");
@@ -881,15 +896,15 @@ async function renderHandover() {
       // długo (suma czasów zamiast najdłuższego z nich).
       const [, photoUrls, sigUrl, damageMapUrl, photoDataUrls] = await Promise.all([
         setDoc(docRef, record),
-        uploadPhotos(docRef.id, "wydanie"),
-        uploadSignature(docRef.id, "wydanie"),
-        uploadDamageMap(docRef.id, "wydanie"),
+        uploadPhotos(docRef.id, "wydanie", record.vehiclePlate, record.handoverTimestamp),
+        uploadSignature(docRef.id, "wydanie", record.vehiclePlate, record.handoverTimestamp),
+        uploadDamageMap(docRef.id, "wydanie", record.vehiclePlate, record.handoverTimestamp),
         Promise.all(currentPhotos.map(fileToDataUrl))
       ]);
       const sigDataUrl = sigPad.toDataUrl();
       const damageMapDataUrl = damageMap.toDataUrl();
       const pdfBlob = await generateProtocolPdf(record, "wydanie", sigDataUrl, damageMapDataUrl, photoDataUrls);
-      const pdfUrl = await uploadPdf(docRef.id, "wydanie", pdfBlob);
+      const pdfUrl = await uploadPdf(docRef.id, "wydanie", pdfBlob, record.vehiclePlate, record.handoverTimestamp);
 
       await setDoc(docRef, {
         ...record,
@@ -1028,15 +1043,15 @@ async function renderReturn(rentalId) {
     try {
       // Równolegle zamiast po kolei — patrz komentarz przy wydaniu pojazdu.
       const [photoUrls, sigUrl, damageMapUrl, photoDataUrls] = await Promise.all([
-        uploadPhotos(rentalId, "zwrot"),
-        uploadSignature(rentalId, "zwrot"),
-        uploadDamageMap(rentalId, "zwrot"),
+        uploadPhotos(rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp),
+        uploadSignature(rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp),
+        uploadDamageMap(rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp),
         Promise.all(currentPhotos.map(fileToDataUrl))
       ]);
       const sigDataUrl = sigPad.toDataUrl();
       const damageMapDataUrl = damageMap.toDataUrl();
       const pdfBlob = await generateProtocolPdf(updated, "zwrot", sigDataUrl, damageMapDataUrl, photoDataUrls);
-      const pdfUrl = await uploadPdf(rentalId, "zwrot", pdfBlob);
+      const pdfUrl = await uploadPdf(rentalId, "zwrot", pdfBlob, updated.vehiclePlate, updated.returnTimestamp);
 
       updated.returnPhotoUrls = photoUrls;
       updated.returnSignatureUrl = sigUrl;
@@ -1093,16 +1108,27 @@ function wirePhotoStrip() {
 // Zwykłe <img> ten znacznik respektuje, ale PDF go ignoruje — dlatego
 // dekodujemy zdjęcie z uwzględnieniem EXIF i zapisujemy piksele już
 // poprawnie obrócone, zanim trafią do protokołu.
+//
+// Zdjęcie w protokole jest wyświetlane co najwyżej na ~500pt szerokości, a
+// telefony robią zdjęcia w rozdzielczości rzędu 12 Mpx (4000+ px) — bez
+// przeskalowania każde zdjęcie w PDF-ie waży kilka MB, mimo że na stronie
+// zajmuje ułamek tej rozdzielczości. 1600px na dłuższym boku to wielokrotność
+// tego, co faktycznie widać w protokole. Oryginał (pełna rozdzielczość) i tak
+// trafia bez zmian do Firebase Storage przez uploadPhotos — ta funkcja
+// dotyczy wyłącznie kopii osadzanej w PDF-ie.
+const PDF_PHOTO_MAX_DIMENSION = 1600;
+
 async function fileToDataUrl(file) {
   if (typeof createImageBitmap === "function") {
     try {
       const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      const scale = Math.min(1, PDF_PHOTO_MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
       const canvas = document.createElement("canvas");
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-      canvas.getContext("2d").drawImage(bitmap, 0, 0);
+      canvas.width = Math.round(bitmap.width * scale);
+      canvas.height = Math.round(bitmap.height * scale);
+      canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
       bitmap.close();
-      return canvas.toDataURL("image/jpeg", 0.9);
+      return canvas.toDataURL("image/jpeg", 0.85);
     } catch (e) {
       // Spadamy do zwykłego odczytu pliku, jeśli dekodowanie się nie uda.
     }
@@ -1115,10 +1141,11 @@ async function fileToDataUrl(file) {
   });
 }
 
-async function uploadPhotos(rentalId, phase) {
+async function uploadPhotos(rentalId, phase, plate, timestampMs) {
+  const prefix = storageFilePrefix(plate, timestampMs);
   return Promise.all(
-    currentPhotos.map(async (file) => {
-      const path = `rentals/${rentalId}/${phase}/${crypto.randomUUID()}.jpg`;
+    currentPhotos.map(async (file, index) => {
+      const path = `rentals/${rentalId}/${phase}/${prefix}-${index + 1}.jpg`;
       const r = ref(storage, path);
       await uploadBytes(r, file);
       return getDownloadURL(r);
@@ -1126,22 +1153,25 @@ async function uploadPhotos(rentalId, phase) {
   );
 }
 
-async function uploadSignature(rentalId, phase) {
+async function uploadSignature(rentalId, phase, plate, timestampMs) {
   const blob = await sigPad.toBlob();
-  const r = ref(storage, `rentals/${rentalId}/${phase}/signature.png`);
+  const prefix = storageFilePrefix(plate, timestampMs);
+  const r = ref(storage, `rentals/${rentalId}/${phase}/${prefix}-podpis.jpg`);
   await uploadBytes(r, blob);
   return getDownloadURL(r);
 }
 
-async function uploadDamageMap(rentalId, phase) {
+async function uploadDamageMap(rentalId, phase, plate, timestampMs) {
   const blob = await damageMap.toBlob();
-  const r = ref(storage, `rentals/${rentalId}/${phase}/uszkodzenia.png`);
+  const prefix = storageFilePrefix(plate, timestampMs);
+  const r = ref(storage, `rentals/${rentalId}/${phase}/${prefix}-uszkodzenia.jpg`);
   await uploadBytes(r, blob);
   return getDownloadURL(r);
 }
 
-async function uploadPdf(rentalId, phase, blob) {
-  const r = ref(storage, `rentals/${rentalId}/${phase}/protokol.pdf`);
+async function uploadPdf(rentalId, phase, blob, plate, timestampMs) {
+  const prefix = storageFilePrefix(plate, timestampMs);
+  const r = ref(storage, `rentals/${rentalId}/${phase}/${prefix}-protokol.pdf`);
   await uploadBytes(r, blob, { contentType: "application/pdf" });
   return getDownloadURL(r);
 }

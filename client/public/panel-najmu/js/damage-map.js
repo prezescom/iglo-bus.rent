@@ -149,13 +149,17 @@ export function initDamageMap({ canvas, overlay, confirmBtn, discardBtn, pending
       redraw();
     },
     getMarks: () => marks.map(({ x, y }) => ({ x, y })),
+    // Tło jest zawsze najpierw wypełniane na biało (patrz redraw/
+    // redrawWithoutPending), więc kanał alfa nie jest tu potrzebny — JPEG
+    // zamiast PNG wyraźnie zmniejsza rozmiar eksportu (mniej w Storage i w
+    // osadzonym w protokole obrazku) bez zauważalnej utraty jakości.
     toBlob: () => {
       redrawWithoutPending();
-      return new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+      return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.9));
     },
     toDataUrl: () => {
       redrawWithoutPending();
-      return canvas.toDataURL("image/png");
+      return canvas.toDataURL("image/jpeg", 0.9);
     }
   };
 }

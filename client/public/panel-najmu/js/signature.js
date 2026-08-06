@@ -11,6 +11,24 @@ let drawing = false;
 let onConfirm = null;
 let shownLandscapeOnce = false;
 
+// Na tablecie (np. iPad w poziomie) canvas podpisu bywa rysowany w
+// rozdzielczości rzędu 1300+ px, a w protokole podpis zajmuje raptem
+// 220x80pt — eksport w pełnej rozdzielczości jako PNG (z kanałem alfa)
+// potrafi ważyć kilka MB. Podpis to jednolita linia na białym tle, więc
+// zmniejszenie i zapis jako JPEG nie tracą nic istotnego, a znacznie
+// zmniejszają zarówno PDF, jak i kopię zapisywaną w Storage.
+const SIGNATURE_EXPORT_MAX_WIDTH = 900;
+
+function exportSignature(sourceCanvas) {
+  const scale = Math.min(1, SIGNATURE_EXPORT_MAX_WIDTH / sourceCanvas.width);
+  if (scale === 1) return sourceCanvas.toDataURL("image/jpeg", 0.92);
+  const out = document.createElement("canvas");
+  out.width = Math.round(sourceCanvas.width * scale);
+  out.height = Math.round(sourceCanvas.height * scale);
+  out.getContext("2d").drawImage(sourceCanvas, 0, 0, out.width, out.height);
+  return out.toDataURL("image/jpeg", 0.92);
+}
+
 function ensureModal() {
   if (modalEl) return;
   modalEl = document.getElementById("signatureModal");
@@ -72,7 +90,7 @@ function ensureModal() {
   document.getElementById("modalSigCancel").addEventListener("click", closeModal);
   document.getElementById("modalSigConfirm").addEventListener("click", () => {
     if (!hasStroke) return;
-    const dataUrl = modalCanvas.toDataURL("image/png");
+    const dataUrl = exportSignature(modalCanvas);
     const callback = onConfirm;
     closeModal();
     if (callback) callback(dataUrl);

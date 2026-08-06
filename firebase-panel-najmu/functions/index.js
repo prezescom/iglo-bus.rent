@@ -125,10 +125,14 @@ Dostawa w całej Polsce • −20 °C do +20 °C • Rejestracja temperatury`;
 );
 
 /**
- * Scheduled function: runs once a day, deletes Storage files and Firestore
- * documents for any rental whose closedTimestamp is older than 10 days.
+ * Scheduled function: runs once a day, deletes the bulky raw Storage files
+ * (zdjęcia, podpis, schemat uszkodzeń) for any rental whose closedTimestamp
+ * is older than 10 days — but keeps the protocol PDF (protokol.pdf) and the
+ * Firestore rental document forever, so closed rentals stay permanently
+ * visible/searchable in Historia with a working link to their protocol.
  * Rentals that are still open (status == "wydany", closedTimestamp == 0)
- * are never touched.
+ * are never touched. A rental already cleaned up (photosCleanedUp == true)
+ * is skipped on subsequent runs.
  */
 exports.cleanupOldRentals = onSchedule(
   { schedule: "every day 03:00", timeZone: "Europe/Warsaw", region: REGION },
@@ -143,21 +147,31 @@ exports.cleanupOldRentals = onSchedule(
       .where("closedTimestamp", ">", 0)
       .get();
 
-    if (snapshot.empty) {
+    const pending = snapshot.docs.filter((doc) => !doc.data().photosCleanedUp);
+
+    if (pending.length === 0) {
       console.log("Brak wynajmów do wyczyszczenia.");
       return;
     }
 
     const bucket = admin.storage().bucket();
 
-    for (const doc of snapshot.docs) {
+    for (const doc of pending) {
       const rentalId = doc.id;
       try {
-        // Delete all files under rentals/{rentalId}/
-        await bucket.deleteFiles({ prefix: `rentals/${rentalId}/` });
-        // Delete the Firestore document itself
-        await doc.ref.delete();
-        console.log(`Wyczyszczono wynajem ${rentalId}`);
+        const [files] = await bucket.getFiles({ prefix: `rentals/${rentalId}/` });
+        const filesToDelete = files.filter((f) => !f.name.endsWith("-protokol.pdf"));
+        await Promise.all(filesToDelete.map((f) => f.delete()));
+        await doc.ref.update({
+          photosCleanedUp: true,
+          handoverPhotoUrls: [],
+          returnPhotoUrls: [],
+          handoverSignatureUrl: "",
+          returnSignatureUrl: "",
+          handoverDamageMapUrl: "",
+          returnDamageMapUrl: ""
+        });
+        console.log(`Wyczyszczono zdjęcia/podpisy wynajmu ${rentalId} (${filesToDelete.length} plików), protokoły zachowane.`);
       } catch (err) {
         console.error(`Błąd czyszczenia wynajmu ${rentalId}:`, err);
       }

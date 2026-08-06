@@ -107,7 +107,7 @@ export async function generateProtocolPdf(record, phase, signatureDataUrl, damag
   y = drawSectionHeader(doc, "KIEROWCA", y, contentWidth);
   y = drawDataRow(doc, y, contentWidth, [
     ["IMIĘ I NAZWISKO", record.driverName],
-    ["NR BLANKIETU PRAWA JAZDY", record.driverLicenseNumber]
+    ["NR PRAWA JAZDY (5.)", record.driverLicenseNumber]
   ]);
   y += 8;
 
@@ -174,10 +174,10 @@ export async function generateProtocolPdf(record, phase, signatureDataUrl, damag
       const h = img.naturalHeight * scale;
       const imgX = LEFT + (contentWidth - w) / 2;
       const imgY = dy + (mapBoxH - h) / 2;
-      doc.addImage(damageMapDataUrl, "PNG", imgX, imgY, w, h);
+      doc.addImage(damageMapDataUrl, "JPEG", imgX, imgY, w, h);
     } catch (e) {
       // Jeśli nie uda się zmierzyć obrazu, wstaw go rozciągnięty na cały box.
-      doc.addImage(damageMapDataUrl, "PNG", LEFT + 6, dy + 6, contentWidth - 12, mapBoxH - 12);
+      doc.addImage(damageMapDataUrl, "JPEG", LEFT + 6, dy + 6, contentWidth - 12, mapBoxH - 12);
     }
 
     if (!isHandover) {
@@ -415,19 +415,21 @@ function drawSignatureBox(doc, y, contentWidth, pageWidth, pageHeight, signature
   doc.setFont("Roboto", "bold");
   doc.setFontSize(10);
   doc.setTextColor(...COLOR_PRIMARY_DARK);
-  doc.text("PODPIS NAJEMCY", LEFT, boxY - 4);
+  doc.text("PODPIS", LEFT, boxY - 4);
 
   doc.setDrawColor(...COLOR_LINE);
   doc.setLineWidth(1);
   doc.roundedRect(LEFT, boxY, contentWidth, boxH, 4, 4, "S");
   if (signatureDataUrl) {
-    doc.addImage(signatureDataUrl, "PNG", LEFT + 10, boxY + 10, 200, 70);
+    doc.addImage(signatureDataUrl, "JPEG", LEFT + 10, boxY + 10, 200, 70);
   }
   doc.setFont("Roboto", "normal");
   doc.setFontSize(7.5);
   doc.setTextColor(...COLOR_MUTED);
+  // Podpis pod protokołem składa kierowca odbierający/zwracający pojazd, nie
+  // zawsze sam najemca — stąd neutralne "podpisujący" zamiast "najemca".
   const disclaimer = doc.splitTextToSize(
-    "Podpisując niniejszy protokół, najemca potwierdza zapoznanie się ze stanem pojazdu opisanym powyżej oraz zgodność powyższych danych ze stanem faktycznym.",
+    "Podpisując niniejszy protokół, podpisujący potwierdza zapoznanie się ze stanem pojazdu opisanym powyżej oraz zgodność powyższych danych ze stanem faktycznym.",
     contentWidth - 230
   );
   doc.text(disclaimer, LEFT + 230, boxY + 20);
