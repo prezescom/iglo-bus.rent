@@ -1,11 +1,43 @@
 import { useState, useMemo } from "react";
-import { Calendar, Mail, Calculator } from "lucide-react";
+import { Calendar as CalendarIcon, Mail, Calculator } from "lucide-react";
+import { format } from "date-fns";
+import { pl } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import emailjs from '@emailjs/browser';
+
+// "YYYY-MM-DD" <-> Date, licząc po lokalnych składowych daty (nie
+// toISOString/new Date(string), które przechodzą przez UTC i przy pewnych
+// strefach czasowych/godzinach potrafią przesunąć dzień o jeden).
+function toYMD(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function fromYMD(value: string): Date | undefined {
+  if (!value) return undefined;
+  const [y, m, d] = value.split("-").map(Number);
+  if (!y || !m || !d) return undefined;
+  return new Date(y, m - 1, d);
+}
+
+function startOfToday(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+// Niedziela (dzień odbioru/zwrotu pojazdów niedostępny) jest wyłączona z
+// wyboru w obu kalendarzach — patrz matcher { dayOfWeek: [0] } poniżej.
+const SUNDAY = { dayOfWeek: [0] };
 
 interface BookingFormProps {
   vehicleTitle: string;
@@ -215,37 +247,63 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
             <Label htmlFor={`date-from-${vehicleTitle}`} className="text-sm font-medium text-brand-dark">
               Data od
             </Label>
-            <div className="relative">
-              <Input
-                id={`date-from-${vehicleTitle}`}
-                type="date"
-                value={dateFrom}
-                min={today}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue"
-                data-testid="input-date-from"
-                required
-              />
-              <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
-            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  id={`date-from-${vehicleTitle}`}
+                  className={cn(
+                    "relative w-full px-3 py-2 border border-slate-300 rounded-lg text-left focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue",
+                    !dateFrom && "text-slate-400"
+                  )}
+                  data-testid="input-date-from"
+                >
+                  {dateFrom ? format(fromYMD(dateFrom)!, "d MMMM yyyy", { locale: pl }) : "Wybierz datę"}
+                  <CalendarIcon className="absolute right-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  locale={pl}
+                  selected={fromYMD(dateFrom)}
+                  onSelect={(d) => setDateFrom(d ? toYMD(d) : "")}
+                  disabled={[{ before: startOfToday() }, SUNDAY]}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </div>
           <div>
             <Label htmlFor={`date-to-${vehicleTitle}`} className="text-sm font-medium text-brand-dark">
               Data do
             </Label>
-            <div className="relative">
-              <Input
-                id={`date-to-${vehicleTitle}`}
-                type="date"
-                value={dateTo}
-                min={dateFrom || today}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue"
-                data-testid="input-date-to"
-                required
-              />
-              <Calendar className="absolute right-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
-            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  id={`date-to-${vehicleTitle}`}
+                  className={cn(
+                    "relative w-full px-3 py-2 border border-slate-300 rounded-lg text-left focus:outline-none focus:ring-2 focus:ring-brand-blue focus:border-brand-blue",
+                    !dateTo && "text-slate-400"
+                  )}
+                  data-testid="input-date-to"
+                >
+                  {dateTo ? format(fromYMD(dateTo)!, "d MMMM yyyy", { locale: pl }) : "Wybierz datę"}
+                  <CalendarIcon className="absolute right-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  locale={pl}
+                  selected={fromYMD(dateTo)}
+                  onSelect={(d) => setDateTo(d ? toYMD(d) : "")}
+                  disabled={[{ before: fromYMD(dateFrom) || startOfToday() }, SUNDAY]}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 
