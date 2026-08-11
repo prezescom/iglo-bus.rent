@@ -84,6 +84,10 @@ export default function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
 
+            <Link href="/blog" className="hover:text-brand-blue transition-colors">
+              Blog
+            </Link>
+
             <a
               href="tel:+48530410504"
               className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-blue text-white text-sm font-semibold hover:bg-brand-blue/90 transition-colors"
@@ -137,6 +141,12 @@ export default function Header() {
                 </Link>
                 <Link href="/wyposazenie-samochodow-mrozni" className="block py-2 px-3 hover:bg-brand-light rounded-md transition-colors">
                   🔧 Wyposażenie
+                </Link>
+              </div>
+
+              <div className="border-t pt-2 mt-2">
+                <Link href="/blog" className="block py-2 px-3 hover:bg-brand-light rounded-md transition-colors">
+                  📰 Blog
                 </Link>
               </div>
             </nav>

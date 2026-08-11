@@ -4,5 +4,12 @@ service firebase.storage {
     match /rentals/{rentalId}/{allPaths=**} {
       allow read, write: if request.auth != null;
     }
+    // Obrazki wyróżniające wpisów bloga — publicznie czytelne (są osadzane
+    // na iglo-bus.rent/blog dla niezalogowanych odwiedzających), zapis tylko
+    // z panelu najmu.
+    match /blog/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
   }
 }

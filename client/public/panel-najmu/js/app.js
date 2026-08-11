@@ -11,7 +11,7 @@ import {
   getAuth, signInAnonymously, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, doc, setDoc, getDoc, getDocs, query, where
+  getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, query, where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   getStorage, ref, uploadBytes, getDownloadURL
@@ -101,6 +101,12 @@ async function render() {
   } else if (view === "contract") {
     pageTitle.textContent = "Wygeneruj umowę";
     renderContractForm();
+  } else if (view === "posts") {
+    pageTitle.textContent = "Blog";
+    renderPosts();
+  } else if (view === "post") {
+    pageTitle.textContent = param ? "Edytuj wpis" : "Nowy wpis";
+    renderPostForm(param);
   }
 }
 
@@ -125,6 +131,7 @@ async function renderList() {
   appEl.querySelector('[data-action="view-vehicles"]').addEventListener("click", () => navigate("vehicles"));
   appEl.querySelector('[data-action="view-tenants"]').addEventListener("click", () => navigate("tenants"));
   appEl.querySelector('[data-action="new-contract"]').addEventListener("click", () => navigate("contract"));
+  appEl.querySelector('[data-action="view-posts"]').addEventListener("click", () => navigate("posts"));
 
   const listEl = document.getElementById("rentalList");
   try {
@@ -727,6 +734,339 @@ function downloadBlob(blob, fileName) {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+// ---------- BLOG (posty na iglo-bus.rent/blog) ----------
+
+// Rozbija wklejony/wczytany plik Markdown na tytuł (pierwszy nagłówek "# "),
+// opis (blockquote "> " zaraz po tytule) i resztę treści — dokładnie w
+// formacie, w jakim SORO generuje pliki z wpisami bloga. Jeśli nagłówka lub
+// blockquote nie ma (np. treść już wcześniej oczyszczona), zwraca to, co się
+// da rozpoznać, a resztę traktuje jako treść.
+function parseMarkdownPost(raw) {
+  const lines = (raw || "").replace(/\r\n/g, "\n").split("\n");
+  let i = 0;
+  const skipBlank = () => { while (i < lines.length && lines[i].trim() === "") i++; };
+
+  skipBlank();
+  let title = "";
+  if (i < lines.length && /^#\s+/.test(lines[i])) {
+    title = lines[i].replace(/^#\s+/, "").trim();
+    i++;
+  }
+
+  skipBlank();
+  let description = "";
+  if (i < lines.length && /^>\s?/.test(lines[i])) {
+    const descLines = [];
+    while (i < lines.length && /^>\s?/.test(lines[i])) {
+      descLines.push(lines[i].replace(/^>\s?/, ""));
+      i++;
+    }
+    description = descLines.join(" ").trim();
+  }
+
+  skipBlank();
+  const body = lines.slice(i).join("\n").trim();
+  return { title, description, body };
+}
+
+const SLUG_DIACRITICS = {
+  ą: "a", ć: "c", ę: "e", ł: "l", ń: "n", ó: "o", ś: "s", ź: "z", ż: "z"
+};
+function slugify(text) {
+  return (text || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[ąćęłńóśźż]/g, (ch) => SLUG_DIACRITICS[ch] || ch)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+// Konwersje na potrzeby <input type="datetime-local"> (reprezentuje "naiwną"
+// datę/godzinę w lokalnej strefie czasowej przeglądarki, bez offsetu) —
+// zapisujemy i tak wszystko jako epoch ms, więc trzeba świadomie użyć
+// lokalnych gettery/konstruktora, a nie UTC.
+function toDatetimeLocalValue(ms) {
+  const d = new Date(ms);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function fromDatetimeLocalValue(value) {
+  const ms = new Date(value).getTime();
+  return Number.isFinite(ms) ? ms : null;
+}
+
+async function fetchAllPosts() {
+  const snap = await getDocs(collection(db, "posts"));
+  return snap.docs.map((d) => d.data());
+}
+
+async function renderPosts() {
+  const tpl = document.getElementById("tpl-posts");
+  appEl.replaceChildren(tpl.content.cloneNode(true));
+  appEl.querySelector('[data-action="new-post"]').addEventListener("click", () => navigate("post"));
+
+  const listEl = document.getElementById("postList");
+  try {
+    const posts = await fetchAllPosts();
+    posts.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    if (posts.length === 0) {
+      listEl.innerHTML = '<p class="muted">Brak wpisów. Dodaj pierwszy wpis bloga.</p>';
+      return;
+    }
+    listEl.innerHTML = "";
+    posts.forEach((p) => {
+      const isScheduled = p.status === "published" && p.publishedAt > Date.now();
+      const isLive = p.status === "published" && !isScheduled;
+      const statusLabel = isLive
+        ? "🟢 Opublikowany"
+        : isScheduled
+        ? `🕒 Zaplanowany na ${formatDate(p.publishedAt)}`
+        : "⚪ Szkic";
+      const card = document.createElement("div");
+      card.className = "rental-card";
+      card.innerHTML = `
+        <div class="plate">${escapeHtml(p.title)}</div>
+        <div class="tenant">${statusLabel} • Aktualizacja: ${formatDate(p.updatedAt)}</div>
+        <div class="tenant">/blog/${escapeHtml(p.slug)}</div>
+        <button class="btn btn-secondary" data-id="${p.slug}">Edytuj</button>
+      `;
+      card.querySelector("button").addEventListener("click", () => navigate(`post/${p.slug}`));
+      listEl.appendChild(card);
+    });
+  } catch (e) {
+    listEl.innerHTML = `<p class="error">Błąd wczytywania: ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+async function uploadPostImage(slug, file) {
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const r = ref(storage, `blog/${slug}/cover-${Date.now()}.${ext}`);
+  await uploadBytes(r, file, { contentType: file.type || "image/jpeg" });
+  return getDownloadURL(r);
+}
+
+async function renderPostForm(slug) {
+  const tpl = document.getElementById("tpl-post-form");
+  appEl.replaceChildren(tpl.content.cloneNode(true));
+
+  const form = document.getElementById("postForm");
+  const rawTextarea = document.getElementById("postRawTextarea");
+  const fileInput = document.getElementById("postFileInput");
+  const parseBtn = document.getElementById("postParseBtn");
+  const titleInput = document.getElementById("postTitleInput");
+  const slugInput = document.getElementById("postSlugInput");
+  const descriptionInput = document.getElementById("postDescriptionInput");
+  const statusSelect = document.getElementById("postStatusSelect");
+  const publishAtWrap = document.getElementById("postPublishAtWrap");
+  const publishAtInput = document.getElementById("postPublishAtInput");
+  const publishAtHint = document.getElementById("postPublishAtHint");
+  const imageInput = document.getElementById("postImageInput");
+  const imagePreviewWrap = document.getElementById("postImagePreviewWrap");
+  const imagePreview = document.getElementById("postImagePreview");
+  const imageRemoveBtn = document.getElementById("postImageRemoveBtn");
+  const errorEl = document.getElementById("postFormError");
+  const submitBtn = document.getElementById("postSubmitBtn");
+  const deleteBtn = document.getElementById("postDeleteBtn");
+
+  let existing = null;
+  // Dopóki operator nie zacznie ręcznie edytować pola "slug", podąża ono
+  // za tytułem — jak w bazie najemców/pojazdów, gdzie ID też liczy się z
+  // wpisanych danych.
+  let slugAutoFilled = true;
+  let existingImageUrl = "";  // obrazek już zapisany w Firestore (z poprzedniego zapisu)
+  let selectedImageFile = null; // nowy plik wybrany w tej sesji, jeszcze nie wgrany
+  let imageRemoved = false; // operator kliknął "Usuń obrazek"
+
+  function updatePublishAtVisibility() {
+    const isPublished = statusSelect.value === "published";
+    publishAtWrap.hidden = !isPublished;
+    publishAtHint.hidden = !isPublished;
+    if (isPublished && !publishAtInput.value) {
+      publishAtInput.value = toDatetimeLocalValue(Date.now());
+    }
+  }
+
+  function showImagePreview(url) {
+    imagePreview.src = url;
+    imagePreviewWrap.hidden = false;
+  }
+
+  if (slug) {
+    slugInput.value = slug;
+    slugInput.disabled = true; // slug = adres URL opublikowanego wpisu — nie zmieniamy przy edycji
+    slugAutoFilled = false;
+    try {
+      const snap = await getDoc(doc(db, "posts", slug));
+      if (snap.exists()) {
+        existing = snap.data();
+        titleInput.value = existing.title || "";
+        descriptionInput.value = existing.description || "";
+        statusSelect.value = existing.status || "draft";
+        rawTextarea.value = existing.contentMarkdown || "";
+        if (existing.publishedAt) publishAtInput.value = toDatetimeLocalValue(existing.publishedAt);
+        if (existing.imageUrl) {
+          existingImageUrl = existing.imageUrl;
+          showImagePreview(existingImageUrl);
+        }
+        deleteBtn.hidden = false;
+      }
+    } catch (e) {
+      errorEl.textContent = "Błąd wczytywania: " + e.message;
+      errorEl.hidden = false;
+    }
+  }
+  updatePublishAtVisibility();
+
+  titleInput.addEventListener("input", () => {
+    if (slugAutoFilled) slugInput.value = slugify(titleInput.value);
+  });
+  slugInput.addEventListener("input", () => {
+    slugAutoFilled = false;
+  });
+  statusSelect.addEventListener("change", updatePublishAtVisibility);
+
+  // Wypełnia tytuł/opis/treść na podstawie tego, co aktualnie jest w polu
+  // treści — wywoływane po wczytaniu pliku i pod przyciskiem "Wczytaj tytuł
+  // i opis z treści" (na wypadek ręcznej wklejki bez wybierania pliku).
+  function applyParsed() {
+    const parsed = parseMarkdownPost(rawTextarea.value);
+    if (parsed.title) {
+      titleInput.value = parsed.title;
+      if (slugAutoFilled) slugInput.value = slugify(parsed.title);
+    }
+    if (parsed.description) descriptionInput.value = parsed.description;
+    if (parsed.body) rawTextarea.value = parsed.body;
+  }
+  parseBtn.addEventListener("click", applyParsed);
+
+  fileInput.addEventListener("change", () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      rawTextarea.value = String(reader.result || "");
+      applyParsed();
+    };
+    reader.readAsText(file);
+    fileInput.value = "";
+  });
+
+  imageInput.addEventListener("change", () => {
+    const file = imageInput.files[0];
+    if (!file) return;
+    selectedImageFile = file;
+    imageRemoved = false;
+    showImagePreview(URL.createObjectURL(file));
+    imageInput.value = "";
+  });
+
+  imageRemoveBtn.addEventListener("click", () => {
+    selectedImageFile = null;
+    imageRemoved = true;
+    imagePreviewWrap.hidden = true;
+    imagePreview.src = "";
+  });
+
+  deleteBtn.addEventListener("click", async () => {
+    if (!slug) return;
+    if (!confirm(`Usunąć wpis "${existing?.title || slug}"? Tej operacji nie można cofnąć.`)) return;
+    deleteBtn.disabled = true;
+    try {
+      await deleteDoc(doc(db, "posts", slug));
+      showToast("Usunięto wpis.");
+      navigate("posts");
+    } catch (e) {
+      errorEl.textContent = "Błąd usuwania: " + e.message;
+      errorEl.hidden = false;
+      deleteBtn.disabled = false;
+    }
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errorEl.hidden = true;
+
+    // Parsujemy treść jeszcze raz przy zapisie, żeby zapisany
+    // contentMarkdown zawsze był "czystym" ciałem wpisu — bez nagłówka i
+    // blockquote — nawet jeśli operator zapisuje bez klikania przycisku
+    // parsowania (np. wkleił cały plik i od razu zapisał).
+    const parsed = parseMarkdownPost(rawTextarea.value);
+    const title = titleInput.value.trim() || parsed.title;
+    const description = descriptionInput.value.trim() || parsed.description;
+    const contentMarkdown = parsed.body || rawTextarea.value.trim();
+    const newSlug = slugInput.value.trim() || slugify(title);
+    const status = statusSelect.value;
+
+    if (!title) {
+      errorEl.textContent = "Podaj tytuł wpisu.";
+      errorEl.hidden = false;
+      return;
+    }
+    if (!newSlug) {
+      errorEl.textContent = "Podaj adres URL (slug) wpisu.";
+      errorEl.hidden = false;
+      return;
+    }
+    if (!description) {
+      errorEl.textContent = "Podaj opis (meta description).";
+      errorEl.hidden = false;
+      return;
+    }
+    if (!contentMarkdown) {
+      errorEl.textContent = "Treść wpisu jest pusta.";
+      errorEl.hidden = false;
+      return;
+    }
+
+    // Data publikacji: dla "Opublikowany" bierzemy to, co operator ustawił w
+    // polu daty (może być w przyszłości — to jest właśnie zaplanowanie
+    // publikacji: wpis stanie się publicznie widoczny automatycznie o tej
+    // porze, patrz reguły Firestore i client/src/lib/blog.ts). Dla szkicu
+    // czyścimy datę, żeby przy ponownej zmianie na "Opublikowany" nie
+    // został przypadkiem stary termin.
+    let publishedAt = null;
+    if (status === "published") {
+      publishedAt = fromDatetimeLocalValue(publishAtInput.value) || existing?.publishedAt || Date.now();
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Zapisywanie…";
+    try {
+      let imageUrl = imageRemoved ? "" : existingImageUrl;
+      if (selectedImageFile) {
+        submitBtn.textContent = "Wysyłanie obrazka…";
+        imageUrl = await uploadPostImage(newSlug, selectedImageFile);
+      }
+
+      const now = Date.now();
+      const record = {
+        slug: newSlug,
+        title,
+        description,
+        contentMarkdown,
+        imageUrl,
+        status,
+        createdAt: existing?.createdAt || now,
+        updatedAt: now,
+        publishedAt
+      };
+
+      submitBtn.textContent = "Zapisywanie…";
+      await setDoc(doc(db, "posts", newSlug), record);
+      const isScheduled = status === "published" && publishedAt > now;
+      showToast(
+        status !== "published" ? "Zapisano szkic." : isScheduled ? "Zaplanowano publikację." : "Opublikowano wpis."
+      );
+      navigate("posts");
+    } catch (err) {
+      errorEl.textContent = "Błąd zapisu: " + err.message;
+      errorEl.hidden = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Zapisz wpis";
+    }
+  });
 }
 
 // ---------- HANDOVER VIEW ----------

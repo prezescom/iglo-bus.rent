@@ -28,6 +28,7 @@
     <button class="btn btn-secondary btn-block" data-action="view-vehicles">Baza pojazdów</button>
     <button class="btn btn-secondary btn-block" data-action="view-tenants">Baza najemców</button>
     <button class="btn btn-secondary btn-block" data-action="new-contract">Wygeneruj umowę</button>
+    <button class="btn btn-secondary btn-block" data-action="view-posts">Blog</button>
     <div id="rentalList" class="rental-list">
       <p class="muted">Wczytywanie…</p>
     </div>
@@ -167,6 +168,77 @@
       <button type="submit" class="btn btn-primary btn-block" id="tenantSubmitBtn">
         Zapisz najemcę
       </button>
+    </form>
+  </section>
+</template>
+
+<template id="tpl-posts">
+  <section class="view">
+    <button class="btn btn-primary btn-block" data-action="new-post">+ Nowy wpis</button>
+    <div id="postList" class="rental-list">
+      <p class="muted">Wczytywanie…</p>
+    </div>
+  </section>
+</template>
+
+<template id="tpl-post-form">
+  <section class="view">
+    <form id="postForm" class="form">
+      <fieldset>
+        <legend>Treść wpisu</legend>
+        <label class="btn btn-secondary btn-block file-btn">
+          Wczytaj plik .md
+          <input type="file" accept=".md,.markdown,text/markdown,text/plain" id="postFileInput" hidden />
+        </label>
+        <label>Wklejona treść (Markdown — # Tytuł, potem &gt; opis, potem treść)
+          <textarea name="raw" id="postRawTextarea" rows="12" placeholder="# Tytuł wpisu&#10;&#10;&gt; Krótki opis (meta description)&#10;&#10;Treść wpisu..."></textarea>
+        </label>
+        <button type="button" class="btn btn-text" id="postParseBtn">Wczytaj tytuł i opis z treści</button>
+      </fieldset>
+
+      <fieldset>
+        <legend>Obrazek wyróżniający</legend>
+        <div id="postImagePreviewWrap" hidden>
+          <img id="postImagePreview" class="post-image-preview" alt="Podgląd obrazka" />
+          <button type="button" class="btn btn-text" id="postImageRemoveBtn">Usuń obrazek</button>
+        </div>
+        <label class="btn btn-secondary btn-block file-btn">
+          Wybierz obrazek
+          <input type="file" accept="image/*" id="postImageInput" hidden />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Metadane</legend>
+        <label>Tytuł (H1)
+          <input name="title" id="postTitleInput" required />
+        </label>
+        <label>Adres URL wpisu (slug)
+          <input name="slug" id="postSlugInput" required />
+        </label>
+        <label>Opis (meta description, ok. 150-160 znaków)
+          <textarea name="description" id="postDescriptionInput" rows="2" required></textarea>
+        </label>
+        <label>Status
+          <select name="status" id="postStatusSelect">
+            <option value="draft">Szkic (niewidoczny publicznie)</option>
+            <option value="published">Opublikowany</option>
+          </select>
+        </label>
+        <label id="postPublishAtWrap" hidden>Data i godzina publikacji
+          <input type="datetime-local" name="publishAt" id="postPublishAtInput" />
+        </label>
+        <p id="postPublishAtHint" class="muted" hidden>
+          Ustaw datę w przyszłości, aby zaplanować publikację — wpis pojawi się na stronie automatycznie o tej porze.
+        </p>
+      </fieldset>
+
+      <p id="postFormError" class="error" hidden></p>
+
+      <button type="submit" class="btn btn-primary btn-block" id="postSubmitBtn">
+        Zapisz wpis
+      </button>
+      <button type="button" class="btn btn-text" id="postDeleteBtn" hidden>Usuń wpis</button>
     </form>
   </section>
 </template>

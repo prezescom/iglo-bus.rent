@@ -13,5 +13,23 @@ service cloud.firestore {
     match /tenants/{tenantId} {
       allow read, write: if request.auth != null;
     }
+    // Wpisy bloga, publicznie czytelne bez logowania (iglo-bus.rent/blog):
+    //  - pojedynczy wpis (get) — dopiero gdy status=="published" I minęła
+    //    zaplanowana data publikacji (publishedAt). To realna blokada
+    //    zaplanowanych/przyszłych wpisów, bo "get" ocenia prawdziwe dane
+    //    dokumentu.
+    //  - lista wpisów (list) — tylko status=="published" (Firestore musi to
+    //    dać się udowodnić z samego zapytania, patrz client/src/lib/blog.ts;
+    //    porównania z request.time nie da się tak udowodnić). Ukrycie
+    //    zaplanowanych wpisów na liście dopilnowuje klient, filtrując
+    //    publishedAt po stronie przeglądarki.
+    // Szkice i zapis/edycja — tylko z panelu najmu (zalogowany, choćby
+    // anonimowo, operator).
+    match /posts/{postId} {
+      allow get: if (resource.data.status == 'published' && resource.data.publishedAt <= request.time.toMillis())
+                  || request.auth != null;
+      allow list: if resource.data.status == 'published' || request.auth != null;
+      allow write: if request.auth != null;
+    }
   }
 }

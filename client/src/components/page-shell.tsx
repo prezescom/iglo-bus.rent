@@ -8,6 +8,7 @@ type PageShellProps = {
   description: string;
   canonical: string;
   ogImage?: string;
+  ogType?: "website" | "article";
   jsonLd?: Record<string, unknown>[];
   children: ReactNode;
 };
@@ -17,6 +18,7 @@ export default function PageShell({
   description,
   canonical,
   ogImage = "https://www.iglo-bus.rent/images/og-home-1200.jpg",
+  ogType = "website",
   jsonLd,
   children,
 }: PageShellProps) {
@@ -28,7 +30,7 @@ export default function PageShell({
         <link rel="canonical" href={canonical} />
         <meta name="robots" content="index,follow,max-image-preview:large" />
 
-        <meta property="og:type" content="website" />
+        <meta property="og:type" content={ogType} />
         <meta property="og:locale" content="pl_PL" />
         <meta property="og:site_name" content="Iglo-Bus Rent" />
         <meta property="og:url" content={canonical} />
