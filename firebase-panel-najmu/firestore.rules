@@ -31,5 +31,33 @@ service cloud.firestore {
       allow list: if resource.data.status == 'published' || request.auth != null;
       allow write: if request.auth != null;
     }
+    // Formularz aplikacyjny (iglo-bus.rent/praca) — każdy odwiedzający może
+    // utworzyć zgłoszenie (create), ale nie odczytać, zmienić ani usunąć
+    // cudzych/własnych danych. Dalszą obsługę (mail do kandydata, wpis do
+    // Excela w Storage, usunięcie po 90 dniach) robi Cloud Function
+    // (Admin SDK), która nie podlega tym regułom.
+    match /applications/{applicationId} {
+      allow create: if request.resource.data.keys().hasAll([
+                        'firstName', 'lastName', 'birthYear', 'city', 'phone', 'email',
+                        'employmentStatus', 'employmentForm', 'licenseYear',
+                        'experienceDelivery', 'experienceMeds', 'partTimeOk',
+                        'startAvailability', 'salaryExpectation', 'position', 'createdAt'
+                      ])
+                      && request.resource.data.firstName is string && request.resource.data.firstName.size() > 0
+                      && request.resource.data.lastName is string && request.resource.data.lastName.size() > 0
+                      && request.resource.data.city is string && request.resource.data.city.size() > 0
+                      && request.resource.data.phone is string && request.resource.data.phone.size() > 0
+                      && request.resource.data.email is string && request.resource.data.email.matches('.+@.+\\..+')
+                      && request.resource.data.birthYear is number
+                      && request.resource.data.licenseYear is number
+                      && request.resource.data.employmentStatus in ['student', 'etat', 'przedsiebiorca', 'bezrobotny', 'emeryt']
+                      && request.resource.data.employmentForm in ['umowa_o_prace', 'zlecenie', 'b2b']
+                      && request.resource.data.experienceDelivery is bool
+                      && request.resource.data.experienceMeds is bool
+                      && request.resource.data.partTimeOk is bool
+                      && request.resource.data.startAvailability in ['jutro', 'nowy_miesiac', 'pozniej']
+                      && request.resource.data.salaryExpectation in ['5000', '5500', '6000', '6500', '7000'];
+      allow read, update, delete: if request.auth != null;
+    }
   }
 }

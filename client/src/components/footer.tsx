@@ -77,6 +77,14 @@ export default function Footer() {
             </a>
             <span className="hidden sm:inline">•</span>
             <a
+              href="/praca"
+              className="text-brand-blue hover:underline"
+              data-testid="footer-praca"
+            >
+              Praca
+            </a>
+            <span className="hidden sm:inline">•</span>
+            <a
               href="/polityka-prywatnosci"
               className="text-brand-blue hover:underline"
               data-testid="footer-privacy-policy"

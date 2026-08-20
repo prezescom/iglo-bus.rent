@@ -21,6 +21,7 @@ import Contact from "@/pages/contact";
 // pobieranego przy wejściu na /blog, a nie do głównego bundle strony.
 const Blog = lazy(() => import("@/pages/blog"));
 const BlogPost = lazy(() => import("@/pages/blog-post"));
+const Praca = lazy(() => import("@/pages/praca"));
 
 function Router() {
   return (
@@ -45,6 +46,11 @@ function Router() {
         </Suspense>
       </Route>
       <Route path="/kontakt" component={Contact} />
+      <Route path="/praca">
+        <Suspense fallback={null}>
+          <Praca />
+        </Suspense>
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );

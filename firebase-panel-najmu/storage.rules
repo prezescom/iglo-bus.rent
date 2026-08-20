@@ -11,5 +11,11 @@ service firebase.storage {
       allow read: if true;
       allow write: if request.auth != null;
     }
+    // Zbiorczy plik .xlsx z aplikacjami o pracę (iglo-bus.rent/praca),
+    // dopisywany wierszami przez Cloud Function przy każdym nowym zgłoszeniu.
+    // Odczyt tylko zalogowany (Admin SDK w funkcji i tak omija te reguły).
+    match /recruitment/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
   }
 }
