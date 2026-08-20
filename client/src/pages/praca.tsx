@@ -4,8 +4,6 @@ import {
   Truck,
   Pill,
   MapPin,
-  Phone,
-  Mail,
   Loader2,
 } from "lucide-react";
 import PageShell from "@/components/page-shell";
@@ -25,10 +23,12 @@ import { useToast } from "@/hooks/use-toast";
 import {
   submitJobApplication,
   JOB_POSITION,
+  VOIVODESHIPS,
   type EmploymentStatus,
   type EmploymentForm,
   type StartAvailability,
   type SalaryExpectation,
+  type Voivodeship,
 } from "@/lib/applications";
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -40,6 +40,7 @@ type FormState = {
   lastName: string;
   birthYear: string;
   city: string;
+  voivodeship: Voivodeship | "";
   phone: string;
   email: string;
   employmentStatus: EmploymentStatus;
@@ -57,6 +58,7 @@ const initialState: FormState = {
   lastName: "",
   birthYear: "",
   city: "",
+  voivodeship: "",
   phone: "",
   email: "",
   employmentStatus: "etat",
@@ -140,6 +142,10 @@ export default function Praca() {
       toast({ title: "Błąd", description: "Podaj prawidłowy rok urodzenia.", variant: "destructive" });
       return;
     }
+    if (!form.voivodeship) {
+      toast({ title: "Błąd", description: "Wybierz województwo.", variant: "destructive" });
+      return;
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       toast({ title: "Błąd", description: "Podaj prawidłowy adres e-mail.", variant: "destructive" });
       return;
@@ -168,6 +174,7 @@ export default function Praca() {
         lastName: form.lastName.trim(),
         birthYear: Number(form.birthYear),
         city: form.city.trim(),
+        voivodeship: form.voivodeship,
         phone: form.phone.trim(),
         email: form.email.trim(),
         employmentStatus: form.employmentStatus,
@@ -283,6 +290,25 @@ export default function Praca() {
                       data-testid="input-city"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="voivodeship">Województwo</Label>
+                  <Select
+                    value={form.voivodeship}
+                    onValueChange={(v) => update("voivodeship", v as Voivodeship)}
+                  >
+                    <SelectTrigger id="voivodeship" data-testid="select-voivodeship">
+                      <SelectValue placeholder="Wybierz województwo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {VOIVODESHIPS.map((v) => (
+                        <SelectItem key={v} value={v}>
+                          {v}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
@@ -413,7 +439,7 @@ export default function Praca() {
               </fieldset>
 
               <fieldset className="space-y-3">
-                <legend className="font-semibold text-brand-dark mb-2">Oczekiwania finansowe (netto)</legend>
+                <legend className="font-semibold text-brand-dark mb-2">Oczekiwania finansowe (netto/cały etat)</legend>
                 <RadioGroup
                   value={form.salaryExpectation}
                   onValueChange={(v) => update("salaryExpectation", v as SalaryExpectation)}
@@ -456,23 +482,6 @@ export default function Praca() {
               </Button>
             </form>
           )}
-        </div>
-      </Section>
-
-      <Section title="Wolisz zadzwonić?" subtitle="Możesz też skontaktować się z nami bezpośrednio.">
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <a
-            href="tel:+48530410504"
-            className="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-xl bg-brand-blue text-white font-bold"
-          >
-            <Phone className="h-5 w-5" /> +48 530 410 504
-          </a>
-          <a
-            href="mailto:kontakt@iglo-bus.rent"
-            className="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-xl border-2 border-brand-blue text-brand-blue font-bold"
-          >
-            <Mail className="h-5 w-5" /> kontakt@iglo-bus.rent
-          </a>
         </div>
       </Section>
     </PageShell>

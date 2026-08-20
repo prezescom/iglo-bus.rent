@@ -38,7 +38,7 @@ service cloud.firestore {
     // (Admin SDK), która nie podlega tym regułom.
     match /applications/{applicationId} {
       allow create: if request.resource.data.keys().hasAll([
-                        'firstName', 'lastName', 'birthYear', 'city', 'phone', 'email',
+                        'firstName', 'lastName', 'birthYear', 'city', 'voivodeship', 'phone', 'email',
                         'employmentStatus', 'employmentForm', 'licenseYear',
                         'experienceDelivery', 'experienceMeds', 'partTimeOk',
                         'startAvailability', 'salaryExpectation', 'position', 'createdAt'
@@ -46,6 +46,12 @@ service cloud.firestore {
                       && request.resource.data.firstName is string && request.resource.data.firstName.size() > 0
                       && request.resource.data.lastName is string && request.resource.data.lastName.size() > 0
                       && request.resource.data.city is string && request.resource.data.city.size() > 0
+                      && request.resource.data.voivodeship in [
+                        'Dolnośląskie', 'Kujawsko-Pomorskie', 'Lubelskie', 'Lubuskie', 'Łódzkie',
+                        'Małopolskie', 'Mazowieckie', 'Opolskie', 'Podkarpackie', 'Podlaskie',
+                        'Pomorskie', 'Śląskie', 'Świętokrzyskie', 'Warmińsko-Mazurskie',
+                        'Wielkopolskie', 'Zachodniopomorskie'
+                      ]
                       && request.resource.data.phone is string && request.resource.data.phone.size() > 0
                       && request.resource.data.email is string && request.resource.data.email.matches('.+@.+\\..+')
                       && request.resource.data.birthYear is number

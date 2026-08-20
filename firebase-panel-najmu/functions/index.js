@@ -229,6 +229,7 @@ const APPLICATIONS_XLSX_HEADERS = [
   "Nazwisko",
   "Rok urodzenia",
   "Miejsce zamieszkania",
+  "Województwo",
   "Telefon",
   "E-mail",
   "Status zawodowy",
@@ -238,7 +239,7 @@ const APPLICATIONS_XLSX_HEADERS = [
   "Doświadczenie - transport leków",
   "Niepełny etat OK",
   "Może zacząć",
-  "Oczekiwania finansowe (netto)",
+  "Oczekiwania finansowe (netto/cały etat)",
 ];
 
 /**
@@ -259,7 +260,16 @@ async function appendApplicationToExcel(app) {
     await workbook.xlsx.load(buffer);
     worksheet = workbook.getWorksheet("Aplikacje");
   }
-  if (!worksheet) {
+  // Nagłówek nie zgadza się z aktualną listą kolumn (np. plik powstał przed
+  // dodaniem nowego pola) — arkusz jest przebudowywany od zera zamiast
+  // dopisywać kolumnę w złym miejscu. Traci to stare wiersze, ale to jedyny
+  // bezpieczny sposób, żeby dane nie rozjechały się względem nagłówków.
+  const currentHeaders = worksheet?.getRow(1)?.values?.slice(1) || [];
+  const headersMatch =
+    currentHeaders.length === APPLICATIONS_XLSX_HEADERS.length &&
+    APPLICATIONS_XLSX_HEADERS.every((h, i) => currentHeaders[i] === h);
+  if (!worksheet || !headersMatch) {
+    if (worksheet) workbook.removeWorksheet(worksheet.id);
     worksheet = workbook.addWorksheet("Aplikacje");
     worksheet.addRow(APPLICATIONS_XLSX_HEADERS);
     worksheet.getRow(1).font = { bold: true };
@@ -272,6 +282,7 @@ async function appendApplicationToExcel(app) {
     app.lastName || "",
     app.birthYear || "",
     app.city || "",
+    app.voivodeship || "",
     app.phone || "",
     app.email || "",
     EMPLOYMENT_STATUS_LABELS[app.employmentStatus] || app.employmentStatus || "",
@@ -343,6 +354,7 @@ ${emailFooterText()}`;
       `Imię i nazwisko: ${candidateName}`,
       `Rok urodzenia: ${app.birthYear || ""}`,
       `Miejsce zamieszkania: ${app.city || ""}`,
+      `Województwo: ${app.voivodeship || ""}`,
       `Telefon: ${app.phone || ""}`,
       `E-mail: ${app.email}`,
       `Status zawodowy: ${EMPLOYMENT_STATUS_LABELS[app.employmentStatus] || app.employmentStatus || ""}`,

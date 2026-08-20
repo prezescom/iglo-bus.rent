@@ -6,11 +6,32 @@ export type EmploymentForm = "umowa_o_prace" | "zlecenie" | "b2b";
 export type StartAvailability = "jutro" | "nowy_miesiac" | "pozniej";
 export type SalaryExpectation = "5000" | "5500" | "6000" | "6500" | "7000";
 
+export const VOIVODESHIPS = [
+  "Dolnośląskie",
+  "Kujawsko-Pomorskie",
+  "Lubelskie",
+  "Lubuskie",
+  "Łódzkie",
+  "Małopolskie",
+  "Mazowieckie",
+  "Opolskie",
+  "Podkarpackie",
+  "Podlaskie",
+  "Pomorskie",
+  "Śląskie",
+  "Świętokrzyskie",
+  "Warmińsko-Mazurskie",
+  "Wielkopolskie",
+  "Zachodniopomorskie",
+] as const;
+export type Voivodeship = (typeof VOIVODESHIPS)[number];
+
 export type JobApplicationInput = {
   firstName: string;
   lastName: string;
   birthYear: number;
   city: string;
+  voivodeship: Voivodeship;
   phone: string;
   email: string;
   employmentStatus: EmploymentStatus;
