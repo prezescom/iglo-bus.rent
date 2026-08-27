@@ -1,7 +1,7 @@
 import { firebaseConfig, LESSOR_EMAIL, FUNCTIONS_REGION } from "./firebase-config.js";
 import { initSignatureField } from "./signature.js";
 import { initDamageMap } from "./damage-map.js";
-import { generateProtocolPdf } from "./pdf.js";
+import { generateProtocolPdf, preloadPdfAssets } from "./pdf.js";
 import { generateContractDocx, resolveTemplateKey } from "./contracts.js";
 
 const DAMAGE_MAP_DIAGRAM_URL = "/panel-najmu/img/van-diagram.png";
@@ -14,7 +14,7 @@ import {
   getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, query, where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
-  getStorage, ref, uploadBytes, getDownloadURL
+  getStorage, ref, uploadBytes, getDownloadURL, deleteObject
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import {
   getFunctions, httpsCallable
@@ -298,6 +298,7 @@ async function renderVehicles() {
         <div class="tenant">VIN: ${escapeHtml(v.vin || "—")}</div>
         <div class="tenant">Ostatni przebieg: ${v.lastMileage ? v.lastMileage + " km" : "—"}</div>
         <div class="tenant">Serwis olejowy: ${v.lastOilServiceDate || "—"} • Serwis chłodni: ${v.lastCoolingServiceDate || "—"}</div>
+        <div class="tenant">AdBlue: ${v.lastAdBlueDate || "—"} • Zdjęcia uszkodzeń: ${(v.damagePhotoUrls || []).length}</div>
         <button class="btn btn-secondary" data-id="${v.plateId}">Edytuj</button>
       `;
       card.querySelector("button").addEventListener("click", () => navigate(`vehicle/${v.plateId}`));
@@ -308,12 +309,73 @@ async function renderVehicles() {
   }
 }
 
+// ---------- VEHICLE damage photos (dokumentacja stała, niezależna od
+// protokołów — dołączana automatycznie do PDF-u każdego kolejnego
+// wydania/zwrotu, patrz drawPhotoPages w pdf.js) ----------
+function wireVehiclePhotos(plateId, initialPhotos) {
+  let photos = Array.isArray(initialPhotos) ? [...initialPhotos] : []; // [{ url, path }]
+  const strip = document.getElementById("vehiclePhotoStrip");
+  const input = document.getElementById("vehiclePhotoInput");
+
+  function renderStrip() {
+    strip.innerHTML = "";
+    photos.forEach((photo, index) => {
+      const wrap = document.createElement("div");
+      wrap.style.position = "relative";
+      wrap.style.flexShrink = "0";
+      wrap.innerHTML = `
+        <img class="photo-thumb" src="${escapeHtml(photo.url)}" alt="Zdjęcie uszkodzenia ${index + 1}" />
+        <button type="button" class="icon-btn" data-index="${index}"
+          style="position:absolute;top:-6px;right:-6px;background:#C0392B;color:#fff;border-radius:50%;width:22px;height:22px;line-height:1;padding:0;font-size:14px;text-align:center;">×</button>
+      `;
+      wrap.querySelector("button").addEventListener("click", async () => {
+        const [removed] = photos.splice(index, 1);
+        renderStrip();
+        try {
+          await setDoc(doc(db, "vehicles", plateId), { damagePhotoUrls: photos }, { merge: true });
+        } catch (e) {
+          showToast("Błąd usuwania zdjęcia: " + e.message);
+        }
+        if (removed?.path) {
+          deleteObject(ref(storage, removed.path)).catch(() => {
+            // Osierocony plik w Storage nie jest krytyczny — dokument już
+            // nie wskazuje na to zdjęcie.
+          });
+        }
+      });
+      strip.appendChild(wrap);
+    });
+  }
+  renderStrip();
+
+  input.addEventListener("change", async () => {
+    const file = input.files[0];
+    input.value = "";
+    if (!file) return;
+    const path = `vehicles/${plateId}/damage-photos/${Date.now()}.jpg`;
+    try {
+      const r = ref(storage, path);
+      await uploadBytes(r, file);
+      const url = await getDownloadURL(r);
+      photos.push({ url, path });
+      await setDoc(doc(db, "vehicles", plateId), { damagePhotoUrls: photos }, { merge: true });
+      renderStrip();
+    } catch (e) {
+      showToast("Błąd wgrywania zdjęcia: " + e.message);
+    }
+  });
+}
+
 async function renderVehicleForm(plateId) {
   const tpl = document.getElementById("tpl-vehicle-form");
   appEl.replaceChildren(tpl.content.cloneNode(true));
   const form = document.getElementById("vehicleForm");
   const errorEl = document.getElementById("vehicleFormError");
   const submitBtn = document.getElementById("vehicleSubmitBtn");
+  const extrasWrap = document.getElementById("vehicleExtrasWrap");
+
+  let existingDamageMarks = [];
+  let existingDamagePhotos = [];
 
   if (plateId) {
     try {
@@ -326,12 +388,41 @@ async function renderVehicleForm(plateId) {
         form.elements["vin"].value = v.vin || "";
         form.elements["lastOilServiceDate"].value = v.lastOilServiceDate || "";
         form.elements["lastCoolingServiceDate"].value = v.lastCoolingServiceDate || "";
+        form.elements["lastAdBlueDate"].value = v.lastAdBlueDate || "";
         form.elements["lastMileage"].value = v.lastMileage || "";
+        existingDamageMarks = v.lastDamageMapMarks || [];
+        existingDamagePhotos = v.damagePhotoUrls || [];
       }
     } catch (e) {
       errorEl.textContent = "Błąd wczytywania: " + e.message;
       errorEl.hidden = false;
     }
+
+    // Zdjęcia uszkodzeń i schemat mają sens tylko dla pojazdu, który już
+    // istnieje w bazie (potrzebują plateId jako klucza dokumentu/ścieżki
+    // w Storage) — dla nowego pojazdu ta sekcja jest ukryta do pierwszego
+    // zapisu (patrz submit handler niżej).
+    extrasWrap.hidden = false;
+    wireVehiclePhotos(plateId, existingDamagePhotos);
+
+    const vehicleDamageMap = initDamageMap({
+      canvas: document.getElementById("vehicleDamageMap"),
+      overlay: document.getElementById("vehicleDamageMapOverlay"),
+      confirmBtn: document.getElementById("vehicleDamageMapConfirmBtn"),
+      discardBtn: document.getElementById("vehicleDamageMapDiscardBtn"),
+      pendingActions: document.getElementById("vehicleDamageMapPendingActions"),
+      diagramUrl: DAMAGE_MAP_DIAGRAM_URL
+    });
+    vehicleDamageMap.setMarks(existingDamageMarks);
+    document.getElementById("vehicleDamageMapClearBtn").addEventListener("click", () => vehicleDamageMap.clear());
+    document.getElementById("vehicleDamageMapSaveBtn").addEventListener("click", async () => {
+      try {
+        await updateVehicleDamageMarks(plateId, vehicleDamageMap.getMarks());
+        showToast("Zapisano schemat uszkodzeń.");
+      } catch (e) {
+        showToast("Błąd zapisu schematu: " + e.message);
+      }
+    });
   }
 
   form.addEventListener("submit", async (e) => {
@@ -340,6 +431,7 @@ async function renderVehicleForm(plateId) {
     const fd = new FormData(form);
     const plate = fd.get("plate").trim();
     const newPlateId = normalizePlateId(plate);
+    const isNewVehicle = !plateId;
 
     const vehicle = {
       plateId: newPlateId,
@@ -349,15 +441,19 @@ async function renderVehicleForm(plateId) {
       vin: fd.get("vin") || "",
       lastOilServiceDate: fd.get("lastOilServiceDate") || "",
       lastCoolingServiceDate: fd.get("lastCoolingServiceDate") || "",
+      lastAdBlueDate: fd.get("lastAdBlueDate") || "",
       lastMileage: fd.get("lastMileage") || ""
     };
 
     submitBtn.disabled = true;
     submitBtn.textContent = "Zapisywanie…";
     try {
-      await setDoc(doc(db, "vehicles", newPlateId), vehicle);
+      await setDoc(doc(db, "vehicles", newPlateId), vehicle, { merge: true });
       showToast("Zapisano pojazd.");
-      navigate("vehicles");
+      // Nowo utworzony pojazd: wróć na ten sam formularz (teraz w trybie
+      // edycji), żeby od razu można było dodać zdjęcia uszkodzeń/schemat —
+      // bez tego trzeba by go odszukać ponownie na liście.
+      navigate(isNewVehicle ? `vehicle/${newPlateId}` : "vehicles");
     } catch (err) {
       errorEl.textContent = "Błąd zapisu: " + err.message;
       errorEl.hidden = false;
@@ -426,7 +522,11 @@ function wireAutocomplete(input, getItems) {
       list.hidden = true;
       return;
     }
-    items.slice(0, 8).forEach((item) => {
+    // Limit tylko techniczny (żeby nie renderować tysięcy wierszy) — lista
+    // i tak przewija się (patrz .autocomplete-list w CSS), więc przy bazie
+    // rzędu dziesiątek/setek klientów/pojazdów to nie obcina wyników w
+    // praktyce, jak wcześniejszy sztywny limit 8 pozycji.
+    items.slice(0, 50).forEach((item) => {
       const row = document.createElement("div");
       row.className = "autocomplete-item";
       row.innerHTML = item.sub
@@ -1071,6 +1171,11 @@ async function renderPostForm(slug) {
 
 // ---------- HANDOVER VIEW ----------
 async function renderHandover() {
+  // Czcionki i logo PDF-a i tak są potrzebne dopiero przy zapisie — pobierz
+  // je już teraz, w tle, na czas wypełniania formularza (patrz komentarz
+  // przy preloadPdfAssets w pdf.js).
+  preloadPdfAssets();
+
   const tpl = document.getElementById("tpl-handover");
   appEl.replaceChildren(tpl.content.cloneNode(true));
   wirePhotoStrip();
@@ -1092,6 +1197,9 @@ async function renderHandover() {
   const plateInput = document.getElementById("vehiclePlateInput");
   const modelInput = document.getElementById("handoverForm").elements["vehicleModel"];
   const vinInput = document.getElementById("handoverForm").elements["vehicleVin"];
+  // Zdjęcia uszkodzeń zapisane na stałe przy pojeździe (baza pojazdów) —
+  // dołączane automatycznie do protokołu, patrz submit handler niżej.
+  let selectedVehicleDamagePhotos = [];
   let knownVehicles = [];
   try {
     knownVehicles = await fetchVehicles();
@@ -1108,6 +1216,7 @@ async function renderHandover() {
   );
   plateInput.addEventListener("change", async () => {
     const match = knownVehicles.find((v) => normalizePlateId(v.plate) === normalizePlateId(plateInput.value));
+    selectedVehicleDamagePhotos = match?.damagePhotoUrls || [];
     if (match) {
       modelInput.value = `${match.make || ""} ${match.model || ""}`.trim();
       vinInput.value = match.vin || "";
@@ -1246,19 +1355,31 @@ async function renderHandover() {
       const docRef = doc(db, "rentals", rentalId);
       record.id = docRef.id;
 
-      // Wszystkie te operacje są od siebie niezależne — równolegle zamiast
-      // po kolei, żeby zapis i wysyłka protokołu nie trwały niepotrzebnie
-      // długo (suma czasów zamiast najdłuższego z nich).
-      const [, photoUrls, sigUrl, damageMapUrl, photoDataUrls] = await Promise.all([
-        setDoc(docRef, record),
-        uploadPhotos(docRef.id, "wydanie", record.vehiclePlate, record.handoverTimestamp),
-        uploadSignature(docRef.id, "wydanie", record.vehiclePlate, record.handoverTimestamp),
-        uploadDamageMap(docRef.id, "wydanie", record.vehiclePlate, record.handoverTimestamp),
-        Promise.all(currentPhotos.map(fileToDataUrl))
-      ]);
       const sigDataUrl = sigPad.toDataUrl();
       const damageMapDataUrl = damageMap.toDataUrl();
-      const pdfBlob = await generateProtocolPdf(record, "wydanie", sigDataUrl, damageMapDataUrl, photoDataUrls);
+
+      // Dwie niezależne grupy operacji równolegle: zapis dokumentu +
+      // wgrywanie zdjęć/podpisu/mapy do Storage z jednej strony, a z
+      // drugiej przygotowanie i wygenerowanie PDF-u. PDF nie potrzebuje
+      // adresów URL ze Storage (używa lokalnych danych — zdjęć z aparatu i
+      // zdjęć uszkodzeń pojazdu pobranych z bazy) — wcześniej czekał na
+      // zakończenie wgrywania, mimo że wcale tego nie wymagał, co sumowało
+      // czasy zamiast liczyć je równolegle.
+      const [[, photoUrls, sigUrl, damageMapUrl], pdfBlob] = await Promise.all([
+        Promise.all([
+          setDoc(docRef, record),
+          uploadPhotos(docRef.id, "wydanie", record.vehiclePlate, record.handoverTimestamp),
+          uploadSignature(docRef.id, "wydanie", record.vehiclePlate, record.handoverTimestamp),
+          uploadDamageMap(docRef.id, "wydanie", record.vehiclePlate, record.handoverTimestamp)
+        ]),
+        (async () => {
+          const [photoDataUrls, vehicleDamagePhotoDataUrls] = await Promise.all([
+            Promise.all(currentPhotos.map(fileToDataUrl)),
+            vehicleDamagePhotosToDataUrls(selectedVehicleDamagePhotos)
+          ]);
+          return generateProtocolPdf(record, "wydanie", sigDataUrl, damageMapDataUrl, photoDataUrls, vehicleDamagePhotoDataUrls);
+        })()
+      ]);
       const pdfUrl = await uploadPdf(docRef.id, "wydanie", pdfBlob, record.vehiclePlate, record.handoverTimestamp);
 
       await setDoc(docRef, {
@@ -1269,18 +1390,19 @@ async function renderHandover() {
         handoverProtocolPdfUrl: pdfUrl
       });
 
-      await sendProtocolEmail(docRef.id, "wydanie", pdfUrl, record.tenantEmail, LESSOR_EMAIL, record.vehiclePlate, record.handoverTimestamp);
-
-      // Zapisz aktualny schemat uszkodzeń w bazie pojazdu, żeby podpowiadał
-      // się przy zwrocie tego wynajmu i przy kolejnym wydaniu tego pojazdu.
-      try {
-        await updateVehicleDamageMarks(record.vehiclePlate, damageMap.getMarks());
-      } catch (e) {
-        // Brak wpisu pojazdu w bazie nie powinien blokować zapisu wydania.
-      }
-
-      showToast("Zapisano i wysłano protokół wydania.");
+      showToast("Zapisano protokół wydania — wysyłam e-mail…");
       navigate("list");
+
+      // Mail i aktualizacja schematu w bazie pojazdu nie decydują o tym,
+      // czy zapis się udał — dane są już bezpiecznie w Firestore/Storage —
+      // więc nie blokują nimi przejścia do listy. Uruchamiane w tle, z
+      // osobną obsługą błędu, żeby awaria maila nie wyglądała jak
+      // niepowodzenie całego zapisu protokołu.
+      sendProtocolEmail(docRef.id, "wydanie", pdfUrl, record.tenantEmail, LESSOR_EMAIL, record.vehiclePlate, record.handoverTimestamp)
+        .catch((e) => showToast("Protokół zapisany, ale mail się nie wysłał: " + e.message));
+      updateVehicleDamageMarks(record.vehiclePlate, damageMap.getMarks()).catch(() => {
+        // Brak wpisu pojazdu w bazie nie powinien niepokoić operatora.
+      });
     } catch (err) {
       errorEl.textContent = "Błąd zapisu: " + err.message;
       errorEl.hidden = false;
@@ -1292,6 +1414,8 @@ async function renderHandover() {
 
 // ---------- RETURN VIEW ----------
 async function renderReturn(rentalId) {
+  preloadPdfAssets();
+
   const tpl = document.getElementById("tpl-return");
   appEl.replaceChildren(tpl.content.cloneNode(true));
   const headerEl = document.getElementById("returnHeader");
@@ -1329,6 +1453,17 @@ async function renderReturn(rentalId) {
     distinguishOrigin: true
   });
   appEl.querySelector('[data-action="clear-damage-map"]').addEventListener("click", () => damageMap.clear());
+
+  // Zdjęcia uszkodzeń zapisane na stałe przy pojeździe (baza pojazdów) —
+  // dołączane automatycznie do protokołu zwrotu, tak jak przy wydaniu.
+  let selectedVehicleDamagePhotos = [];
+  try {
+    const vehicleSnap = await getDoc(doc(db, "vehicles", normalizePlateId(record.vehiclePlate)));
+    if (vehicleSnap.exists()) selectedVehicleDamagePhotos = vehicleSnap.data().damagePhotoUrls || [];
+  } catch (e) {
+    // Brak wpisu pojazdu w bazie nie powinien blokować zwrotu.
+  }
+
   try {
     damageMap.setMarks(await fetchVehicleDamageMarks(record.vehiclePlate));
   } catch (e) {
@@ -1396,16 +1531,27 @@ async function renderReturn(rentalId) {
     submitBtn.disabled = true;
     submitBtn.textContent = "Zapisywanie…";
     try {
-      // Równolegle zamiast po kolei — patrz komentarz przy wydaniu pojazdu.
-      const [photoUrls, sigUrl, damageMapUrl, photoDataUrls] = await Promise.all([
-        uploadPhotos(rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp),
-        uploadSignature(rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp),
-        uploadDamageMap(rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp),
-        Promise.all(currentPhotos.map(fileToDataUrl))
-      ]);
       const sigDataUrl = sigPad.toDataUrl();
       const damageMapDataUrl = damageMap.toDataUrl();
-      const pdfBlob = await generateProtocolPdf(updated, "zwrot", sigDataUrl, damageMapDataUrl, photoDataUrls);
+
+      // Równolegle zamiast po kolei (patrz też komentarz przy wydaniu
+      // pojazdu): wgrywanie do Storage z jednej strony, przygotowanie i
+      // wygenerowanie PDF-u (dane wyłącznie lokalne) z drugiej — zamiast
+      // czekać z generowaniem PDF-u, aż wgrywanie się skończy.
+      const [[photoUrls, sigUrl, damageMapUrl], pdfBlob] = await Promise.all([
+        Promise.all([
+          uploadPhotos(rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp),
+          uploadSignature(rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp),
+          uploadDamageMap(rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp)
+        ]),
+        (async () => {
+          const [photoDataUrls, vehicleDamagePhotoDataUrls] = await Promise.all([
+            Promise.all(currentPhotos.map(fileToDataUrl)),
+            vehicleDamagePhotosToDataUrls(selectedVehicleDamagePhotos)
+          ]);
+          return generateProtocolPdf(updated, "zwrot", sigDataUrl, damageMapDataUrl, photoDataUrls, vehicleDamagePhotoDataUrls);
+        })()
+      ]);
       const pdfUrl = await uploadPdf(rentalId, "zwrot", pdfBlob, updated.vehiclePlate, updated.returnTimestamp);
 
       updated.returnPhotoUrls = photoUrls;
@@ -1414,24 +1560,23 @@ async function renderReturn(rentalId) {
       updated.returnProtocolPdfUrl = pdfUrl;
 
       await setDoc(doc(db, "rentals", rentalId), updated);
-      await sendProtocolEmail(rentalId, "zwrot", pdfUrl, updated.tenantEmail, updated.lessorEmail, updated.vehiclePlate, updated.returnTimestamp);
-
-      // Zaktualizuj ostatni przebieg i schemat uszkodzeń w bazie pojazdów,
-      // żeby przy kolejnym wydaniu tego pojazdu podpowiedziały się aktualne
-      // dane, jeśli pojazd tam jest.
-      try {
-        await setDoc(
-          doc(db, "vehicles", normalizePlateId(updated.vehiclePlate)),
-          { lastMileage: mileageAtReturn, lastDamageMapMarks: damageMap.getMarks() },
-          { merge: true }
-        );
-      } catch (e) {
-        // Brak wpisu pojazdu w bazie nie powinien blokować zapisu zwrotu.
-      }
 
       const distanceMsg = Number.isFinite(distanceTraveled) ? ` (przejechano ${distanceTraveled} km)` : "";
-      showToast(`Zapisano i wysłano protokół zwrotu${distanceMsg}.`);
+      showToast(`Zapisano protokół zwrotu${distanceMsg} — wysyłam e-mail…`);
       navigate("list");
+
+      // Mail i aktualizacja bazy pojazdów nie decydują o powodzeniu zapisu
+      // (dane wynajmu są już bezpiecznie zapisane) — w tle, bez blokowania
+      // przejścia do listy, patrz komentarz przy wydaniu pojazdu.
+      sendProtocolEmail(rentalId, "zwrot", pdfUrl, updated.tenantEmail, updated.lessorEmail, updated.vehiclePlate, updated.returnTimestamp)
+        .catch((e) => showToast("Protokół zapisany, ale mail się nie wysłał: " + e.message));
+      setDoc(
+        doc(db, "vehicles", normalizePlateId(updated.vehiclePlate)),
+        { lastMileage: mileageAtReturn, lastDamageMapMarks: damageMap.getMarks() },
+        { merge: true }
+      ).catch(() => {
+        // Brak wpisu pojazdu w bazie nie powinien niepokoić operatora.
+      });
     } catch (err) {
       errorEl.textContent = "Błąd zapisu: " + err.message;
       errorEl.hidden = false;
@@ -1473,10 +1618,10 @@ function wirePhotoStrip() {
 // dotyczy wyłącznie kopii osadzanej w PDF-ie.
 const PDF_PHOTO_MAX_DIMENSION = 1600;
 
-async function fileToDataUrl(file) {
+async function blobToResizedDataUrl(blob) {
   if (typeof createImageBitmap === "function") {
     try {
-      const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      const bitmap = await createImageBitmap(blob, { imageOrientation: "from-image" });
       const scale = Math.min(1, PDF_PHOTO_MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
       const canvas = document.createElement("canvas");
       canvas.width = Math.round(bitmap.width * scale);
@@ -1492,8 +1637,33 @@ async function fileToDataUrl(file) {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
     reader.onerror = reject;
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(blob);
   });
+}
+
+async function fileToDataUrl(file) {
+  return blobToResizedDataUrl(file);
+}
+
+// Odpowiednik fileToDataUrl, ale dla zdjęć już leżących w Storage (stała
+// dokumentacja uszkodzeń pojazdu) — pobiera obraz spod adresu URL i skaluje
+// go tak samo, jak świeżo zrobione zdjęcie protokołu. Błąd pojedynczego
+// zdjęcia (np. brak sieci, CORS) nie ma zatrzymywać generowania PDF-u — ta
+// funkcja celowo zwraca null zamiast rzucać, a wywołujący filtruje null-e.
+async function urlToDataUrl(url) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await blobToResizedDataUrl(await res.blob());
+  } catch (e) {
+    return null;
+  }
+}
+
+async function vehicleDamagePhotosToDataUrls(photos) {
+  if (!photos || !photos.length) return [];
+  const results = await Promise.all(photos.map((p) => urlToDataUrl(p.url)));
+  return results.filter(Boolean);
 }
 
 async function uploadPhotos(rentalId, phase, plate, timestampMs) {

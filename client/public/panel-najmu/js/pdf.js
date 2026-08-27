@@ -22,7 +22,19 @@ const RIGHT = 40;
 const MARK_COLOR_EXISTING = [30, 95, 140];
 const MARK_COLOR_NEW = [192, 57, 43];
 
-export async function generateProtocolPdf(record, phase, signatureDataUrl, damageMapDataUrl, photoDataUrls) {
+// Uruchamiane od razu przy wejściu na widok wydania/zwrotu (patrz app.js),
+// zamiast dopiero przy zapisie protokołu — czcionki i logo są i tak
+// memoizowane (patrz getFontsBase64/getLogoDataUrl), więc to tylko
+// przenosi ten sam koszt sieciowy poza krytyczną ścieżkę zapisu: w
+// najlepszym razie zdąży się pobrać, zanim operator skończy wypełniać
+// formularz. Błędy celowo ignorowane — brak zdążonego prefetchu po
+// prostu odda ten sam koszt z powrotem do generateProtocolPdf.
+export function preloadPdfAssets() {
+  getFontsBase64().catch(() => {});
+  getLogoDataUrl().catch(() => {});
+}
+
+export async function generateProtocolPdf(record, phase, signatureDataUrl, damageMapDataUrl, photoDataUrls, vehicleDamagePhotoDataUrls) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   await useCustomFont(doc);
@@ -187,41 +199,18 @@ export async function generateProtocolPdf(record, phase, signatureDataUrl, damag
     }
   }
 
-  // ---- Strona(y): zdjęcia ----
-  if (photoDataUrls && photoDataUrls.length) {
-    doc.addPage();
-    let py = drawPageChrome(doc, pageWidth, logoDataUrl, phaseTitle);
-    doc.setFont("Roboto", "bold");
-    doc.setFontSize(15);
-    doc.setTextColor(...COLOR_INK);
-    doc.text("Dokumentacja fotograficzna", LEFT, py);
-    py += 24;
+  // ---- Strona(y): zdjęcia uszkodzeń z bazy pojazdu (dokumentacja stała,
+  // niezależna od bieżącego wynajmu — patrz baza pojazdów w app.js) ----
+  await drawPhotoPages(
+    doc, "Udokumentowane uszkodzenia pojazdu (baza pojazdu)",
+    vehicleDamagePhotoDataUrls, pageWidth, pageHeight, logoDataUrl, phaseTitle
+  );
 
-    const maxW = contentWidth;
-    const maxH = 220; // budżet na zdjęcie — mieszczą się 2-3 na stronie
-
-    for (const src of photoDataUrls) {
-      let w = maxW;
-      let h = maxH;
-      try {
-        const img = await loadImage(src);
-        const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight, 1);
-        w = img.naturalWidth * scale;
-        h = img.naturalHeight * scale;
-      } catch (e) {
-        // Jeśli zdjęcie się nie wczyta do pomiaru, wstaw je w rozmiarze
-        // maksymalnym zamiast pomijać — protokół i tak ma być kompletny.
-      }
-
-      if (py + h > pageHeight - 56) {
-        doc.addPage();
-        py = drawPageChrome(doc, pageWidth, logoDataUrl, phaseTitle);
-      }
-
-      doc.addImage(src, formatFromDataUrl(src), LEFT, py, w, h);
-      py += h + 16;
-    }
-  }
+  // ---- Strona(y): zdjęcia zrobione przy tym protokole ----
+  await drawPhotoPages(
+    doc, "Dokumentacja fotograficzna",
+    photoDataUrls, pageWidth, pageHeight, logoDataUrl, phaseTitle
+  );
 
   addFooterToAllPages(doc, pageWidth, pageHeight, phaseTitle);
 
@@ -259,6 +248,47 @@ function drawPageChrome(doc, pageWidth, logoDataUrl, phaseTitle) {
 
   doc.setTextColor(...COLOR_INK);
   return 70;
+}
+
+// Wspólna dla obu galerii zdjęć w protokole (dokumentacja z bazy pojazdu i
+// zdjęcia zrobione przy tym konkretnym wydaniu/zwrocie) — każda dostaje
+// własny tytuł i własne strony, dodawane tylko jeśli jest co pokazać.
+async function drawPhotoPages(doc, title, photoDataUrls, pageWidth, pageHeight, logoDataUrl, phaseTitle) {
+  if (!photoDataUrls || !photoDataUrls.length) return;
+
+  const contentWidth = pageWidth - LEFT - RIGHT;
+  doc.addPage();
+  let py = drawPageChrome(doc, pageWidth, logoDataUrl, phaseTitle);
+  doc.setFont("Roboto", "bold");
+  doc.setFontSize(15);
+  doc.setTextColor(...COLOR_INK);
+  doc.text(title, LEFT, py);
+  py += 24;
+
+  const maxW = contentWidth;
+  const maxH = 220; // budżet na zdjęcie — mieszczą się 2-3 na stronie
+
+  for (const src of photoDataUrls) {
+    let w = maxW;
+    let h = maxH;
+    try {
+      const img = await loadImage(src);
+      const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight, 1);
+      w = img.naturalWidth * scale;
+      h = img.naturalHeight * scale;
+    } catch (e) {
+      // Jeśli zdjęcie się nie wczyta do pomiaru, wstaw je w rozmiarze
+      // maksymalnym zamiast pomijać — protokół i tak ma być kompletny.
+    }
+
+    if (py + h > pageHeight - 56) {
+      doc.addPage();
+      py = drawPageChrome(doc, pageWidth, logoDataUrl, phaseTitle);
+    }
+
+    doc.addImage(src, formatFromDataUrl(src), LEFT, py, w, h);
+    py += h + 16;
+  }
 }
 
 function drawSectionHeader(doc, title, y, width) {

@@ -80,6 +80,9 @@
         <label>Ostatni serwis chłodni
           <input name="lastCoolingServiceDate" type="date" />
         </label>
+        <label>Ostatnie uzupełnienie AdBlue
+          <input name="lastAdBlueDate" type="date" />
+        </label>
         <label>Ostatni zarejestrowany przebieg (km)
           <input name="lastMileage" inputmode="numeric" />
         </label>
@@ -91,6 +94,33 @@
         Zapisz pojazd
       </button>
     </form>
+
+    <div id="vehicleExtrasWrap" class="form" hidden>
+      <fieldset>
+        <legend>Dokumentacja zdjęciowa uszkodzeń</legend>
+        <p class="muted">Zdjęcia stałe pojazdu — niezależne od protokołów, dołączane automatycznie do każdego kolejnego protokołu wydania/zwrotu.</p>
+        <div id="vehiclePhotoStrip" class="photo-strip"></div>
+        <label class="btn btn-secondary btn-block file-btn">
+          + Dodaj zdjęcie uszkodzenia
+          <input type="file" accept="image/*" capture="environment" id="vehiclePhotoInput" hidden />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Schemat uszkodzeń</legend>
+        <p class="muted">Ten sam schemat, co przy wydaniu/zwrocie — edycja tutaj aktualizuje podpowiedź dla kolejnego protokołu bez konieczności jego tworzenia.</p>
+        <div class="damage-map-wrap">
+          <canvas id="vehicleDamageMap" class="damage-map" width="600" height="400"></canvas>
+          <div class="damage-map-overlay" id="vehicleDamageMapOverlay">Dotknij, aby zaznaczyć uszkodzenie</div>
+        </div>
+        <div class="damage-map-pending-actions" id="vehicleDamageMapPendingActions" hidden>
+          <button type="button" class="btn btn-secondary" id="vehicleDamageMapDiscardBtn">Odrzuć</button>
+          <button type="button" class="btn btn-primary" id="vehicleDamageMapConfirmBtn">Zatwierdź zaznaczenie</button>
+        </div>
+        <button type="button" class="btn btn-text" id="vehicleDamageMapClearBtn">Wyczyść wszystkie zaznaczenia</button>
+        <button type="button" class="btn btn-secondary btn-block" id="vehicleDamageMapSaveBtn">Zapisz schemat</button>
+      </fieldset>
+    </div>
   </section>
 </template>
 

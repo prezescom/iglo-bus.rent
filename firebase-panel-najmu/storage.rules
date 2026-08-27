@@ -4,6 +4,11 @@ service firebase.storage {
     match /rentals/{rentalId}/{allPaths=**} {
       allow read, write: if request.auth != null;
     }
+    // Dokumentacja zdjęciowa uszkodzeń pojazdu — stała, niezależna od
+    // konkretnego wynajmu (baza pojazdów w panelu najmu).
+    match /vehicles/{plateId}/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
     // Obrazki wyróżniające wpisów bloga — publicznie czytelne (są osadzane
     // na iglo-bus.rent/blog dla niezalogowanych odwiedzających), zapis tylko
     // z panelu najmu.
