@@ -251,6 +251,14 @@ function normalizePlateId(plate) {
   return (plate || "").trim().toUpperCase().replace(/\s+/g, "");
 }
 
+// Wyświetla datę czynności serwisowej razem z przebiegiem, przy którym
+// została wykonana (oba pola opcjonalne, niezależne od siebie).
+function formatServiceEntry(date, mileage) {
+  if (!date && !mileage) return "—";
+  const mileagePart = mileage ? `${mileage} km` : "brak przebiegu";
+  return date ? `${date} (${mileagePart})` : mileagePart;
+}
+
 async function fetchVehicleDamageMarks(plate) {
   const snap = await getDoc(doc(db, "vehicles", normalizePlateId(plate)));
   return snap.exists() ? snap.data().lastDamageMapMarks || [] : [];
@@ -297,8 +305,8 @@ async function renderVehicles() {
         <div class="plate">${escapeHtml(v.make || "")} ${escapeHtml(v.model || "")} • ${escapeHtml(v.plate)}</div>
         <div class="tenant">VIN: ${escapeHtml(v.vin || "—")}</div>
         <div class="tenant">Ostatni przebieg: ${v.lastMileage ? v.lastMileage + " km" : "—"}</div>
-        <div class="tenant">Serwis olejowy: ${v.lastOilServiceDate || "—"} • Serwis chłodni: ${v.lastCoolingServiceDate || "—"}</div>
-        <div class="tenant">AdBlue: ${v.lastAdBlueDate || "—"} • Zdjęcia uszkodzeń: ${(v.damagePhotoUrls || []).length}</div>
+        <div class="tenant">Serwis olejowy: ${formatServiceEntry(v.lastOilServiceDate, v.lastOilServiceMileage)} • Serwis chłodni: ${formatServiceEntry(v.lastCoolingServiceDate, v.lastCoolingServiceMileage)}</div>
+        <div class="tenant">AdBlue: ${formatServiceEntry(v.lastAdBlueDate, v.lastAdBlueMileage)} • Zdjęcia uszkodzeń: ${(v.damagePhotoUrls || []).length}</div>
         <button class="btn btn-secondary" data-id="${v.plateId}">Edytuj</button>
       `;
       card.querySelector("button").addEventListener("click", () => navigate(`vehicle/${v.plateId}`));
@@ -387,8 +395,11 @@ async function renderVehicleForm(plateId) {
         form.elements["model"].value = v.model || "";
         form.elements["vin"].value = v.vin || "";
         form.elements["lastOilServiceDate"].value = v.lastOilServiceDate || "";
+        form.elements["lastOilServiceMileage"].value = v.lastOilServiceMileage || "";
         form.elements["lastCoolingServiceDate"].value = v.lastCoolingServiceDate || "";
+        form.elements["lastCoolingServiceMileage"].value = v.lastCoolingServiceMileage || "";
         form.elements["lastAdBlueDate"].value = v.lastAdBlueDate || "";
+        form.elements["lastAdBlueMileage"].value = v.lastAdBlueMileage || "";
         form.elements["lastMileage"].value = v.lastMileage || "";
         existingDamageMarks = v.lastDamageMapMarks || [];
         existingDamagePhotos = v.damagePhotoUrls || [];
@@ -440,8 +451,11 @@ async function renderVehicleForm(plateId) {
       model: fd.get("model") || "",
       vin: fd.get("vin") || "",
       lastOilServiceDate: fd.get("lastOilServiceDate") || "",
+      lastOilServiceMileage: fd.get("lastOilServiceMileage") || "",
       lastCoolingServiceDate: fd.get("lastCoolingServiceDate") || "",
+      lastCoolingServiceMileage: fd.get("lastCoolingServiceMileage") || "",
       lastAdBlueDate: fd.get("lastAdBlueDate") || "",
+      lastAdBlueMileage: fd.get("lastAdBlueMileage") || "",
       lastMileage: fd.get("lastMileage") || ""
     };
 

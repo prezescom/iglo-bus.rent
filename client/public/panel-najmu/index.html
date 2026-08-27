@@ -74,15 +74,30 @@
 
       <fieldset>
         <legend>Serwis i przebieg</legend>
-        <label>Ostatni serwis olejowy
-          <input name="lastOilServiceDate" type="date" />
-        </label>
-        <label>Ostatni serwis chłodni
-          <input name="lastCoolingServiceDate" type="date" />
-        </label>
-        <label>Ostatnie uzupełnienie AdBlue
-          <input name="lastAdBlueDate" type="date" />
-        </label>
+        <div class="row">
+          <label>Ostatni serwis olejowy
+            <input name="lastOilServiceDate" type="date" />
+          </label>
+          <label>Przebieg przy serwisie (km)
+            <input name="lastOilServiceMileage" inputmode="numeric" />
+          </label>
+        </div>
+        <div class="row">
+          <label>Ostatni serwis chłodni
+            <input name="lastCoolingServiceDate" type="date" />
+          </label>
+          <label>Przebieg przy serwisie (km)
+            <input name="lastCoolingServiceMileage" inputmode="numeric" />
+          </label>
+        </div>
+        <div class="row">
+          <label>Ostatnie uzupełnienie AdBlue
+            <input name="lastAdBlueDate" type="date" />
+          </label>
+          <label>Przebieg przy uzupełnieniu (km)
+            <input name="lastAdBlueMileage" inputmode="numeric" />
+          </label>
+        </div>
         <label>Ostatni zarejestrowany przebieg (km)
           <input name="lastMileage" inputmode="numeric" />
         </label>
