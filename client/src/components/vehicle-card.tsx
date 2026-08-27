@@ -3,6 +3,7 @@ import { Camera } from "lucide-react";
 import BookingForm from "./booking-form";
 import PhotoGallery from "./photo-gallery";
 import VehicleSpecDetails, { type VehicleCardDimensions } from "./vehicle-spec-details";
+import { useLanguage } from "@/lib/i18n/use-language";
 
 interface VehicleCardProps {
   vehicle: {
@@ -32,6 +33,7 @@ interface VehicleCardProps {
 }
 
 export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
+  const { t } = useLanguage();
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const hasGallery = Boolean(vehicle.gallery && vehicle.gallery.length > 0);
 
@@ -69,7 +71,11 @@ export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
           onClick={openGallery}
           onKeyDown={onKeyOpen}
           disabled={!hasGallery}
-          aria-label={hasGallery ? `Otwórz galerię zdjęć: ${vehicle.title}` : `Zdjęcie: ${vehicle.title}`}
+          aria-label={
+            hasGallery
+              ? `${t.vehicleCard.openGalleryAriaPrefix}: ${vehicle.title}`
+              : `${t.vehicleCard.photoAriaPrefix}: ${vehicle.title}`
+          }
           data-testid={`vehicle-image-${vehicle.id}`}
           data-vehicle-group={vehicle.group.replace("Grupa ", "")}
         >
@@ -92,7 +98,7 @@ export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
               </div>
 
               <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-full pointer-events-none">
-                +{vehicle.gallery!.length} zdjęć
+                +{vehicle.gallery!.length} {t.vehicleCard.photosSuffix}
               </div>
             </>
           )}
@@ -119,8 +125,8 @@ export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
           <table className="w-full text-sm">
             <thead className="bg-slate-50">
               <tr>
-                <th className="text-left p-3 font-semibold text-brand-dark">Okres</th>
-                <th className="text-right p-3 font-semibold text-brand-dark">Cena / doba</th>
+                <th className="text-left p-3 font-semibold text-brand-dark">{t.vehicleCard.tablePeriod}</th>
+                <th className="text-right p-3 font-semibold text-brand-dark">{t.vehicleCard.tablePrice}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -135,7 +141,7 @@ export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
         </div>
 
         <p className="text-xs text-slate-500 leading-relaxed bg-slate-50 p-3 rounded-lg">
-          {vehicle.description ?? "Zakres temperatur (−20°C do +20°C), rejestrator temperatur, agregat z podtrzymaniem 230V (opcja), kamera cofania, Android Auto, assistance na terenie EU. Kaucja zwrotna wg umowy."}
+          {vehicle.description ?? t.vehicleCard.defaultDescription}
         </p>
 
         <BookingForm vehicleTitle={vehicle.title} pricing={vehicle.pricing} />

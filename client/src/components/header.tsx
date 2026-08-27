@@ -7,10 +7,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useLanguage, isHomeRoute } from "@/lib/i18n/use-language";
+import LanguageSwitcher from "@/components/language-switcher";
 
 export default function Header() {
   const [location] = useLocation();
-  const isHomePage = location === "/";
+  const { t, lang } = useLanguage();
+  const isHomePage = isHomeRoute(location);
+  const homeHref = lang === "pl" ? "/" : `/${lang}`;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const scrollToSection = (sectionId: string) => {
@@ -31,13 +35,13 @@ export default function Header() {
     <>
       <header className="sticky top-0 z-40 border-b bg-white/90 backdrop-blur-md shadow-sm">
         <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-3">
-          <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
+          <Link href={homeHref} className="flex items-center gap-3 hover:opacity-90 transition-opacity">
             <div className="h-10 w-10 rounded-2xl bg-brand-light border border-brand-blue/20 grid place-items-center">
               <Snowflake className="h-5 w-5 text-brand-blue" />
             </div>
             <div className="min-w-0">
               <div className="font-bold text-lg text-brand-dark leading-tight">iglo-bus.rent</div>
-              <div className="text-xs text-slate-500 leading-tight">Wynajem chłodni i mroźni • PL</div>
+              <div className="text-xs text-slate-500 leading-tight">{t.header.tagline}</div>
             </div>
           </Link>
 
@@ -46,66 +50,71 @@ export default function Header() {
             {isHomePage ? (
               <>
                 <button onClick={() => scrollToSection("flota")} className="hover:text-brand-blue transition-colors">
-                  Flota i cennik
+                  {t.header.navFleet}
                 </button>
                 <button onClick={() => scrollToSection("jak-dziala")} className="hover:text-brand-blue transition-colors">
-                  Jak to działa
+                  {t.header.navHow}
                 </button>
                 <button onClick={() => scrollToSection("faq")} className="hover:text-brand-blue transition-colors">
-                  FAQ
+                  {t.header.navFaq}
                 </button>
               </>
             ) : (
               <>
-                <a href="/#flota" className="hover:text-brand-blue transition-colors">Flota i cennik</a>
-                <a href="/#jak-dziala" className="hover:text-brand-blue transition-colors">Jak to działa</a>
-                <a href="/#faq" className="hover:text-brand-blue transition-colors">FAQ</a>
+                <a href="/#flota" className="hover:text-brand-blue transition-colors">{t.header.navFleet}</a>
+                <a href="/#jak-dziala" className="hover:text-brand-blue transition-colors">{t.header.navHow}</a>
+                <a href="/#faq" className="hover:text-brand-blue transition-colors">{t.header.navFaq}</a>
               </>
             )}
 
             <DropdownMenu>
               <DropdownMenuTrigger className="flex items-center gap-1 hover:text-brand-blue transition-colors outline-none">
-                Baza wiedzy
+                {t.header.knowledgeBase}
                 <ChevronDown className="h-3 w-3" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
                 <DropdownMenuItem asChild>
-                  <Link href="/wynajem-mrozni" className="w-full">🧊 Wynajem mroźni</Link>
+                  <Link href="/wynajem-mrozni" className="w-full">{t.header.kbFreezer}</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/wynajem-chlodni" className="w-full">❄️ Wynajem chłodni</Link>
+                  <Link href="/wynajem-chlodni" className="w-full">{t.header.kbFridge}</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/wymagania-auto-chlodnia-mroznia-izoterma" className="w-full">📋 Wymagania auto chłodnia</Link>
+                  <Link href="/wymagania-auto-chlodnia-mroznia-izoterma" className="w-full">{t.header.kbRequirements}</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/wyposazenie-samochodow-mrozni" className="w-full">🔧 Wyposażenie</Link>
+                  <Link href="/wyposazenie-samochodow-mrozni" className="w-full">{t.header.kbEquipment}</Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
             <Link href="/blog" className="hover:text-brand-blue transition-colors">
-              Blog
+              {t.header.blog}
             </Link>
 
             <a
               href="tel:+48530410504"
               className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-brand-blue text-white text-sm font-semibold hover:bg-brand-blue/90 transition-colors"
-              aria-label="Zadzwoń do Iglo-Bus Rent"
+              aria-label={t.header.callAria}
             >
               <Phone className="h-4 w-4" />
               +48 530 410 504
             </a>
+
+            <LanguageSwitcher />
           </nav>
 
-          {/* Mobile: tylko hamburger */}
-          <button
-            className="md:hidden p-2 hover:bg-gray-100 rounded-md transition-colors"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label={mobileMenuOpen ? "Zamknij menu" : "Otwórz menu"}
-          >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+          {/* Mobile: flagi + hamburger */}
+          <div className="md:hidden flex items-center gap-3">
+            <LanguageSwitcher />
+            <button
+              className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? t.header.menuCloseAria : t.header.menuOpenAria}
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile menu */}
@@ -116,37 +125,37 @@ export default function Header() {
                 onClick={() => scrollToSection("flota")}
                 className="block w-full text-left py-2 px-3 hover:bg-brand-light rounded-md transition-colors"
               >
-                Flota i cennik
+                {t.header.navFleet}
               </button>
               <button
                 onClick={() => scrollToSection("jak-dziala")}
                 className="block w-full text-left py-2 px-3 hover:bg-brand-light rounded-md transition-colors"
               >
-                Jak to działa
+                {t.header.navHow}
               </button>
               <button
                 onClick={() => scrollToSection("faq")}
                 className="block w-full text-left py-2 px-3 hover:bg-brand-light rounded-md transition-colors"
               >
-                FAQ
+                {t.header.navFaq}
               </button>
 
               <div className="border-t pt-2 mt-2">
-                <div className="py-2 px-3 text-xs uppercase tracking-wide text-gray-500">Baza wiedzy</div>
+                <div className="py-2 px-3 text-xs uppercase tracking-wide text-gray-500">{t.header.knowledgeBase}</div>
                 <Link href="/wynajem-mrozni" className="block py-2 px-3 hover:bg-brand-light rounded-md transition-colors">
-                  🧊 Wynajem mroźni
+                  {t.header.kbFreezer}
                 </Link>
                 <Link href="/wynajem-chlodni" className="block py-2 px-3 hover:bg-brand-light rounded-md transition-colors">
-                  ❄️ Wynajem chłodni
+                  {t.header.kbFridge}
                 </Link>
                 <Link href="/wyposazenie-samochodow-mrozni" className="block py-2 px-3 hover:bg-brand-light rounded-md transition-colors">
-                  🔧 Wyposażenie
+                  {t.header.kbEquipment}
                 </Link>
               </div>
 
               <div className="border-t pt-2 mt-2">
                 <Link href="/blog" className="block py-2 px-3 hover:bg-brand-light rounded-md transition-colors">
-                  📰 Blog
+                  📰 {t.header.blog}
                 </Link>
               </div>
             </nav>
@@ -160,20 +169,20 @@ export default function Header() {
           <a
             href="tel:+48530410504"
             className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-brand-blue text-white font-semibold"
-            aria-label="Zadzwoń"
+            aria-label={t.header.mobileCall}
           >
             <Phone className="h-5 w-5" />
-            Zadzwoń
+            {t.header.mobileCall}
           </a>
 
           <button
             type="button"
             onClick={() => scrollToSection("flota")}
             className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-brand-blue text-brand-blue font-semibold"
-            aria-label="Sprawdź ceny i dostępność"
+            aria-label={t.header.mobilePricingAria}
           >
             <List className="h-5 w-5" />
-            Cennik
+            {t.header.mobilePricing}
           </button>
         </div>
       </div>

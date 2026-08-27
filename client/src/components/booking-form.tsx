@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Calendar as CalendarIcon, Mail, Calculator } from "lucide-react";
 import { format } from "date-fns";
-import { pl } from "date-fns/locale";
+import { pl, enGB, cs } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import emailjs from '@emailjs/browser';
+import { useLanguage } from "@/lib/i18n/use-language";
+import { formatDayCount } from "@/lib/i18n/translations";
+
+const DATE_FNS_LOCALE = { pl, en: enGB, cs };
 
 // "YYYY-MM-DD" <-> Date, licząc po lokalnych składowych daty (nie
 // toISOString/new Date(string), które przechodzą przez UTC i przy pewnych
@@ -49,6 +53,8 @@ interface BookingFormProps {
 }
 
 export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps) {
+  const { t, lang } = useLanguage();
+  const dateLocale = DATE_FNS_LOCALE[lang];
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [email, setEmail] = useState("");
@@ -125,8 +131,8 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
     
     if (!dateFrom || !dateTo || !email) {
       toast({
-        title: "Błąd",
-        description: "Proszę wypełnić wszystkie wymagane pola.",
+        title: t.booking.toastErrorTitle,
+        description: t.booking.toastMissingFields,
         variant: "destructive",
       });
       return;
@@ -139,8 +145,8 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
 
     if (selectedFromDate < todayDate) {
       toast({
-        title: "Błąd",
-        description: "Data rozpoczęcia nie może być w przeszłości.",
+        title: t.booking.toastErrorTitle,
+        description: t.booking.toastPastDate,
         variant: "destructive",
       });
       return;
@@ -148,8 +154,8 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
 
     if (selectedToDate <= selectedFromDate) {
       toast({
-        title: "Błąd",
-        description: "Data zakończenia musi być późniejsza niż data rozpoczęcia.",
+        title: t.booking.toastErrorTitle,
+        description: t.booking.toastEndBeforeStart,
         variant: "destructive",
       });
       return;
@@ -157,8 +163,8 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
 
     if (!email.includes("@")) {
       toast({
-        title: "Błąd",
-        description: "Proszę podać prawidłowy adres e-mail.",
+        title: t.booking.toastErrorTitle,
+        description: t.booking.toastInvalidEmail,
         variant: "destructive",
       });
       return;
@@ -206,8 +212,8 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
       console.log('Booking email sent successfully:', result.status, result.text);
 
       toast({
-        title: "Zapytanie wysłane!",
-        description: "Dziękujemy za zapytanie o rezerwację. Odpowiemy w ciągu kilku godzin.",
+        title: t.booking.toastSuccessTitle,
+        description: t.booking.toastSuccessDesc,
       });
 
       // Reset form
@@ -219,18 +225,18 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
     } catch (error: any) {
       console.error('Error sending booking email:', error);
       
-      let errorMessage = "Nie udało się wysłać zapytania. Spróbuj ponownie lub zadzwoń: +48 530 410 504";
-      
+      let errorMessage = t.booking.toastGenericError;
+
       if (error?.status === 412 && error?.text?.includes('Relaying disallowed')) {
-        errorMessage = "Problem z konfiguracją email. Prosimy dzwonić: +48 530 410 504";
+        errorMessage = t.booking.toastRelayError;
       } else if (error?.status === 400) {
-        errorMessage = "Błąd w formularzu. Sprawdź wszystkie pola i spróbuj ponownie.";
+        errorMessage = t.booking.toastFormError;
       } else if (error?.status === 401) {
-        errorMessage = "Problem z autoryzacją email. Prosimy dzwonić: +48 530 410 504";
+        errorMessage = t.booking.toastAuthError;
       }
-      
+
       toast({
-        title: "Błąd wysyłania",
+        title: t.booking.toastSendErrorTitle,
         description: errorMessage,
         variant: "destructive",
       });
@@ -245,7 +251,7 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label htmlFor={`date-from-${vehicleTitle}`} className="text-sm font-medium text-brand-dark">
-              Data od
+              {t.booking.dateFromLabel}
             </Label>
             <Popover>
               <PopoverTrigger asChild>
@@ -258,14 +264,14 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
                   )}
                   data-testid="input-date-from"
                 >
-                  {dateFrom ? format(fromYMD(dateFrom)!, "dd.MM.yyyy") : "Wybierz datę"}
+                  {dateFrom ? format(fromYMD(dateFrom)!, "dd.MM.yyyy") : t.booking.chooseDate}
                   <CalendarIcon className="absolute right-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
-                  locale={pl}
+                  locale={dateLocale}
                   selected={fromYMD(dateFrom)}
                   onSelect={(d) => setDateFrom(d ? toYMD(d) : "")}
                   disabled={[{ before: startOfToday() }, SUNDAY]}
@@ -276,7 +282,7 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
           </div>
           <div>
             <Label htmlFor={`date-to-${vehicleTitle}`} className="text-sm font-medium text-brand-dark">
-              Data do
+              {t.booking.dateToLabel}
             </Label>
             <Popover>
               <PopoverTrigger asChild>
@@ -289,14 +295,14 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
                   )}
                   data-testid="input-date-to"
                 >
-                  {dateTo ? format(fromYMD(dateTo)!, "dd.MM.yyyy") : "Wybierz datę"}
+                  {dateTo ? format(fromYMD(dateTo)!, "dd.MM.yyyy") : t.booking.chooseDate}
                   <CalendarIcon className="absolute right-3 top-2.5 h-4 w-4 text-slate-400 pointer-events-none" />
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
-                  locale={pl}
+                  locale={dateLocale}
                   selected={fromYMD(dateTo)}
                   onSelect={(d) => setDateTo(d ? toYMD(d) : "")}
                   disabled={[{ before: fromYMD(dateFrom) || startOfToday() }, SUNDAY]}
@@ -312,42 +318,42 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
           <div className="bg-brand-light border border-brand-blue/20 rounded-xl p-4 space-y-3" data-testid="rental-calculator">
             <div className="flex items-center gap-2 text-brand-blue">
               <Calculator className="h-4 w-4" />
-              <span className="font-semibold text-sm">Kalkulator wynajmu</span>
+              <span className="font-semibold text-sm">{t.booking.calcTitle}</span>
             </div>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-slate-600">Liczba dni:</span>
-                <div className="font-bold text-brand-dark">{rentalCalculation.days} dni</div>
+                <span className="text-slate-600">{t.booking.calcDaysLabel}</span>
+                <div className="font-bold text-brand-dark">{formatDayCount(rentalCalculation.days, lang)}</div>
               </div>
               <div>
-                <span className="text-slate-600">Stawka (tier: {rentalCalculation.tierUsed}):</span>
-                <div className="font-bold text-brand-blue">{rentalCalculation.dailyRate} zł/doba</div>
+                <span className="text-slate-600">{t.booking.calcRateLabel.replace("{tier}", rentalCalculation.tierUsed)}</span>
+                <div className="font-bold text-brand-blue">{rentalCalculation.dailyRate} {t.booking.perDaySuffix}</div>
               </div>
             </div>
             <div className="border-t border-brand-blue/20 pt-3">
               <div className="flex justify-between items-center">
-                <span className="font-semibold text-brand-dark">Szacowany koszt:</span>
+                <span className="font-semibold text-brand-dark">{t.booking.calcTotalLabel}</span>
                 <div className="text-right">
-                  <div className="text-xl font-bold text-brand-blue">{rentalCalculation.totalCost.toLocaleString()} zł</div>
-                  <div className="text-xs text-slate-500">netto</div>
+                  <div className="text-xl font-bold text-brand-blue">{rentalCalculation.totalCost.toLocaleString()} {t.currency}</div>
+                  <div className="text-xs text-slate-500">{t.booking.calcNet}</div>
                 </div>
               </div>
             </div>
             <p className="text-xs text-slate-500 leading-relaxed">
-              * Kalkulacja orientacyjna. Ostateczną stawkę potwierdzimy e-mailem po sprawdzeniu dostępności.
+              {t.booking.calcNote}
             </p>
           </div>
         )}
         
         <div>
           <Label htmlFor={`email-${vehicleTitle}`} className="text-sm font-medium text-brand-dark">
-            Twój e‑mail
+            {t.booking.emailLabel}
           </Label>
           <div className="relative">
             <Input
               id={`email-${vehicleTitle}`}
               type="email"
-              placeholder="jan.kowalski@firma.pl"
+              placeholder={t.booking.emailPlaceholder}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue"
@@ -360,12 +366,12 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
         
         <div>
           <Label htmlFor={`notes-${vehicleTitle}`} className="text-sm font-medium text-brand-dark">
-            Uwagi (opcjonalnie)
+            {t.booking.notesLabel}
           </Label>
           <Textarea
             id={`notes-${vehicleTitle}`}
             rows={3}
-            placeholder="np. Wskaż adres dostawy (sprawdź FAQ)"
+            placeholder={t.booking.notesPlaceholder}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-blue focus:border-brand-blue resize-none"
@@ -383,14 +389,14 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
             {isLoading ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Wysyłanie...
+                {t.booking.submitLoading}
               </>
             ) : (
-              "Wyślij zapytanie"
+              t.booking.submitIdle
             )}
           </Button>
           <p className="text-xs text-slate-500 text-center">
-            Zapytanie trafi na <span className="font-medium">kontakt@iglo-bus.rent</span>
+            {t.booking.submitNotePrefix} <span className="font-medium">kontakt@iglo-bus.rent</span>
           </p>
         </div>
       </form>

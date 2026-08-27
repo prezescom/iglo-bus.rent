@@ -1,5 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import VehicleCard from "./vehicle-card";
+import { useLanguage } from "@/lib/i18n/use-language";
+import type { VehicleId } from "@/lib/i18n/translations";
 
 // Vehicle images served statically for Vercel deployment
 const proAceCityImg = "/images/ProAce City 1_1755593677474.JPG";
@@ -21,96 +23,103 @@ const proAceMaxiNew = "/images/ProAce Maxi 1_1755593677475.JPG";
 const proAceMaxiInside = "/images/ProAce Maxi 2_1755593677475.JPG";
 const proAceMaxiTech = "/images/ProAce Maxi 3_1755593677476.JPG";
 
-const vehicles = [
+// Dane niezależne od języka: obrazy, wymiary, wagi, kaucje i same kwoty
+// cennika. Teksty (tytuły, opisy zdjęć, etykiety okresów) pochodzą ze
+// słownika i18n — patrz vehiclesBase[].id -> dictionaries[lang].vehicles.
+const vehiclesBase = [
   {
-    id: "city",
-    title: "Toyota ProAce City (S)",
-    group: "Grupa S",
+    id: "city" as VehicleId,
     image: proAceCityImg,
-    alt: "Toyota ProAce City - kompaktowy samochód chłodniczy",
     loadCapacityKg: 685,
     grossWeightKg: 2400,
     dimensionsInternal: { length: 175, width: 109, height: 104 },
     dimensionsExternal: { length: 475, width: 185, height: 211 },
     depositPln: 1000,
-    gallery: [
-      { src: proAceCityNew, alt: "Toyota ProAce City z agregatem chłodniczym", title: "ProAce City - pojazd z systemem chłodniczym" },
-      { src: proAceCityInside, alt: "Toyota ProAce City - wnętrze chłodni z agregatem", title: "ProAce City - wnętrze z systemem Zanotti" },
-      { src: proAceCityTech, alt: "Toyota ProAce City - wymiary wewnętrzne", title: "ProAce City - wymiary zabudowy" },
-    ],
-    pricing: [
-      { period: "1–3 doby", price: "350 zł" },
-      { period: "4–7 dób", price: "300 zł" },
-      { period: "8–14 dób", price: "270 zł" },
-      { period: "15–29 dób", price: "230 zł" },
-      { period: "30+ dni (miesięcznie)", price: "5 500 zł", highlighted: true },
-    ],
+    gallerySrc: [proAceCityNew, proAceCityInside, proAceCityTech],
+    // Ostatnia stawka (30+ dni) jest wyróżniona w tabeli cennika
+    prices: [350, 300, 270, 230, 5500],
   },
   {
-    id: "proace",
-    title: "Toyota ProAce (M)",
-    group: "Grupa M",
+    id: "proace" as VehicleId,
     image: proAceImg,
-    alt: "Toyota ProAce - średni samochód chłodniczy",
     loadCapacityKg: 950,
     grossWeightKg: 3100,
     dimensionsInternal: { length: 238, width: 125, height: 113 },
     dimensionsExternal: { length: 530, width: 193, height: 218 },
     depositPln: 1500,
-    gallery: [
-      { src: proAceNew, alt: "Toyota ProAce z otwartymi drzwiami bocznymi", title: "ProAce - dostęp do ładowni" },
-      { src: proAceInside, alt: "Toyota ProAce - wnętrze chłodni z podłogą aluminiową", title: "ProAce - wnętrze z systemem chłodniczym" },
-      { src: proAceTech, alt: "Toyota ProAce - wymiary wewnętrzne", title: "ProAce - specyfikacja wymiarów" },
-    ],
-    pricing: [
-      { period: "1–3 doby", price: "400 zł" },
-      { period: "4–7 dób", price: "350 zł" },
-      { period: "8–14 dób", price: "320 zł" },
-      { period: "15–29 dób", price: "280 zł" },
-      { period: "30+ dni (miesięcznie)", price: "6 000 zł", highlighted: true },
-    ],
+    gallerySrc: [proAceNew, proAceInside, proAceTech],
+    prices: [400, 350, 320, 280, 6000],
   },
   {
-    id: "maxi",
-    title: "Toyota ProAce Maxi (L)",
-    group: "Grupa L",
+    id: "maxi" as VehicleId,
     image: proAceMaxiImg,
-    alt: "Toyota ProAce Maxi - duży samochód chłodniczy",
     loadCapacityKg: 1105,
     grossWeightKg: 3500,
     dimensionsInternal: { length: 333, width: 157, height: 173 },
     dimensionsExternal: { length: 600, width: 205, height: 260 },
     depositPln: 2000,
-    gallery: [
-      { src: proAceMaxiNew, alt: "Toyota ProAce Maxi - nowy model", title: "ProAce Maxi - model 2024" },
-      { src: proAceMaxiInside, alt: "Toyota ProAce Maxi - wnętrze chłodni", title: "ProAce Maxi - wnętrze chłodni" },
-      { src: proAceMaxiTech, alt: "Toyota ProAce Maxi - wymiary techniczne", title: "ProAce Maxi - wymiary i specyfikacja" },
-    ],
-    pricing: [
-      { period: "1–3 doby", price: "450 zł" },
-      { period: "4–7 dób", price: "400 zł" },
-      { period: "8–14 dób", price: "370 zł" },
-      { period: "15–29 dób", price: "330 zł" },
-      { period: "30+ dni (miesięcznie)", price: "6 500 zł", highlighted: true },
-    ],
+    gallerySrc: [proAceMaxiNew, proAceMaxiInside, proAceMaxiTech],
+    prices: [450, 400, 370, 330, 6500],
   },
 ];
 
-type Vehicle = (typeof vehicles)[number];
+const NUMBER_LOCALE: Record<string, string> = { pl: "pl-PL", en: "en-GB", cs: "cs-CZ" };
 
 export default function FleetSection() {
-  const [active, setActive] = useState<Vehicle["id"]>("proace");
+  const { t, lang } = useLanguage();
+  const [active, setActive] = useState<VehicleId>("proace");
 
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [flashId, setFlashId] = useState<string | null>(null);
 
+  const vehicles = useMemo(
+    () =>
+      vehiclesBase.map((base) => {
+        const text = t.vehicles[base.id];
+        const numberLocale = NUMBER_LOCALE[lang] ?? "pl-PL";
+        return {
+          id: base.id,
+          title: text.title,
+          group: text.group,
+          image: base.image,
+          alt: text.alt,
+          loadCapacityKg: base.loadCapacityKg,
+          grossWeightKg: base.grossWeightKg,
+          dimensionsInternal: base.dimensionsInternal,
+          dimensionsExternal: base.dimensionsExternal,
+          depositPln: base.depositPln,
+          gallery: base.gallerySrc.map((src, i) => ({
+            src,
+            alt: text.gallery[i].alt,
+            title: text.gallery[i].title,
+          })),
+          pricing: base.prices.map((amount, i) => ({
+            period: text.periods[i],
+            price: `${amount.toLocaleString(numberLocale)} ${t.currency}`,
+            highlighted: i === base.prices.length - 1,
+          })),
+        };
+      }),
+    [t, lang]
+  );
+
+  type Vehicle = (typeof vehicles)[number];
+
+  // Nazwy modeli (marka) są identyczne w każdym języku — bez tłumaczenia.
+  const CHIP_TITLES: Record<VehicleId, string> = {
+    city: "ProAce City",
+    proace: "ProAce",
+    maxi: "ProAce Maxi",
+  };
+
   const chips = useMemo(
-    () => [
-      { id: "city" as const, label: "S", title: "ProAce City" },
-      { id: "proace" as const, label: "M", title: "ProAce" },
-      { id: "maxi" as const, label: "L", title: "ProAce Maxi" },
-    ],
-    []
+    () =>
+      vehicles.map((v, i) => ({
+        id: v.id,
+        label: ["S", "M", "L"][i],
+        title: CHIP_TITLES[v.id],
+      })),
+    [vehicles]
   );
 
   const scrollToVehicle = (id: Vehicle["id"]) => {
@@ -132,15 +141,15 @@ export default function FleetSection() {
     <section id="flota" className="mx-auto max-w-6xl px-4 pb-14 md:pb-16" data-testid="fleet-section">
       {/* nagłówek – krótszy na mobile */}
       <div className="text-center mb-6 md:mb-10">
-        <h2 className="text-2xl md:text-3xl font-bold text-brand-dark mb-2">Flota i cennik</h2>
+        <h2 className="text-2xl md:text-3xl font-bold text-brand-dark mb-2">{t.fleet.title}</h2>
 
         <p className="text-slate-600 text-sm md:text-base leading-relaxed max-w-3xl mx-auto">
-          Ceny netto. Rezerwacja niewiążąca — potwierdzimy dostępność i stawkę e-mailem.
-          <span className="hidden md:inline"> Płatność wyłącznie kartą.</span>
+          {t.fleet.intro}
+          <span className="hidden md:inline">{t.fleet.introDesktopExtra}</span>
         </p>
 
         <p className="md:hidden text-xs text-slate-500 mt-2">
-          Płatność wyłącznie kartą.
+          {t.fleet.introMobile}
         </p>
       </div>
 
@@ -160,7 +169,7 @@ export default function FleetSection() {
                     ? "bg-brand-blue text-white border-brand-blue"
                     : "bg-white text-slate-700 border-slate-200 hover:border-brand-blue/40 hover:text-brand-blue",
                 ].join(" ")}
-                aria-label={`Pokaż rozmiar ${c.label}: ${c.title}`}
+                aria-label={`${t.fleet.sizeAriaPrefix} ${c.label}: ${c.title}`}
               >
                 {c.label}
                 <span className="ml-2 font-medium opacity-80">{c.title}</span>
@@ -190,7 +199,7 @@ export default function FleetSection() {
 
       {/* mobile hint (mikrocopy) */}
       <div className="md:hidden mt-6 text-center text-xs text-slate-500">
-        Tip: dotknij zdjęcia, żeby otworzyć galerię.
+        {t.fleet.mobileHint}
       </div>
     </section>
   );

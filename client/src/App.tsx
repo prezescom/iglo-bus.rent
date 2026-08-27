@@ -2,7 +2,6 @@ import { Switch, Route } from "wouter";
 import { Suspense, lazy } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import CookiesBanner from "@/components/cookies-banner";
@@ -27,6 +26,8 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/en" component={Home} />
+      <Route path="/cs" component={Home} />
       <Route path="/polityka-prywatnosci" component={PrivacyPolicy} />
       <Route path="/wynajem-mrozni" component={WynajemMrozni} />
       <Route path="/wynajem-chlodni" component={WynajemChlodni} />
@@ -58,14 +59,12 @@ function Router() {
 
 export default function App() {
   return (
-    <HelmetProvider>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-          <CookiesBanner />
-        </TooltipProvider>
-      </QueryClientProvider>
-    </HelmetProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Router />
+        <CookiesBanner />
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 }

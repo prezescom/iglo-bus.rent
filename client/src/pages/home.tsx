@@ -1,13 +1,16 @@
 import { useEffect } from "react";
-import { Helmet } from "react-helmet-async";
 import Header from "@/components/header";
 import Hero from "@/components/hero";
 import FleetSection from "@/components/fleet-section";
 import HowItWorks from "@/components/how-it-works";
 import FaqSection from "@/components/faq-section";
 import Footer from "@/components/footer";
+import { useLanguage } from "@/lib/i18n/use-language";
+import { useDocumentHead } from "@/lib/use-document-head";
 
 export default function Home() {
+  const { t, lang } = useLanguage();
+
   useEffect(() => {
     const hash = window.location.hash;
     if (hash) {
@@ -18,14 +21,14 @@ export default function Home() {
     }
   }, []);
 
-  const siteUrl = "https://www.iglo-bus.rent/";
+  const siteRoot = "https://www.iglo-bus.rent";
+  const siteUrl = lang === "pl" ? `${siteRoot}/` : `${siteRoot}/${lang}`;
   const phone = "+48 530 410 504";
   const email = "kontakt@iglo-bus.rent";
 
-  const pageTitle = "Wynajem samochodów chłodni i mroźni – Polska | Iglo-Bus Rent";
-  const pageDesc =
-    "Wynajem aut chłodni i mroźni z atestem Sanepid. Zakres −20°C do +20°C, rejestrator temperatur, szybkie podstawienie w całej Polsce.";
-  const ogImage = `${siteUrl}images/og-home-1200.jpg`;
+  const pageTitle = t.meta.title;
+  const pageDesc = t.meta.description;
+  const ogImage = `${siteRoot}/images/og-home-1200.jpg`;
 
   const jsonLdLocalBusiness = {
     "@context": "https://schema.org",
@@ -37,62 +40,67 @@ export default function Home() {
     areaServed: "PL",
     priceRange: "PLN",
     image: ogImage,
-    description:
-      "Wynajem samochodów chłodni i mroźni z atestem Sanepid. Krótko i długoterminowo, szybka dostawa w całej Polsce."
+    description: t.meta.localBusinessDescription,
   };
 
   const jsonLdWebSite = {
     "@context": "https://schema.org",
     "@type": "WebSite",
     url: siteUrl,
-    name: "Iglo-Bus Rent"
+    name: "Iglo-Bus Rent",
   };
 
   const jsonLdBreadcrumbs = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Strona główna", item: siteUrl }
-    ]
+      { "@type": "ListItem", position: 1, name: t.meta.breadcrumbHome, item: siteUrl },
+    ],
   };
 
   const jsonLdItemList = {
     "@context": "https://schema.org",
     "@type": "ItemList",
     name: "Flota Iglo-Bus Rent",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        item: {
-          "@type": "Product",
-          name: "Toyota ProAce City – samochód chłodniczy (S)",
-          description: "Wynajem samochodu chłodniczego ProAce City. Wymiary 175×109×104 cm, zakres −20°C do +20°C.",
-          offers: { "@type": "Offer", price: "350", priceCurrency: "PLN", priceSpecification: { unitText: "za dobę" } }
-        }
+    itemListElement: t.meta.products.map((product, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      item: {
+        "@type": "Product",
+        name: product.name,
+        description: product.description,
+        offers: {
+          "@type": "Offer",
+          price: [350, 400, 450][i],
+          priceCurrency: "PLN",
+          priceSpecification: { unitText: lang === "pl" ? "za dobę" : lang === "cs" ? "za den" : "per day" },
+        },
       },
-      {
-        "@type": "ListItem",
-        position: 2,
-        item: {
-          "@type": "Product",
-          name: "Toyota ProAce – samochód chłodniczy (M)",
-          description: "Wynajem samochodu chłodniczego ProAce. Wymiary 238×125×113 cm, zakres −20°C do +20°C.",
-          offers: { "@type": "Offer", price: "400", priceCurrency: "PLN", priceSpecification: { unitText: "za dobę" } }
-        }
-      },
-      {
-        "@type": "ListItem",
-        position: 3,
-        item: {
-          "@type": "Product",
-          name: "Toyota ProAce Maxi – samochód chłodniczy (L)",
-          description: "Wynajem samochodu chłodniczego ProAce Maxi. Wymiary 333×157×173 cm, zakres −20°C do +20°C.",
-          offers: { "@type": "Offer", price: "450", priceCurrency: "PLN", priceSpecification: { unitText: "za dobę" } }
-        }
-      }
-    ]
+    })),
   };
+
+  useDocumentHead({
+    title: pageTitle,
+    description: pageDesc,
+    canonical: siteUrl,
+    links: [
+      { rel: "alternate", hrefLang: "pl", href: `${siteRoot}/` },
+      { rel: "alternate", hrefLang: "en", href: `${siteRoot}/en` },
+      { rel: "alternate", hrefLang: "cs", href: `${siteRoot}/cs` },
+      { rel: "alternate", hrefLang: "x-default", href: `${siteRoot}/` },
+    ],
+    metas: [
+      { attr: "name", key: "description", content: pageDesc },
+      { attr: "property", key: "og:locale", content: t.meta.ogLocale },
+      { attr: "property", key: "og:url", content: siteUrl },
+      { attr: "property", key: "og:title", content: pageTitle },
+      { attr: "property", key: "og:description", content: pageDesc },
+      { attr: "property", key: "og:image:alt", content: t.meta.ogImageAlt },
+      { attr: "name", key: "twitter:title", content: pageTitle },
+      { attr: "name", key: "twitter:description", content: pageDesc },
+    ],
+    jsonLd: [jsonLdLocalBusiness, jsonLdWebSite, jsonLdBreadcrumbs, jsonLdItemList],
+  });
 
   const scrollToFleet = () => {
     const el = document.getElementById("flota");
@@ -101,37 +109,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      <Helmet>
-        <title>{pageTitle}</title>
-        <meta name="description" content={pageDesc} />
-        <link rel="canonical" href={siteUrl} />
-        <meta name="robots" content="index,follow,max-image-preview:large" />
-
-        <link rel="alternate" hrefLang="pl" href={siteUrl} />
-        <link rel="alternate" hrefLang="x-default" href={siteUrl} />
-
-        <meta property="og:type" content="website" />
-        <meta property="og:locale" content="pl_PL" />
-        <meta property="og:site_name" content="Iglo-Bus Rent" />
-        <meta property="og:url" content={siteUrl} />
-        <meta property="og:title" content={pageTitle} />
-        <meta property="og:description" content={pageDesc} />
-        <meta property="og:image" content={ogImage} />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta property="og:image:alt" content="Wynajem samochodów chłodni i mroźni – Iglo-Bus Rent" />
-
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={pageTitle} />
-        <meta name="twitter:description" content={pageDesc} />
-        <meta name="twitter:image" content={ogImage} />
-
-        <script type="application/ld+json">{JSON.stringify(jsonLdLocalBusiness)}</script>
-        <script type="application/ld+json">{JSON.stringify(jsonLdWebSite)}</script>
-        <script type="application/ld+json">{JSON.stringify(jsonLdBreadcrumbs)}</script>
-        <script type="application/ld+json">{JSON.stringify(jsonLdItemList)}</script>
-      </Helmet>
-
       <Header />
 
       <main>

@@ -1,6 +1,9 @@
 import { Snowflake } from "lucide-react";
+import { useLanguage } from "@/lib/i18n/use-language";
 
 export default function Footer() {
+  const { t } = useLanguage();
+
   return (
     <footer className="bg-brand-dark text-white" data-testid="footer">
       <div className="mx-auto max-w-6xl px-4 py-8">
@@ -13,17 +16,17 @@ export default function Footer() {
               <span className="font-bold text-lg">Iglo-bus.rent</span>
             </div>
             <p className="text-slate-300 text-sm leading-relaxed">
-              Profesjonalna wypożyczalnia samochodów chłodniczych i mroźni na terenie Polski.
+              {t.footer.tagline}
             </p>
           </div>
-          
+
           <div>
-            <h4 className="font-semibold mb-4">Kontakt</h4>
+            <h4 className="font-semibold mb-4">{t.footer.contactTitle}</h4>
             <div className="space-y-2 text-sm text-slate-300">
               <p>
-                E-mail:{" "}
-                <a 
-                  href="/kontakt" 
+                {t.footer.emailLabel}:{" "}
+                <a
+                  href="/kontakt"
                   className="text-brand-blue hover:underline"
                   data-testid="footer-email"
                 >
@@ -31,9 +34,9 @@ export default function Footer() {
                 </a>
               </p>
               <p>
-                Telefon:{" "}
-                <a 
-                  href="tel:+48530410504" 
+                {t.footer.phoneLabel}:{" "}
+                <a
+                  href="tel:+48530410504"
                   className="text-brand-blue hover:underline"
                   data-testid="footer-phone"
                 >
@@ -41,31 +44,31 @@ export default function Footer() {
                 </a>
               </p>
               <p>
-                Adres:{" "}
-                <a 
+                {t.footer.addressLabel}:{" "}
+                <a
                   href="https://maps.app.goo.gl/HHsdXgeZWMpkHRqy9"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-brand-blue hover:underline cursor-pointer"
                   data-testid="footer-address"
-                  title="Otwórz w Google Maps"
+                  title={t.footer.mapTooltip}
                 >
-                  Gliwicka 15b, 44-178 Przyszowice
+                  {t.footer.address}
                 </a>
               </p>
             </div>
           </div>
-          
+
           <div>
-            <h4 className="font-semibold mb-4">Usługi</h4>
+            <h4 className="font-semibold mb-4">{t.footer.servicesTitle}</h4>
             <div className="space-y-2 text-sm text-slate-300">
-              <p>Wynajem aut chłodniczych</p>
-              <p>Transport produktów mrożonych</p>
-              <p>Obsługa B2B z fakturą VAT</p>
+              <p>{t.footer.service1}</p>
+              <p>{t.footer.service2}</p>
+              <p>{t.footer.service3}</p>
             </div>
           </div>
         </div>
-        
+
         <div className="border-t border-slate-700 mt-8 pt-8 text-center text-sm text-slate-400">
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-4">
             <a
@@ -73,7 +76,7 @@ export default function Footer() {
               className="text-brand-blue hover:underline"
               data-testid="footer-blog"
             >
-              Blog
+              {t.footer.blog}
             </a>
             <span className="hidden sm:inline">•</span>
             <a
@@ -81,7 +84,7 @@ export default function Footer() {
               className="text-brand-blue hover:underline"
               data-testid="footer-praca"
             >
-              Praca
+              {t.footer.praca}
             </a>
             <span className="hidden sm:inline">•</span>
             <a
@@ -89,17 +92,17 @@ export default function Footer() {
               className="text-brand-blue hover:underline"
               data-testid="footer-privacy-policy"
             >
-              Polityka Prywatności
+              {t.footer.privacy}
             </a>
             <span className="hidden sm:inline">•</span>
             <a
               href="/kontakt"
               className="text-brand-blue hover:underline"
             >
-              Kontakt RODO
+              {t.footer.contactRodo}
             </a>
           </div>
-          <p>&copy; 2024 Iglo-bus.rent. Wszystkie prawa zastrzeżone.</p>
+          <p>{t.footer.copyright}</p>
         </div>
       </div>
     </footer>

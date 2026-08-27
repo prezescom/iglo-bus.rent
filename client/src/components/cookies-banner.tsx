@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { X, Cookie } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLanguage } from "@/lib/i18n/use-language";
 
 export default function CookiesBanner() {
+  const { t } = useLanguage();
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -44,20 +46,18 @@ export default function CookiesBanner() {
             <Cookie className="h-5 w-5 text-brand-blue mt-0.5 flex-shrink-0" />
             <div className="space-y-2">
               <h3 className="font-semibold text-sm text-brand-dark">
-                Używamy plików cookie
+                {t.cookies.title}
               </h3>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                Ta strona używa plików cookie niezbędnych do jej funkcjonowania oraz analitycznych 
-                do poprawy jakości usług. Kontynuując korzystanie ze strony, wyrażasz zgodę na 
-                wykorzystanie plików cookie zgodnie z naszą{" "}
-                <a 
+                {t.cookies.text}{" "}
+                <a
                   href="/polityka-prywatnosci"
                   className="text-brand-blue hover:underline font-medium"
                   target="_blank"
                   rel="noopener noreferrer"
                   data-testid="privacy-policy-link"
                 >
-                  polityką prywatności
+                  {t.cookies.linkText}
                 </a>.
               </p>
             </div>
@@ -71,7 +71,7 @@ export default function CookiesBanner() {
               className="flex-1 sm:flex-none text-xs sm:text-sm border-slate-300 hover:bg-slate-50"
               data-testid="decline-cookies"
             >
-              Odrzuć
+              {t.cookies.decline}
             </Button>
             <Button
               size="sm"
@@ -79,7 +79,7 @@ export default function CookiesBanner() {
               className="flex-1 sm:flex-none text-xs sm:text-sm bg-brand-blue hover:bg-brand-blue/90"
               data-testid="accept-cookies"
             >
-              Akceptuj
+              {t.cookies.accept}
             </Button>
             <Button
               variant="ghost"

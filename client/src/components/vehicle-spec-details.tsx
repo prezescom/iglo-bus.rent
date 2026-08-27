@@ -1,4 +1,5 @@
 import { Weight, Gauge, Box, Truck, ShieldCheck } from "lucide-react";
+import { useLanguage } from "@/lib/i18n/use-language";
 
 export interface VehicleCardDimensions {
   length: number;
@@ -15,8 +16,9 @@ export interface VehicleCardAccent {
 
 export const defaultVehicleCardAccent: VehicleCardAccent = { text: "text-brand-blue", bg: "bg-brand-light" };
 
-export const formatKg = (value: number) => `${value.toLocaleString("pl-PL")} kg`;
-export const formatPln = (value: number) => `${value.toLocaleString("pl-PL")} zł`;
+export const formatKg = (value: number, locale = "pl-PL") => `${value.toLocaleString(locale)} kg`;
+export const formatPln = (value: number, locale = "pl-PL", currency = "zł") =>
+  `${value.toLocaleString(locale)} ${currency}`;
 
 export interface VehicleSpecDetailsProps {
   /** ładowność w kg — pomiń, gdy nie dotyczy danego typu pojazdu */
@@ -32,6 +34,8 @@ export interface VehicleSpecDetailsProps {
   testId?: string;
 }
 
+const NUMBER_LOCALE: Record<string, string> = { pl: "pl-PL", en: "en-GB", cs: "cs-CZ" };
+
 export default function VehicleSpecDetails({
   loadCapacityKg,
   grossWeightKg,
@@ -41,6 +45,8 @@ export default function VehicleSpecDetails({
   accent = defaultVehicleCardAccent,
   testId,
 }: VehicleSpecDetailsProps) {
+  const { t, lang } = useLanguage();
+  const numberLocale = NUMBER_LOCALE[lang] ?? "pl-PL";
   const hasLoadCapacity = typeof loadCapacityKg === "number";
   const hasGrossWeight = typeof grossWeightKg === "number";
   const hasDeposit = typeof depositPln === "number";
@@ -53,8 +59,8 @@ export default function VehicleSpecDetails({
             <div className="flex items-center gap-2">
               <Weight className={`h-5 w-5 shrink-0 ${accent.text}`} />
               <div className="leading-tight">
-                <div className="text-[11px] text-slate-500">ładowność</div>
-                <div className={`text-lg font-semibold ${accent.text}`}>{formatKg(loadCapacityKg!)}</div>
+                <div className="text-[11px] text-slate-500">{t.vehicleSpec.loadCapacity}</div>
+                <div className={`text-lg font-semibold ${accent.text}`}>{formatKg(loadCapacityKg!, numberLocale)}</div>
               </div>
             </div>
           )}
@@ -65,8 +71,8 @@ export default function VehicleSpecDetails({
             <div className="flex items-center gap-2">
               <Gauge className={`h-5 w-5 shrink-0 ${accent.text}`} />
               <div className="leading-tight">
-                <div className="text-[11px] text-slate-500">DMC</div>
-                <div className={`text-lg font-semibold ${accent.text}`}>{formatKg(grossWeightKg!)}</div>
+                <div className="text-[11px] text-slate-500">{t.vehicleSpec.grossWeight}</div>
+                <div className={`text-lg font-semibold ${accent.text}`}>{formatKg(grossWeightKg!, numberLocale)}</div>
               </div>
             </div>
           )}
@@ -78,9 +84,9 @@ export default function VehicleSpecDetails({
           <thead>
             <tr className="bg-slate-50 text-slate-500">
               <th className="text-left font-medium px-3 py-2" />
-              <th className="text-right font-medium px-3 py-2">dł.</th>
-              <th className="text-right font-medium px-3 py-2">szer.</th>
-              <th className="text-right font-medium px-3 py-2">wys.</th>
+              <th className="text-right font-medium px-3 py-2">{t.vehicleSpec.length}</th>
+              <th className="text-right font-medium px-3 py-2">{t.vehicleSpec.width}</th>
+              <th className="text-right font-medium px-3 py-2">{t.vehicleSpec.height}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -88,7 +94,7 @@ export default function VehicleSpecDetails({
               <td className="px-3 py-2 text-slate-500">
                 <div className="flex items-center gap-1.5">
                   <Box className="h-4 w-4 shrink-0" />
-                  wewn.
+                  {t.vehicleSpec.internal}
                 </div>
               </td>
               <td className="text-right px-3 py-2 font-medium text-slate-900">{dimensionsInternal.length}</td>
@@ -100,7 +106,7 @@ export default function VehicleSpecDetails({
                 <td className="px-3 py-2 text-slate-500">
                   <div className="flex items-center gap-1.5">
                     <Truck className="h-4 w-4 shrink-0" />
-                    zewn.
+                    {t.vehicleSpec.external}
                   </div>
                 </td>
                 <td className="text-right px-3 py-2 font-medium text-slate-900">{dimensionsExternal.length}</td>
@@ -110,17 +116,17 @@ export default function VehicleSpecDetails({
             )}
           </tbody>
         </table>
-        <p className="text-[11px] text-slate-400 mt-1.5">wymiary w cm</p>
+        <p className="text-[11px] text-slate-400 mt-1.5">{t.vehicleSpec.dimensionsNote}</p>
       </div>
 
       {hasDeposit && (
         <div className="flex items-center justify-between pt-4 border-t border-slate-200">
           <div className="flex items-center gap-2 text-slate-600 text-sm">
             <ShieldCheck className="h-4 w-4" />
-            <span>Kaucja</span>
+            <span>{t.vehicleSpec.deposit}</span>
           </div>
           <span className="text-xs font-semibold text-amber-800 bg-amber-100 px-3 py-1 rounded-full">
-            {formatPln(depositPln!)}
+            {formatPln(depositPln!, numberLocale, t.currency)}
           </span>
         </div>
       )}
