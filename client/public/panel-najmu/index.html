@@ -640,6 +640,160 @@
   </section>
 </template>
 
+<template id="tpl-regenerate">
+  <section class="view">
+    <p class="muted">Dane odzyskane z przerwanego zapisu (protokół nie zdążył się wygenerować/wysłać). Zdjęcia, podpis i schemat uszkodzeń są już bezpiecznie zapisane i nie trzeba ich powtarzać — sprawdź i popraw dane poniżej, zanim protokół zostanie złożony.</p>
+    <div id="regenerateHeader" class="return-header muted">Wczytywanie…</div>
+    <form id="regenerateForm" class="form" hidden>
+      <fieldset id="regenerateVehicleFieldset">
+        <legend>Pojazd</legend>
+        <label>Nr rejestracyjny
+          <input name="vehiclePlate" required />
+        </label>
+        <label>Model pojazdu
+          <input name="vehicleModel" required />
+        </label>
+        <label>VIN
+          <input name="vehicleVin" />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Stan przy tej fazie wynajmu</legend>
+        <div class="row">
+          <label>Przebieg (km)
+            <input name="mileage" inputmode="numeric" required />
+          </label>
+          <label>Paliwo (%)
+            <input name="fuel" inputmode="numeric" required />
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset id="regenerateTenantFieldset">
+        <legend>Najemca</legend>
+        <label>Typ najemcy
+          <select name="tenantType" id="regenerateTenantTypeSelect">
+            <option value="osoba">Osoba prywatna</option>
+            <option value="firma">Firma</option>
+          </select>
+        </label>
+        <label id="regenerateTenantPeselWrap">PESEL
+          <input name="tenantPesel" />
+        </label>
+        <label id="regenerateTenantNipWrap" hidden>NIP
+          <input name="tenantNip" />
+        </label>
+        <label>Imię i nazwisko / nazwa firmy
+          <input name="tenantName" required />
+        </label>
+        <label>Telefon
+          <input name="tenantPhone" type="tel" required />
+        </label>
+        <label>E-mail
+          <input name="tenantEmail" type="email" required />
+        </label>
+      </fieldset>
+
+      <fieldset id="regenerateDriverFieldset">
+        <legend>Kierowca</legend>
+        <label>Imię i nazwisko kierowcy
+          <input name="driverName" required />
+        </label>
+        <label>Nr Prawa Jazdy (5.)
+          <input name="driverLicense" required />
+        </label>
+      </fieldset>
+
+      <fieldset id="regenerateAddressFieldset">
+        <legend>Adres najemcy</legend>
+        <div class="row">
+          <label>Ulica
+            <input name="tenantStreet" />
+          </label>
+          <label>Nr domu
+            <input name="tenantHouseNumber" />
+          </label>
+        </div>
+        <div class="row">
+          <label>Nr mieszkania
+            <input name="tenantApartmentNumber" />
+          </label>
+          <label>Kod pocztowy
+            <input name="tenantPostalCode" />
+          </label>
+        </div>
+        <label>Miejscowość
+          <input name="tenantCity" />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Stan pojazdu</legend>
+        <label>Karoseria
+          <select name="bodyCondition">
+            <option value="czysta">Czysta</option>
+            <option value="brudna">Brudna</option>
+          </select>
+        </label>
+        <label>Przestrzeń pasażerska
+          <select name="passengerAreaCondition">
+            <option value="czysta">Czysta</option>
+            <option value="brudna">Brudna</option>
+          </select>
+        </label>
+        <label>Przestrzeń ładunkowa
+          <select name="cargoAreaCondition">
+            <option value="czysta">Czysta</option>
+            <option value="brudna">Brudna</option>
+          </select>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Wyposażenie</legend>
+        <div id="regenerateEquipmentContainer"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Uwagi</legend>
+        <textarea name="notes" rows="3"></textarea>
+      </fieldset>
+
+      <fieldset>
+        <legend>Zdjęcia (odzyskane z zapisu)</legend>
+        <div id="regeneratePhotoStrip" class="photo-strip"></div>
+        <p class="muted" id="regeneratePhotoEmpty" hidden>Brak zapisanych zdjęć.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Schemat uszkodzeń (odzyskany z zapisu)</legend>
+        <img id="regenerateDamageMapPreview" style="width:100%;height:auto;border-radius:8px;border:1px solid var(--line);" alt="Schemat uszkodzeń" />
+        <p class="muted" id="regenerateDamageMapEmpty" hidden>Brak zapisanego schematu uszkodzeń.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Zdjęcia uszkodzeń z bazy pojazdu (dołączane automatycznie)</legend>
+        <p class="muted">Aktualna dokumentacja uszkodzeń zapisana przy tym pojeździe — dołączy się do protokołu tak samo, jak przy zwykłym wydaniu/zwrocie.</p>
+        <div id="regenerateVehicleDamagePhotoStrip" class="photo-strip"></div>
+        <p class="muted" id="regenerateVehicleDamagePhotoEmpty" hidden>Brak zdjęć uszkodzeń w bazie pojazdu.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Podpis (odzyskany z zapisu)</legend>
+        <img id="regenerateSigPreview" class="sig-preview" alt="Podpis" />
+      </fieldset>
+
+      <p id="regenerateSuccess" class="muted" hidden></p>
+      <p id="regenerateFormError" class="error" hidden></p>
+
+      <button type="submit" class="btn btn-primary btn-block" id="regenerateSubmitBtn">
+        Zatwierdź dane i wygeneruj protokół
+      </button>
+    </form>
+  </section>
+</template>
+
 <div id="signatureModal" class="signature-modal" hidden>
   <div class="signature-modal-inner">
     <div class="signature-rotate-hint" id="modalSigRotateHint">Obróć telefon poziomo, aby podpisać</div>

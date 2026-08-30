@@ -14,7 +14,7 @@ import {
   getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, query, where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
-  getStorage, ref, uploadBytes, getDownloadURL, deleteObject
+  getStorage, ref, uploadBytes, getDownloadURL, deleteObject, listAll, getBlob
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import {
   getFunctions, httpsCallable
@@ -83,6 +83,10 @@ async function render() {
   } else if (view === "return") {
     pageTitle.textContent = "Zwrot pojazdu";
     renderReturn(param);
+  } else if (view === "regenerate") {
+    pageTitle.textContent = "Protokół awaryjny";
+    const [phase, rentalId] = (param || "").split("__");
+    renderRegenerate(phase, rentalId);
   } else if (view === "history") {
     pageTitle.textContent = "Zakończone wynajmy";
     renderHistory();
@@ -144,14 +148,21 @@ async function renderList() {
     listEl.innerHTML = "";
     snap.forEach((d) => {
       const r = d.data();
+      const missingProtocol = !r.handoverProtocolPdfUrl;
       const card = document.createElement("div");
       card.className = "rental-card";
       card.innerHTML = `
         <div class="plate">${escapeHtml(r.vehicleModel)} • ${escapeHtml(r.vehiclePlate)}</div>
         <div class="tenant">Najemca: ${escapeHtml(r.tenantName)}</div>
-        <button class="btn btn-secondary" data-id="${d.id}">Zarejestruj zwrot</button>
+        ${missingProtocol ? '<div class="error">Brak wygenerowanego protokołu wydania (PDF)!</div>' : ""}
+        <button class="btn btn-secondary" data-action="return">Zarejestruj zwrot</button>
+        ${missingProtocol ? '<button class="btn-text" data-action="regen">Wygeneruj protokół awaryjnie</button>' : ""}
       `;
-      card.querySelector("button").addEventListener("click", () => navigate(`return/${d.id}`));
+      card.querySelector('[data-action="return"]').addEventListener("click", () => navigate(`return/${d.id}`));
+      const regenBtn = card.querySelector('[data-action="regen"]');
+      if (regenBtn) {
+        regenBtn.addEventListener("click", () => navigate(`regenerate/wydanie__${d.id}`));
+      }
       listEl.appendChild(card);
     });
   } catch (e) {
@@ -198,13 +209,17 @@ async function renderHistory() {
       const returnDate = r.closedTimestamp ? formatDate(r.closedTimestamp) : "—";
       const pdfLink = r.returnProtocolPdfUrl
         ? `<a class="btn-text" href="${r.returnProtocolPdfUrl}" target="_blank" rel="noopener">Protokół zwrotu (PDF)</a>`
-        : "";
+        : '<div class="error">Brak wygenerowanego protokołu zwrotu (PDF)!</div><button class="btn-text" data-action="regen">Wygeneruj protokół awaryjnie</button>';
       card.innerHTML = `
         <div class="plate">${escapeHtml(r.vehicleModel)} • ${escapeHtml(r.vehiclePlate)}</div>
         <div class="tenant">Najemca: ${escapeHtml(r.tenantName)}</div>
         <div class="tenant">Data zakończenia: ${returnDate}</div>
         ${pdfLink}
       `;
+      const regenBtn = card.querySelector('[data-action="regen"]');
+      if (regenBtn) {
+        regenBtn.addEventListener("click", () => navigate(`regenerate/zwrot__${r.id}`));
+      }
       listEl.appendChild(card);
     });
   }
@@ -1713,6 +1728,314 @@ async function uploadPdf(rentalId, phase, blob, plate, timestampMs) {
   const r = ref(storage, `rentals/${rentalId}/${phase}/${prefix}-protokol.pdf`);
   await uploadBytes(r, blob, { contentType: "application/pdf" });
   return getDownloadURL(r);
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+// ---------- AWARYJNE ODTWARZANIE PROTOKOŁU ----------
+// Zapis wydania/zwrotu generuje PDF z lokalnych danych równolegle z
+// wgrywaniem zdjęć/podpisu/mapy do Storage (patrz Promise.all wyżej) —
+// jeśli ta druga grupa operacji zawiedzie (np. urwane połączenie w
+// trakcie wgrywania dużego zdjęcia), cały zapis odrzuca, mimo że PDF już
+// się poprawnie wygenerował — po prostu nigdy nie trafia do Storage, bo
+// kod nigdy nie dochodzi do uploadPdf. Część plików (te, które zdążyły
+// się wgrać przed zerwaniem) zostaje jednak bezpiecznie w Storage. Ta
+// funkcja tylko odzyskuje to, co już tam leży dla danego wynajmu/fazy —
+// złożenie protokołu (renderRegenerate) daje operatorowi szansę poprawić
+// dane przed wygenerowaniem, bo zapisany rekord bywa niekompletny (np.
+// brak numeru prawa jazdy wpisanego w pośpiechu).
+async function fetchRecoveredAssets(rentalId, phase) {
+  const listing = await listAll(ref(storage, `rentals/${rentalId}/${phase}`));
+  let signatureItem = null;
+  let damageMapItem = null;
+  const photoItems = [];
+  for (const item of listing.items) {
+    if (/-podpis\.jpg$/.test(item.name)) signatureItem = item;
+    else if (/-uszkodzenia\.jpg$/.test(item.name)) damageMapItem = item;
+    else if (/-\d+\.jpg$/.test(item.name)) photoItems.push(item);
+  }
+
+  // Zdjęcia w kolejności, w jakiej zostały zrobione (numer w nazwie pliku).
+  photoItems.sort((a, b) => {
+    const numA = Number((/-(\d+)\.jpg$/.exec(a.name) || [])[1] || 0);
+    const numB = Number((/-(\d+)\.jpg$/.exec(b.name) || [])[1] || 0);
+    return numA - numB;
+  });
+
+  const [sigDataUrl, damageMapDataUrl, photoDataUrls] = await Promise.all([
+    signatureItem ? getBlob(signatureItem).then(blobToDataUrl) : Promise.resolve(null),
+    damageMapItem ? getBlob(damageMapItem).then(blobToDataUrl) : Promise.resolve(null),
+    Promise.all(photoItems.map((item) => getBlob(item).then(fileToDataUrl)))
+  ]);
+
+  return { signatureItem, damageMapItem, photoItems, sigDataUrl, damageMapDataUrl, photoDataUrls };
+}
+
+// Widok przeglądu/poprawy danych przed złożeniem protokołu awaryjnie —
+// wywoływany z listy aktywnych wynajmów (wydanie) i z historii (zwrot),
+// gdy brakuje wygenerowanego PDF-a.
+async function renderRegenerate(phase, rentalId) {
+  const tpl = document.getElementById("tpl-regenerate");
+  appEl.replaceChildren(tpl.content.cloneNode(true));
+  const headerEl = document.getElementById("regenerateHeader");
+  const form = document.getElementById("regenerateForm");
+  const errorEl = document.getElementById("regenerateFormError");
+  const submitBtn = document.getElementById("regenerateSubmitBtn");
+  const isHandover = phase === "wydanie";
+
+  let record;
+  try {
+    const snap = await getDoc(doc(db, "rentals", rentalId));
+    if (!snap.exists()) {
+      headerEl.textContent = "Nie znaleziono wynajmu.";
+      return;
+    }
+    record = snap.data();
+  } catch (e) {
+    headerEl.textContent = "Błąd wczytywania: " + e.message;
+    return;
+  }
+
+  headerEl.innerHTML = `<strong>${escapeHtml(record.vehicleModel)} • ${escapeHtml(record.vehiclePlate)}</strong><br>Najemca: ${escapeHtml(record.tenantName)}`;
+
+  // Pojazd/najemca/kierowca/adres ma sens do poprawiania tylko przy wydaniu
+  // — przy zwrocie te dane są już ustalone i nie są ponownie zbierane.
+  document.getElementById("regenerateVehicleFieldset").hidden = !isHandover;
+  document.getElementById("regenerateTenantFieldset").hidden = !isHandover;
+  document.getElementById("regenerateDriverFieldset").hidden = !isHandover;
+  document.getElementById("regenerateAddressFieldset").hidden = !isHandover;
+
+  const equipmentContainer = document.getElementById("regenerateEquipmentContainer");
+  const equipmentLabels = {
+    equipmentShelf: "Półka double-deck",
+    equipmentCargoBar: "Poprzeczka do blokowania ładunku",
+    equipmentStraps: "Zapinki (6 szt.)",
+    equipmentPowerCable: "Kabel do zasilania chłodni na postoju"
+  };
+
+  if (isHandover) {
+    form.elements["vehiclePlate"].value = record.vehiclePlate || "";
+    form.elements["vehicleModel"].value = record.vehicleModel || "";
+    form.elements["vehicleVin"].value = record.vehicleVin || "";
+    form.elements["mileage"].value = record.vehicleMileageAtHandover || "";
+    form.elements["fuel"].value = record.vehicleFuelAtHandover || "";
+    form.elements["tenantType"].value = record.tenantType || "osoba";
+    form.elements["tenantPesel"].value = record.tenantPesel || "";
+    form.elements["tenantNip"].value = record.tenantNip || "";
+    form.elements["tenantName"].value = record.tenantName || "";
+    form.elements["tenantPhone"].value = record.tenantPhone || "";
+    form.elements["tenantEmail"].value = record.tenantEmail || "";
+    form.elements["driverName"].value = record.driverName || "";
+    form.elements["driverLicense"].value = record.driverLicenseNumber || "";
+    form.elements["tenantStreet"].value = record.tenantStreet || "";
+    form.elements["tenantHouseNumber"].value = record.tenantHouseNumber || "";
+    form.elements["tenantApartmentNumber"].value = record.tenantApartmentNumber || "";
+    form.elements["tenantPostalCode"].value = record.tenantPostalCode || "";
+    form.elements["tenantCity"].value = record.tenantCity || "";
+    form.elements["bodyCondition"].value = record.handoverBodyCondition || "czysta";
+    form.elements["passengerAreaCondition"].value = record.handoverPassengerAreaCondition || "czysta";
+    form.elements["cargoAreaCondition"].value = record.handoverCargoAreaCondition || "czysta";
+    form.elements["notes"].value = record.handoverNotes || "";
+
+    const peselWrap = document.getElementById("regenerateTenantPeselWrap");
+    const nipWrap = document.getElementById("regenerateTenantNipWrap");
+    const syncTenantType = () => {
+      const isCompany = form.elements["tenantType"].value === "firma";
+      peselWrap.hidden = isCompany;
+      nipWrap.hidden = !isCompany;
+    };
+    form.elements["tenantType"].addEventListener("change", syncTenantType);
+    syncTenantType();
+
+    Object.entries(equipmentLabels).forEach(([field, label]) => {
+      const wrap = document.createElement("label");
+      wrap.className = "checkbox-label";
+      wrap.innerHTML = `<input type="checkbox" name="${field}" ${record[field] ? "checked" : ""} /> ${escapeHtml(label)}`;
+      equipmentContainer.appendChild(wrap);
+    });
+  } else {
+    form.elements["mileage"].value = record.vehicleMileageAtReturn || "";
+    form.elements["fuel"].value = record.vehicleFuelAtReturn || "";
+    form.elements["bodyCondition"].value = record.returnBodyCondition || "czysta";
+    form.elements["passengerAreaCondition"].value = record.returnPassengerAreaCondition || "czysta";
+    form.elements["cargoAreaCondition"].value = record.returnCargoAreaCondition || "czysta";
+    form.elements["notes"].value = record.returnNotes || "";
+
+    // Tylko wyposażenie faktycznie przekazane przy wydaniu — analogicznie
+    // do zwykłego formularza zwrotu.
+    Object.keys(equipmentLabels).filter((field) => record[field]).forEach((field) => {
+      const returned = record.returnedEquipment ? record.returnedEquipment[field] : true;
+      const wrap = document.createElement("label");
+      wrap.className = "checkbox-label";
+      wrap.innerHTML = `<input type="checkbox" name="return_${field}" ${returned !== false ? "checked" : ""} /> ${escapeHtml(equipmentLabels[field])}`;
+      equipmentContainer.appendChild(wrap);
+    });
+  }
+
+  // ---- Odzyskiwanie zdjęć/podpisu/mapy uszkodzeń z Storage ----
+  let recovered;
+  try {
+    recovered = await fetchRecoveredAssets(rentalId, phase);
+  } catch (e) {
+    errorEl.textContent = "Błąd wczytywania zapisanych plików: " + e.message;
+    errorEl.hidden = false;
+    return;
+  }
+
+  if (!recovered.signatureItem) {
+    errorEl.textContent = "Brak zapisanego podpisu w Firebase Storage — nie da się złożyć protokołu awaryjnie. Trzeba powtórzyć podpis w normalnym trybie.";
+    errorEl.hidden = false;
+    return;
+  }
+
+  document.getElementById("regenerateSigPreview").src = recovered.sigDataUrl;
+
+  const damagePreview = document.getElementById("regenerateDamageMapPreview");
+  if (recovered.damageMapDataUrl) {
+    damagePreview.src = recovered.damageMapDataUrl;
+  } else {
+    damagePreview.hidden = true;
+    document.getElementById("regenerateDamageMapEmpty").hidden = false;
+  }
+
+  const photoStrip = document.getElementById("regeneratePhotoStrip");
+  if (recovered.photoDataUrls.length) {
+    recovered.photoDataUrls.forEach((src) => {
+      const img = document.createElement("img");
+      img.className = "photo-thumb";
+      img.src = src;
+      photoStrip.appendChild(img);
+    });
+  } else {
+    document.getElementById("regeneratePhotoEmpty").hidden = false;
+  }
+
+  // Zdjęcia uszkodzeń zapisane na stałe przy pojeździe (baza pojazdów) —
+  // tak jak przy zwykłym wydaniu/zwrocie, dołączane automatycznie do PDF-u.
+  // To stan AKTUALNY bazy pojazdu, nie migawka z chwili tego wynajmu —
+  // dokładnie tak samo, jak działa to w normalnym trybie (dokumentacja
+  // uszkodzeń pojazdu nie jest wersjonowana per-wynajem).
+  let vehicleDamagePhotos = [];
+  try {
+    const vehicleSnap = await getDoc(doc(db, "vehicles", normalizePlateId(record.vehiclePlate)));
+    vehicleDamagePhotos = vehicleSnap.exists() ? vehicleSnap.data().damagePhotoUrls || [] : [];
+  } catch (e) {
+    // Brak dostępu do bazy pojazdów nie powinien blokować protokołu awaryjnego.
+  }
+  const vehicleDamagePhotoDataUrls = await vehicleDamagePhotosToDataUrls(vehicleDamagePhotos);
+  const vehicleDamageStrip = document.getElementById("regenerateVehicleDamagePhotoStrip");
+  if (vehicleDamageStrip) {
+    if (vehicleDamagePhotoDataUrls.length) {
+      vehicleDamagePhotoDataUrls.forEach((src) => {
+        const img = document.createElement("img");
+        img.className = "photo-thumb";
+        img.src = src;
+        vehicleDamageStrip.appendChild(img);
+      });
+    } else {
+      document.getElementById("regenerateVehicleDamagePhotoEmpty").hidden = false;
+    }
+  }
+
+  form.hidden = false;
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errorEl.hidden = true;
+    const fd = new FormData(form);
+
+    const update = isHandover
+      ? {
+          vehiclePlate: fd.get("vehiclePlate"),
+          vehicleModel: fd.get("vehicleModel"),
+          vehicleVin: fd.get("vehicleVin") || "",
+          vehicleMileageAtHandover: fd.get("mileage"),
+          vehicleFuelAtHandover: fd.get("fuel"),
+          tenantType: fd.get("tenantType"),
+          tenantNip: fd.get("tenantNip") || "",
+          tenantPesel: fd.get("tenantPesel") || "",
+          tenantName: fd.get("tenantName"),
+          tenantPhone: fd.get("tenantPhone"),
+          tenantEmail: fd.get("tenantEmail"),
+          tenantStreet: fd.get("tenantStreet") || "",
+          tenantHouseNumber: fd.get("tenantHouseNumber") || "",
+          tenantApartmentNumber: fd.get("tenantApartmentNumber") || "",
+          tenantPostalCode: fd.get("tenantPostalCode") || "",
+          tenantCity: fd.get("tenantCity") || "",
+          driverName: fd.get("driverName"),
+          driverLicenseNumber: fd.get("driverLicense"),
+          handoverNotes: fd.get("notes") || "",
+          handoverBodyCondition: fd.get("bodyCondition"),
+          handoverPassengerAreaCondition: fd.get("passengerAreaCondition"),
+          handoverCargoAreaCondition: fd.get("cargoAreaCondition"),
+          equipmentShelf: form.elements["equipmentShelf"].checked,
+          equipmentCargoBar: form.elements["equipmentCargoBar"].checked,
+          equipmentStraps: form.elements["equipmentStraps"].checked,
+          equipmentPowerCable: form.elements["equipmentPowerCable"].checked
+        }
+      : {
+          vehicleMileageAtReturn: fd.get("mileage"),
+          vehicleFuelAtReturn: fd.get("fuel"),
+          returnNotes: fd.get("notes") || "",
+          returnBodyCondition: fd.get("bodyCondition"),
+          returnPassengerAreaCondition: fd.get("passengerAreaCondition"),
+          returnCargoAreaCondition: fd.get("cargoAreaCondition")
+        };
+
+    if (!isHandover) {
+      const returnedEquipment = { ...(record.returnedEquipment || {}) };
+      form.querySelectorAll('input[type="checkbox"][name^="return_"]').forEach((cb) => {
+        returnedEquipment[cb.name.replace("return_", "")] = cb.checked;
+      });
+      update.returnedEquipment = returnedEquipment;
+    }
+
+    const mergedRecord = { ...record, ...update };
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Generowanie…";
+    try {
+      const pdfBlob = await generateProtocolPdf(
+        mergedRecord, phase, recovered.sigDataUrl, recovered.damageMapDataUrl, recovered.photoDataUrls, vehicleDamagePhotoDataUrls
+      );
+      const timestamp = isHandover ? record.handoverTimestamp : record.returnTimestamp;
+      const pdfUrl = await uploadPdf(rentalId, phase, pdfBlob, mergedRecord.vehiclePlate, timestamp);
+
+      const urlField = isHandover ? "handoverProtocolPdfUrl" : "returnProtocolPdfUrl";
+      const sigField = isHandover ? "handoverSignatureUrl" : "returnSignatureUrl";
+      const damageField = isHandover ? "handoverDamageMapUrl" : "returnDamageMapUrl";
+      const photoField = isHandover ? "handoverPhotoUrls" : "returnPhotoUrls";
+
+      const finalUpdate = { ...update, [urlField]: pdfUrl };
+      // Dogrywamy też adresy podpisu/mapy uszkodzeń/zdjęć w Firestore, jeśli
+      // ten sam przerwany zapis, który ubił upload PDF-a, ubił i te pola.
+      if (!record[sigField]) finalUpdate[sigField] = await getDownloadURL(recovered.signatureItem);
+      if (recovered.damageMapItem && !record[damageField]) finalUpdate[damageField] = await getDownloadURL(recovered.damageMapItem);
+      if ((!record[photoField] || !record[photoField].length) && recovered.photoItems.length) {
+        finalUpdate[photoField] = await Promise.all(recovered.photoItems.map((item) => getDownloadURL(item)));
+      }
+
+      await setDoc(doc(db, "rentals", rentalId), finalUpdate, { merge: true });
+
+      const successEl = document.getElementById("regenerateSuccess");
+      successEl.innerHTML = `Protokół wygenerowany. <a class="btn-text" href="${pdfUrl}" target="_blank" rel="noopener">Otwórz PDF</a> — wyślij go do klienta ręcznie.`;
+      successEl.hidden = false;
+      submitBtn.hidden = true;
+      showToast("Wygenerowano protokół z odzyskanych danych.");
+    } catch (err) {
+      errorEl.textContent = "Błąd generowania: " + err.message;
+      errorEl.hidden = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Zatwierdź dane i wygeneruj protokół";
+    }
+  });
 }
 
 async function sendProtocolEmail(rentalId, phase, pdfUrl, tenantEmail, lessorEmail, vehiclePlate, timestamp) {
