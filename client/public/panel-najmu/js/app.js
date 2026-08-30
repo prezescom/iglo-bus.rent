@@ -1789,6 +1789,10 @@ async function renderRegenerate(phase, rentalId) {
   const errorEl = document.getElementById("regenerateFormError");
   const submitBtn = document.getElementById("regenerateSubmitBtn");
   const isHandover = phase === "wydanie";
+  // Zadeklarowane tu (nie wewnątrz try/catch niżej), bo są potrzebne też w
+  // handlerze submit, który wieszamy po zakończeniu tego try/catch.
+  let recovered;
+  let vehicleDamagePhotoDataUrls;
 
   let record;
   try {
@@ -1804,6 +1808,12 @@ async function renderRegenerate(phase, rentalId) {
   }
 
   headerEl.innerHTML = `<strong>${escapeHtml(record.vehicleModel)} • ${escapeHtml(record.vehiclePlate)}</strong><br>Najemca: ${escapeHtml(record.tenantName)}`;
+
+  // Całość przygotowania formularza (poniżej) w jednym try/catch — inaczej
+  // nieoczekiwany wyjątek w dowolnym miejscu (np. brakujący element w DOM,
+  // błąd odczytu ze Storage) po prostu zawiesza widok na samym nagłówku,
+  // bez żadnego komunikatu dla operatora.
+  try {
 
   // Pojazd/najemca/kierowca/adres ma sens do poprawiania tylko przy wydaniu
   // — przy zwrocie te dane są już ustalone i nie są ponownie zbierane.
@@ -1880,14 +1890,7 @@ async function renderRegenerate(phase, rentalId) {
   }
 
   // ---- Odzyskiwanie zdjęć/podpisu/mapy uszkodzeń z Storage ----
-  let recovered;
-  try {
-    recovered = await fetchRecoveredAssets(rentalId, phase);
-  } catch (e) {
-    errorEl.textContent = "Błąd wczytywania zapisanych plików: " + e.message;
-    errorEl.hidden = false;
-    return;
-  }
+  recovered = await fetchRecoveredAssets(rentalId, phase);
 
   if (!recovered.signatureItem) {
     errorEl.textContent = "Brak zapisanego podpisu w Firebase Storage — nie da się złożyć protokołu awaryjnie. Trzeba powtórzyć podpis w normalnym trybie.";
@@ -1929,7 +1932,7 @@ async function renderRegenerate(phase, rentalId) {
   } catch (e) {
     // Brak dostępu do bazy pojazdów nie powinien blokować protokołu awaryjnego.
   }
-  const vehicleDamagePhotoDataUrls = await vehicleDamagePhotosToDataUrls(vehicleDamagePhotos);
+  vehicleDamagePhotoDataUrls = await vehicleDamagePhotosToDataUrls(vehicleDamagePhotos);
   const vehicleDamageStrip = document.getElementById("regenerateVehicleDamagePhotoStrip");
   if (vehicleDamageStrip) {
     if (vehicleDamagePhotoDataUrls.length) {
@@ -1945,6 +1948,11 @@ async function renderRegenerate(phase, rentalId) {
   }
 
   form.hidden = false;
+  } catch (e) {
+    errorEl.textContent = "Błąd przygotowania protokołu awaryjnego: " + e.message;
+    errorEl.hidden = false;
+    return;
+  }
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();

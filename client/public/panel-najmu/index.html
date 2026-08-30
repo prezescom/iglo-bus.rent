@@ -644,6 +644,7 @@
   <section class="view">
     <p class="muted">Dane odzyskane z przerwanego zapisu (protokół nie zdążył się wygenerować/wysłać). Zdjęcia, podpis i schemat uszkodzeń są już bezpiecznie zapisane i nie trzeba ich powtarzać — sprawdź i popraw dane poniżej, zanim protokół zostanie złożony.</p>
     <div id="regenerateHeader" class="return-header muted">Wczytywanie…</div>
+    <p id="regenerateFormError" class="error" hidden></p>
     <form id="regenerateForm" class="form" hidden>
       <fieldset id="regenerateVehicleFieldset">
         <legend>Pojazd</legend>
@@ -785,7 +786,6 @@
       </fieldset>
 
       <p id="regenerateSuccess" class="muted" hidden></p>
-      <p id="regenerateFormError" class="error" hidden></p>
 
       <button type="submit" class="btn btn-primary btn-block" id="regenerateSubmitBtn">
         Zatwierdź dane i wygeneruj protokół
