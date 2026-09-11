@@ -21,7 +21,8 @@ import {
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getAuth, signInWithCustomToken, onAuthStateChanged, signOut
+  getAuth, signInWithCustomToken, onAuthStateChanged, signOut,
+  setPersistence, browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc
@@ -35,6 +36,13 @@ const DAMAGE_MAP_DIAGRAM_URL = "/panel-najmu/img/van-diagram.png";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+// Sesja gościa (custom token zawężony do jednego rentalId) ma żyć TYLKO w
+// tej jednej karcie (sessionStorage), nigdy w domyślnym IndexedDB dzielonym
+// przez całe origin — inaczej karta panelu operatora (js/app.js), otwarta w
+// tej samej przeglądarce, mogłaby "zobaczyć" i przejąć tę zawężoną sesję
+// (Firebase synchronizuje IndexedDB między kartami), tracąc dostęp do
+// reszty bazy mimo poprawnego logowania operatorskiego.
+const authPersistenceReady = setPersistence(auth, browserSessionPersistence);
 const db = getFirestore(app);
 const storage = getStorage(app);
 const functions = getFunctions(app, FUNCTIONS_REGION);
@@ -76,13 +84,23 @@ async function render() {
     return;
   }
 
+  // Musi być ustawione zanim cokolwiek sprawdzi/zmieni stan logowania — w
+  // przeciwnym razie sygnOut poniżej (dla sesji operatorskiej z panelu,
+  // wykrytej jako "zła" dla tego rentalId) wylogowałby ją też z panelu w
+  // innej karcie tej samej przeglądarki, bo domyślnie obie karty dzielą to
+  // samo IndexedDB.
+  await authPersistenceReady;
+
   const user = await waitForInitialAuth();
   const claims = user ? (await user.getIdTokenResult()).claims : null;
 
   if (!claims || claims.protocolAccess !== rentalId) {
     // Albo w ogóle niezalogowany, albo zalogowany do INNEGO protokołu
     // (np. ten sam telefon miał otwarty wcześniej inny link) — w obu
-    // przypadkach trzeba podać hasło do TEGO protokołu.
+    // przypadkach trzeba podać hasło do TEGO protokołu. Jeśli to, co
+    // zobaczyliśmy, to cudza sesja (np. operatorska z panelu w innej
+    // karcie) — dzięki setPersistence powyżej nie dotyka już współdzielonego
+    // IndexedDB, więc signOut tutaj nie rusza panelu w innej karcie.
     if (user) await signOut(auth).catch(() => {});
     renderPasswordGate(rentalId);
     return;
@@ -118,6 +136,7 @@ function renderPasswordGate(rentalId) {
     try {
       const verify = httpsCallable(functions, "verifyProtocolPassword");
       const result = await verify({ rentalId, password });
+      await authPersistenceReady;
       await signInWithCustomToken(auth, result.data.token);
       await renderProtocolForPhase(rentalId);
     } catch (err) {
