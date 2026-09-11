@@ -390,11 +390,22 @@ async function renderDrafts() {
           <input type="checkbox" data-action="lock" ${r.lockFieldsForTenant ? "checked" : ""} />
           Zablokuj dane pojazdu/najemcy przed edycją przez najemcę
         </label>
+        <button class="btn-text" data-action="show-link">Pokaż link</button>
         <button class="btn btn-secondary" data-action="finish">Dokończ z panelu</button>
         <button class="btn-text" data-action="password">Ustaw nowe hasło</button>
         <button class="btn-text" data-action="delete">Usuń szkic</button>
       `;
       card.querySelector('[data-action="finish"]').addEventListener("click", () => navigate(`handover/${d.id}`));
+      card.querySelector('[data-action="show-link"]').addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(link);
+          showToast(`Skopiowano link: ${link}`);
+        } catch (e) {
+          // Kopiowanie może być zablokowane (np. brak uprawnień przeglądarki)
+          // — pokaż link do ręcznego skopiowania zamiast cichej porażki.
+          window.prompt("Link do protokołu (skopiuj ręcznie):", link);
+        }
+      });
       card.querySelector('[data-action="lock"]').addEventListener("change", async (e) => {
         const checked = e.target.checked;
         try {
