@@ -8,7 +8,7 @@ const DAMAGE_MAP_DIAGRAM_URL = "/panel-najmu/img/van-diagram.png";
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getAuth, signInAnonymously, onAuthStateChanged
+  getAuth, signInAnonymously, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, query, where
@@ -35,24 +35,41 @@ let sigPad = null;
 let damageMap = null;
 
 // ---------- Auth (anonymous — single operator, no login screen needed) ----------
+// Panel i samoobsługowa strona protokołu (protokol/protokol.js) dzielą to
+// samo pochodzenie (origin), więc dzielą też sesję logowania Firebase w tej
+// przeglądarce. Jeśli ktoś na tym samym urządzeniu miał wcześniej otwarty i
+// zalogowany link do jednego protokołu (custom token z claimem
+// "protocolAccess" — patrz firestore.rules), ta zawężona sesja zostałaby
+// błędnie użyta też przez panel operatora, dając "Missing or insufficient
+// permissions" wszędzie. Dlatego zanim uznamy sesję za gotową, sprawdzamy
+// claimy i w razie potrzeby wylogowujemy/logujemy się od nowa anonimowo.
 let authReadyPromise;
 function waitForAuthReady() {
   if (!authReadyPromise) {
     authReadyPromise = new Promise((resolve) => {
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
-        if (user) {
-          unsubscribe();
-          resolve(user);
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          signInAnonymously(auth).catch((e) => showToast("Błąd logowania: " + e.message));
+          return;
         }
+        try {
+          const { claims } = await user.getIdTokenResult();
+          if (claims.protocolAccess) {
+            await signOut(auth);
+            signInAnonymously(auth).catch((e) => showToast("Błąd logowania: " + e.message));
+            return;
+          }
+        } catch (e) {
+          // Brak możliwości odczytania claimów nie powinien blokować dalej —
+          // spróbujemy z tym, co jest.
+        }
+        unsubscribe();
+        resolve(user);
       });
     });
   }
   return authReadyPromise;
 }
-
-onAuthStateChanged(auth, (user) => {
-  if (!user) signInAnonymously(auth).catch((e) => showToast("Błąd logowania: " + e.message));
-});
 
 // ---------- Routing (simple hash-based) ----------
 window.addEventListener("hashchange", render);
@@ -307,6 +324,10 @@ async function renderNewProtocol() {
         equipmentCargoBar: form.elements["equipmentCargoBar"].checked,
         equipmentStraps: form.elements["equipmentStraps"].checked,
         equipmentPowerCable: form.elements["equipmentPowerCable"].checked,
+        // Gdy zaznaczone, najemca pod linkiem widzi dane pojazdu/najemcy/
+        // adresu/wyposażenia, ale nie może ich zmienić (patrz protokol.js:
+        // LOCKABLE_FIELDS) — poza przebiegiem i paliwem, które zawsze wpisuje sam.
+        lockFieldsForTenant: form.elements["lockFieldsForTenant"].checked,
         handoverPhotoUrls: [],
         returnPhotoUrls: [],
         handoverSignatureUrl: "",
@@ -365,11 +386,24 @@ async function renderDrafts() {
       card.innerHTML = `
         <div class="plate">${escapeHtml(r.vehicleModel || "?")} • ${escapeHtml(r.vehiclePlate)}</div>
         <div class="tenant">Najemca: ${escapeHtml(r.tenantName || "— (jeszcze nie wypełnione)")}</div>
+        <label class="checkbox-label">
+          <input type="checkbox" data-action="lock" ${r.lockFieldsForTenant ? "checked" : ""} />
+          Zablokuj dane pojazdu/najemcy przed edycją przez najemcę
+        </label>
         <button class="btn btn-secondary" data-action="finish">Dokończ z panelu</button>
         <button class="btn-text" data-action="password">Ustaw nowe hasło</button>
         <button class="btn-text" data-action="delete">Usuń szkic</button>
       `;
       card.querySelector('[data-action="finish"]').addEventListener("click", () => navigate(`handover/${d.id}`));
+      card.querySelector('[data-action="lock"]').addEventListener("change", async (e) => {
+        const checked = e.target.checked;
+        try {
+          await setDoc(doc(db, "rentals", d.id), { lockFieldsForTenant: checked }, { merge: true });
+        } catch (err) {
+          e.target.checked = !checked;
+          showToast("Błąd: " + err.message);
+        }
+      });
       card.querySelector('[data-action="password"]').addEventListener("click", async () => {
         const newPassword = prompt("Nowe hasło do tego protokołu (min. 6 znaków):");
         if (!newPassword) return;

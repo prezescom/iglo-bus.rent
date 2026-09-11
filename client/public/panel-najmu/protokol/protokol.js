@@ -161,6 +161,30 @@ async function renderProtocolForPhase(rentalId) {
 }
 
 // ---------- WYDANIE (wypełniane przez najemcę) ----------
+// Pola pojazdu/najemcy/adresu/wyposażenia, które pracownik może zablokować
+// przy zakładaniu protokołu (checkbox "Dostęp najemcy" w panelu, patrz
+// renderNewProtocol/renderDrafts w js/app.js) — najemca je widzi, ale nie
+// edytuje. Przebieg i paliwo (mileage/fuel) NIGDY nie są blokowane — to
+// jedyne dane, które najemca zawsze podaje sam przy odbiorze.
+const LOCKABLE_FIELDS = [
+  "vehiclePlate", "vehicleModel", "vehicleVin",
+  "tenantType", "tenantPesel", "tenantNip", "tenantName", "tenantPhone", "tenantEmail",
+  "tenantStreet", "tenantHouseNumber", "tenantApartmentNumber", "tenantPostalCode", "tenantCity",
+  "equipmentShelf", "equipmentCargoBar", "equipmentStraps", "equipmentPowerCable"
+];
+
+function applyFieldLock(form, existingRecord) {
+  if (!existingRecord.lockFieldsForTenant) return;
+  LOCKABLE_FIELDS.forEach((name) => {
+    const el = form.elements[name];
+    if (el) el.disabled = true;
+  });
+  const note = document.createElement("p");
+  note.className = "muted";
+  note.textContent = "Dane pojazdu, najemcy, adresu i wyposażenia zostały uzupełnione przez wypożyczalnię i nie można ich tu zmienić.";
+  form.prepend(note);
+}
+
 function renderGuestHandover(rentalId, existingRecord) {
   preloadPdfAssets();
   const tpl = document.getElementById("tpl-guest-handover");
@@ -196,6 +220,7 @@ function renderGuestHandover(rentalId, existingRecord) {
   // Odśwież widoczność pól PESEL/NIP zgodnie z wczytanym typem najemcy
   // (ustawienie .value nie wywołuje samo z siebie listenera "change").
   form.elements["tenantType"].dispatchEvent(new Event("change"));
+  applyFieldLock(form, existingRecord);
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -210,26 +235,32 @@ function renderGuestHandover(rentalId, existingRecord) {
     }
 
     const fd = new FormData(form);
+    // Pola zablokowane przez pracownika (patrz applyFieldLock) są "disabled"
+    // — FormData je pomija, więc dla nich bierzemy wartość wprost z rekordu
+    // szkicu zamiast z formularza (który i tak jej nie da zmienić).
+    const locked = Boolean(existingRecord.lockFieldsForTenant);
+    const val = (name) => (locked && LOCKABLE_FIELDS.includes(name) ? existingRecord[name] || "" : fd.get(name) || "");
+    const checkedVal = (name) => (locked && LOCKABLE_FIELDS.includes(name) ? Boolean(existingRecord[name]) : form.elements[name].checked);
     const record = {
-      vehiclePlate: fd.get("vehiclePlate"),
-      vehicleModel: fd.get("vehicleModel"),
-      vehicleVin: fd.get("vehicleVin") || "",
+      vehiclePlate: val("vehiclePlate"),
+      vehicleModel: val("vehicleModel"),
+      vehicleVin: val("vehicleVin"),
       vehicleMileageAtHandover: fd.get("mileage"),
       vehicleFuelAtHandover: fd.get("fuel"),
       vehicleMileageAtReturn: "",
       vehicleFuelAtReturn: "",
       distanceTraveled: "",
-      tenantType: fd.get("tenantType"),
-      tenantName: fd.get("tenantName"),
-      tenantNip: fd.get("tenantNip") || "",
-      tenantPesel: fd.get("tenantPesel") || "",
-      tenantPhone: fd.get("tenantPhone"),
-      tenantEmail: fd.get("tenantEmail"),
-      tenantStreet: fd.get("tenantStreet") || "",
-      tenantHouseNumber: fd.get("tenantHouseNumber") || "",
-      tenantApartmentNumber: fd.get("tenantApartmentNumber") || "",
-      tenantPostalCode: fd.get("tenantPostalCode") || "",
-      tenantCity: fd.get("tenantCity") || "",
+      tenantType: val("tenantType"),
+      tenantName: val("tenantName"),
+      tenantNip: val("tenantNip"),
+      tenantPesel: val("tenantPesel"),
+      tenantPhone: val("tenantPhone"),
+      tenantEmail: val("tenantEmail"),
+      tenantStreet: val("tenantStreet"),
+      tenantHouseNumber: val("tenantHouseNumber"),
+      tenantApartmentNumber: val("tenantApartmentNumber"),
+      tenantPostalCode: val("tenantPostalCode"),
+      tenantCity: val("tenantCity"),
       driverName: fd.get("driverName"),
       driverLicenseNumber: fd.get("driverLicense"),
       lessorEmail: existingRecord.lessorEmail,
@@ -244,10 +275,11 @@ function renderGuestHandover(rentalId, existingRecord) {
       returnBodyCondition: "",
       returnPassengerAreaCondition: "",
       returnCargoAreaCondition: "",
-      equipmentShelf: form.elements["equipmentShelf"].checked,
-      equipmentCargoBar: form.elements["equipmentCargoBar"].checked,
-      equipmentStraps: form.elements["equipmentStraps"].checked,
-      equipmentPowerCable: form.elements["equipmentPowerCable"].checked,
+      equipmentShelf: checkedVal("equipmentShelf"),
+      equipmentCargoBar: checkedVal("equipmentCargoBar"),
+      equipmentStraps: checkedVal("equipmentStraps"),
+      equipmentPowerCable: checkedVal("equipmentPowerCable"),
+      lockFieldsForTenant: locked,
       handoverPhotoUrls: [],
       returnPhotoUrls: [],
       handoverSignatureUrl: "",

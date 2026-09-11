@@ -120,6 +120,13 @@ input, textarea {
 }
 input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 
+/* Pola zablokowane do edycji (np. protokol.js: applyFieldLock) — wyraźnie
+   odróżnione od zwykłych, edytowalnych pól, ale wciąż czytelne. */
+input:disabled, select:disabled, textarea:disabled {
+  background: var(--bg); color: var(--ink); opacity: 0.85; cursor: default;
+}
+.checkbox-label input[type="checkbox"]:disabled { cursor: default; }
+
 .photo-strip { display: flex; gap: 8px; overflow-x: auto; padding: 2px; }
 .photo-thumb {
   width: 72px; height: 72px; border-radius: 8px; object-fit: cover;
