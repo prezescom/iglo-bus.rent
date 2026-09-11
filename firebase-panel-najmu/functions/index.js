@@ -12,6 +12,14 @@
  *     the recruitment .xlsx in Storage.
  *  4. cleanupOldApplications  — scheduled daily, deletes job application
  *     docs older than 90 days.
+ *  5. setProtocolPassword     — callable, operator-only (request.auth from
+ *     the panel). Hashes and stores the per-protocol password used by the
+ *     tenant's self-service link (client/public/panel-najmu/protokol/).
+ *  6. verifyProtocolPassword  — callable, PUBLIC (no panel login, no Basic
+ *     Auth — this is the whole point). Checks a submitted password against
+ *     the hash from setProtocolPassword and, on success, mints a Firebase
+ *     custom token scoped to that one rental via a "protocolAccess" claim
+ *     (see firestore.rules / storage.rules).
  *
  * Setup required (see PANEL-NAJMU-SETUP.md):
  *   firebase functions:secrets:set ZOHO_PASS
@@ -26,12 +34,16 @@ const admin = require("firebase-admin");
 const nodemailer = require("nodemailer");
 const path = require("path");
 const ExcelJS = require("exceljs");
+const bcrypt = require("bcryptjs");
 
 admin.initializeApp();
 
 const REGION = "europe-west1";
 const RETENTION_DAYS = 10;
 const APPLICATION_RETENTION_DAYS = 90;
+const PROTOCOL_PASSWORD_MIN_LENGTH = 6;
+const PROTOCOL_PASSWORD_MAX_ATTEMPTS = 8;
+const PROTOCOL_PASSWORD_LOCK_MS = 15 * 60 * 1000;
 const LOGO_PATH = path.join(__dirname, "assets", "logo.png");
 const LOGO_CID = "iglobuslogo";
 const APPLICATIONS_XLSX_PATH = "recruitment/aplikacje.xlsx";
@@ -148,6 +160,87 @@ ${emailFooterText()}`;
 );
 
 /**
+ * Callable function (operator-only, request.auth wymagane — patrz
+ * firestore.rules): ustawia/nadpisuje hasło do samoobsługowego linku
+ * konkretnego protokołu. Hasz trafia do protocolAccess/{rentalId}, nigdy
+ * czytelnego dla klienta (reguły blokują odczyt tej kolekcji całkowicie —
+ * dotyka jej tylko Admin SDK, czyli te dwie funkcje).
+ */
+exports.setProtocolPassword = onCall({ region: REGION }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Wymagane zalogowanie do panelu.");
+  }
+  const { rentalId, password } = request.data;
+  if (!rentalId || typeof rentalId !== "string") {
+    throw new HttpsError("invalid-argument", "Brakuje rentalId.");
+  }
+  if (!password || typeof password !== "string" || password.length < PROTOCOL_PASSWORD_MIN_LENGTH) {
+    throw new HttpsError("invalid-argument", `Hasło musi mieć co najmniej ${PROTOCOL_PASSWORD_MIN_LENGTH} znaków.`);
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  await admin.firestore().collection("protocolAccess").doc(rentalId).set({
+    passwordHash,
+    createdAt: Date.now(),
+    failedAttempts: 0,
+    lockedUntil: 0
+  });
+
+  return { success: true };
+});
+
+/**
+ * Callable function, PUBLICZNA (wywoływana z client/public/panel-najmu/
+ * protokol/, bez Basic Auth i bez logowania operatorskiego): weryfikuje
+ * hasło do jednego protokołu i w razie zgodności wydaje Firebase custom
+ * token z claimem "protocolAccess" = ID tego wynajmu, ograniczającym dostęp
+ * WYŁĄCZNIE do tego jednego dokumentu (patrz firestore.rules/storage.rules).
+ * Ten sam token/hasło obsługuje zarówno wydanie, jak i zwrot tego samego
+ * wynajmu — nie trzeba go ustawiać osobno dla każdej fazy.
+ *
+ * Prosty licznik nieudanych prób w Firestore (nie IP-based, bo to prosta
+ * apka jednego operatora) blokuje protokół na 15 minut po 8 błędnych
+ * próbach — wystarczające utrudnienie brute-force przy hasłach wpisywanych
+ * ręcznie przez pracownika.
+ */
+exports.verifyProtocolPassword = onCall({ region: REGION }, async (request) => {
+  const { rentalId, password } = request.data;
+  if (!rentalId || typeof rentalId !== "string" || !password || typeof password !== "string") {
+    throw new HttpsError("invalid-argument", "Brakuje rentalId lub hasła.");
+  }
+
+  const accessRef = admin.firestore().collection("protocolAccess").doc(rentalId);
+  const snap = await accessRef.get();
+  // Ten sam komunikat co przy złym haśle — nie zdradzamy, czy protokół
+  // o takim ID w ogóle istnieje.
+  const genericError = () => new HttpsError("permission-denied", "Nieprawidłowe hasło.");
+  if (!snap.exists) throw genericError();
+
+  const access = snap.data();
+  const now = Date.now();
+  if (access.lockedUntil && access.lockedUntil > now) {
+    throw new HttpsError("resource-exhausted", "Zbyt wiele nieudanych prób. Spróbuj ponownie za kilka minut.");
+  }
+
+  const matches = await bcrypt.compare(password, access.passwordHash || "");
+  if (!matches) {
+    const failedAttempts = (access.failedAttempts || 0) + 1;
+    const update = { failedAttempts };
+    if (failedAttempts >= PROTOCOL_PASSWORD_MAX_ATTEMPTS) {
+      update.lockedUntil = now + PROTOCOL_PASSWORD_LOCK_MS;
+      update.failedAttempts = 0;
+    }
+    await accessRef.update(update);
+    throw genericError();
+  }
+
+  await accessRef.update({ failedAttempts: 0, lockedUntil: 0 });
+
+  const token = await admin.auth().createCustomToken(`protocol-${rentalId}`, { protocolAccess: rentalId });
+  return { token };
+});
+
+/**
  * Scheduled function: runs once a day, deletes the bulky raw Storage files
  * (zdjęcia, podpis, schemat uszkodzeń) for any rental whose closedTimestamp
  * is older than 10 days — but keeps the protocol PDF (protokol.pdf) and the
@@ -194,6 +287,10 @@ exports.cleanupOldRentals = onSchedule(
           handoverDamageMapUrl: "",
           returnDamageMapUrl: ""
         });
+        // Hasło do samoobsługowego linku tego protokołu (jeśli w ogóle było
+        // ustawione) nie ma już czego chronić — wynajem jest zamknięty i
+        // wyczyszczony, link przestaje mieć sens.
+        await admin.firestore().collection("protocolAccess").doc(rentalId).delete();
         console.log(`Wyczyszczono zdjęcia/podpisy wynajmu ${rentalId} (${filesToDelete.length} plików), protokoły zachowane.`);
       } catch (err) {
         console.error(`Błąd czyszczenia wynajmu ${rentalId}:`, err);

@@ -4,14 +4,29 @@ service cloud.firestore {
     // Single-operator app: any authenticated user (i.e. you, signed in via
     // Firebase Auth in the app) can read/write. Tighten further if you ever
     // add more employees with separate accounts.
+    //
+    // Wyjątek: najemca, który zalogował się WYŁĄCZNIE hasłem do jednego
+    // konkretnego protokołu (patrz functions/index.js: verifyProtocolPassword
+    // wydaje custom token z claimem "protocolAccess" = ID tego wynajmu, bez
+    // przechodzenia przez Basic Auth panelu ani signInAnonymously). Taki
+    // token nadal ma request.auth != null, więc musi być dodatkowo zawężony
+    // do jednego dokumentu — i to WYŁĄCZNIE do rentals, żeby nie mógł czytać
+    // ani ruszać całej bazy pojazdów/najemców.
     match /rentals/{rentalId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if request.auth != null &&
+        (!('protocolAccess' in request.auth.token) || request.auth.token.protocolAccess == rentalId);
     }
     match /vehicles/{plateId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if request.auth != null && !('protocolAccess' in request.auth.token);
     }
     match /tenants/{tenantId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if request.auth != null && !('protocolAccess' in request.auth.token);
+    }
+    // Hasze haseł do protokołów (jedno na wynajem) — dotyka ich wyłącznie
+    // Cloud Function przez Admin SDK (setProtocolPassword/
+    // verifyProtocolPassword w functions/index.js), nigdy klient wprost.
+    match /protocolAccess/{rentalId} {
+      allow read, write: if false;
     }
     // Wpisy bloga, publicznie czytelne bez logowania (iglo-bus.rent/blog):
     //  - pojedynczy wpis (get) — dopiero gdy status=="published" I minęła

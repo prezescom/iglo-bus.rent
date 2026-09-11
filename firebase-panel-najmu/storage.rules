@@ -1,8 +1,13 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    // Wyjątek dla gościa zalogowanego wyłącznie hasłem do jednego protokołu
+    // — patrz analogiczny komentarz w firestore.rules. Dzięki temu zdjęcia,
+    // podpis, mapa uszkodzeń i PDF trafiają do Storage nawet gdy najemca nie
+    // jest zalogowany do panelu, tylko do tego jednego protokołu.
     match /rentals/{rentalId}/{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if request.auth != null &&
+        (!('protocolAccess' in request.auth.token) || request.auth.token.protocolAccess == rentalId);
     }
     // Dokumentacja zdjęciowa uszkodzeń pojazdu — stała, niezależna od
     // konkretnego wynajmu (baza pojazdów w panelu najmu).

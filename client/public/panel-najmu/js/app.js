@@ -1,7 +1,7 @@
-import { firebaseConfig, LESSOR_EMAIL, FUNCTIONS_REGION } from "./firebase-config.js";
-import { initSignatureField } from "./signature.js";
-import { initDamageMap } from "./damage-map.js";
-import { generateProtocolPdf, preloadPdfAssets } from "./pdf.js";
+import { firebaseConfig, LESSOR_EMAIL, FUNCTIONS_REGION } from "./shared/firebase-config.js";
+import { initSignatureField } from "./shared/signature.js";
+import { initDamageMap } from "./shared/damage-map.js";
+import { generateProtocolPdf, preloadPdfAssets } from "./shared/pdf.js";
 import { generateContractDocx, resolveTemplateKey } from "./contracts.js";
 
 const DAMAGE_MAP_DIAGRAM_URL = "/panel-najmu/img/van-diagram.png";
@@ -78,8 +78,14 @@ async function render() {
     pageTitle.textContent = "Wynajmy";
     renderList();
   } else if (view === "handover") {
-    pageTitle.textContent = "Wydanie pojazdu";
-    renderHandover();
+    pageTitle.textContent = param ? "Dokończ protokół" : "Wydanie pojazdu";
+    renderHandover(param || null);
+  } else if (view === "new-protocol") {
+    pageTitle.textContent = "Nowy protokół (link dla najemcy)";
+    renderNewProtocol();
+  } else if (view === "drafts") {
+    pageTitle.textContent = "Szkice protokołów";
+    renderDrafts();
   } else if (view === "return") {
     pageTitle.textContent = "Zwrot pojazdu";
     renderReturn(param);
@@ -131,6 +137,8 @@ async function renderList() {
   const tpl = document.getElementById("tpl-list");
   appEl.replaceChildren(tpl.content.cloneNode(true));
   appEl.querySelector('[data-action="new-handover"]').addEventListener("click", () => navigate("handover"));
+  appEl.querySelector('[data-action="new-protocol-link"]').addEventListener("click", () => navigate("new-protocol"));
+  appEl.querySelector('[data-action="view-drafts"]').addEventListener("click", () => navigate("drafts"));
   appEl.querySelector('[data-action="view-history"]').addEventListener("click", () => navigate("history"));
   appEl.querySelector('[data-action="view-vehicles"]').addEventListener("click", () => navigate("vehicles"));
   appEl.querySelector('[data-action="view-tenants"]').addEventListener("click", () => navigate("tenants"));
@@ -163,6 +171,159 @@ async function renderList() {
       if (regenBtn) {
         regenBtn.addEventListener("click", () => navigate(`regenerate/wydanie__${d.id}`));
       }
+      listEl.appendChild(card);
+    });
+  } catch (e) {
+    listEl.innerHTML = `<p class="error">Błąd wczytywania: ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+// ---------- NOWY PROTOKÓŁ (wstępne wprowadzenie + link dla najemcy) ----------
+// Tworzy rekord wynajmu w statusie "szkic" i ustawia hasło do jego
+// samoobsługowego linku (client/public/panel-najmu/protokol/, poza Basic
+// Authem) — patrz firebase-panel-najmu/functions/index.js:
+// setProtocolPassword/verifyProtocolPassword. Najemca pod tym linkiem sam
+// wypełni resztę (albo pracownik dokończy to z panelu przez "Szkice
+// protokołów", patrz renderDrafts poniżej).
+async function renderNewProtocol() {
+  const tpl = document.getElementById("tpl-new-protocol");
+  appEl.replaceChildren(tpl.content.cloneNode(true));
+  const form = document.getElementById("newProtocolForm");
+  const errorEl = document.getElementById("newProtocolError");
+  const submitBtn = document.getElementById("newProtocolSubmitBtn");
+  const resultEl = document.getElementById("newProtocolResult");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errorEl.hidden = true;
+    const fd = new FormData(form);
+    const plate = fd.get("vehiclePlate");
+    const password = fd.get("password");
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Tworzenie…";
+    try {
+      const rentalId = await generateReadableRentalId(plate, Date.now());
+      const record = {
+        vehiclePlate: plate,
+        vehicleModel: fd.get("vehicleModel") || "",
+        vehicleVin: "",
+        vehicleMileageAtHandover: "",
+        vehicleFuelAtHandover: "",
+        vehicleMileageAtReturn: "",
+        vehicleFuelAtReturn: "",
+        distanceTraveled: "",
+        tenantType: "osoba",
+        tenantName: fd.get("tenantName") || "",
+        tenantNip: "",
+        tenantPesel: "",
+        tenantPhone: fd.get("tenantPhone") || "",
+        tenantEmail: fd.get("tenantEmail") || "",
+        tenantStreet: "",
+        tenantHouseNumber: "",
+        tenantApartmentNumber: "",
+        tenantPostalCode: "",
+        tenantCity: "",
+        driverName: "",
+        driverLicenseNumber: "",
+        lessorEmail: LESSOR_EMAIL,
+        handoverTimestamp: 0,
+        returnTimestamp: 0,
+        closedTimestamp: 0,
+        handoverNotes: "",
+        returnNotes: "",
+        handoverBodyCondition: "",
+        handoverPassengerAreaCondition: "",
+        handoverCargoAreaCondition: "",
+        returnBodyCondition: "",
+        returnPassengerAreaCondition: "",
+        returnCargoAreaCondition: "",
+        equipmentShelf: false,
+        equipmentCargoBar: false,
+        equipmentStraps: false,
+        equipmentPowerCable: false,
+        handoverPhotoUrls: [],
+        returnPhotoUrls: [],
+        handoverSignatureUrl: "",
+        returnSignatureUrl: "",
+        handoverDamageMapUrl: "",
+        returnDamageMapUrl: "",
+        handoverProtocolPdfUrl: "",
+        returnProtocolPdfUrl: "",
+        id: rentalId,
+        status: "szkic"
+      };
+      await setDoc(doc(db, "rentals", rentalId), record);
+      await httpsCallable(functions, "setProtocolPassword")({ rentalId, password });
+
+      const link = `${location.origin}/panel-najmu/protokol/#${rentalId}`;
+      document.getElementById("newProtocolLink").textContent = link;
+      form.hidden = true;
+      resultEl.hidden = false;
+
+      document.getElementById("copyLinkBtn").addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(link);
+          showToast("Skopiowano link.");
+        } catch (e) {
+          showToast("Nie udało się skopiować — zaznacz link ręcznie.");
+        }
+      });
+      document.getElementById("newProtocolBackBtn").addEventListener("click", () => navigate("list"));
+    } catch (err) {
+      errorEl.textContent = "Błąd tworzenia protokołu: " + err.message;
+      errorEl.hidden = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Utwórz protokół i link";
+    }
+  });
+}
+
+// ---------- SZKICE PROTOKOŁÓW (oczekujące na najemcę lub dokończenie) ----------
+async function renderDrafts() {
+  const tpl = document.getElementById("tpl-drafts");
+  appEl.replaceChildren(tpl.content.cloneNode(true));
+  const listEl = document.getElementById("draftsList");
+  try {
+    const q = query(collection(db, "rentals"), where("status", "==", "szkic"));
+    const snap = await getDocs(q);
+    if (snap.empty) {
+      listEl.innerHTML = '<p class="muted">Brak oczekujących szkiców.</p>';
+      return;
+    }
+    listEl.innerHTML = "";
+    snap.forEach((d) => {
+      const r = d.data();
+      const link = `${location.origin}/panel-najmu/protokol/#${d.id}`;
+      const card = document.createElement("div");
+      card.className = "rental-card";
+      card.innerHTML = `
+        <div class="plate">${escapeHtml(r.vehicleModel || "?")} • ${escapeHtml(r.vehiclePlate)}</div>
+        <div class="tenant">Najemca: ${escapeHtml(r.tenantName || "— (jeszcze nie wypełnione)")}</div>
+        <button class="btn btn-secondary" data-action="finish">Dokończ z panelu</button>
+        <button class="btn-text" data-action="password">Ustaw nowe hasło</button>
+        <button class="btn-text" data-action="delete">Usuń szkic</button>
+      `;
+      card.querySelector('[data-action="finish"]').addEventListener("click", () => navigate(`handover/${d.id}`));
+      card.querySelector('[data-action="password"]').addEventListener("click", async () => {
+        const newPassword = prompt("Nowe hasło do tego protokołu (min. 6 znaków):");
+        if (!newPassword) return;
+        try {
+          await httpsCallable(functions, "setProtocolPassword")({ rentalId: d.id, password: newPassword });
+          showToast(`Ustawiono nowe hasło. Link: ${link}`);
+        } catch (e) {
+          showToast("Błąd: " + e.message);
+        }
+      });
+      card.querySelector('[data-action="delete"]').addEventListener("click", async () => {
+        if (!confirm("Usunąć ten szkic protokołu?")) return;
+        try {
+          await deleteDoc(doc(db, "rentals", d.id));
+          renderDrafts();
+        } catch (e) {
+          showToast("Błąd usuwania: " + e.message);
+        }
+      });
       listEl.appendChild(card);
     });
   } catch (e) {
@@ -1199,11 +1360,25 @@ async function renderPostForm(slug) {
 }
 
 // ---------- HANDOVER VIEW ----------
-async function renderHandover() {
+// draftRentalId: jeśli podane, edytujemy/dokańczamy istniejący protokół w
+// statusie "szkic" (założony przez "+ Nowy protokół" albo wciąż niedokończony
+// przez najemcę pod linkiem) zamiast zakładać zupełnie nowy wynajem — patrz
+// renderDrafts().
+async function renderHandover(draftRentalId) {
   // Czcionki i logo PDF-a i tak są potrzebne dopiero przy zapisie — pobierz
   // je już teraz, w tle, na czas wypełniania formularza (patrz komentarz
   // przy preloadPdfAssets w pdf.js).
   preloadPdfAssets();
+
+  let draftRecord = null;
+  if (draftRentalId) {
+    try {
+      const snap = await getDoc(doc(db, "rentals", draftRentalId));
+      if (snap.exists()) draftRecord = snap.data();
+    } catch (e) {
+      showToast("Błąd wczytywania szkicu: " + e.message);
+    }
+  }
 
   const tpl = document.getElementById("tpl-handover");
   appEl.replaceChildren(tpl.content.cloneNode(true));
@@ -1306,6 +1481,18 @@ async function renderHandover() {
   handoverForm.elements["tenantPesel"].addEventListener("change", (e) => autofillTenant(e.target));
   handoverForm.elements["tenantNip"].addEventListener("change", (e) => autofillTenant(e.target));
 
+  // Podpowiedz dane, które pracownik (albo najemca pod linkiem) zdążył już
+  // wpisać wcześniej — dopasowanie po `name` pola, wartości puste pomijane.
+  if (draftRecord) {
+    for (const el of handoverForm.elements) {
+      if (!el.name || !(el.name in draftRecord)) continue;
+      const value = draftRecord[el.name];
+      if (value === undefined || value === null || value === "") continue;
+      if (el.type === "checkbox") el.checked = Boolean(value);
+      else el.value = value;
+    }
+  }
+
   document.getElementById("handoverForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const form = e.target;
@@ -1380,7 +1567,7 @@ async function renderHandover() {
     submitBtn.disabled = true;
     submitBtn.textContent = "Zapisywanie…";
     try {
-      const rentalId = await generateReadableRentalId(record.vehiclePlate, record.handoverTimestamp);
+      const rentalId = draftRentalId || await generateReadableRentalId(record.vehiclePlate, record.handoverTimestamp);
       const docRef = doc(db, "rentals", rentalId);
       record.id = docRef.id;
 

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>Protokół — Wypożyczalnia</title>
+<meta name="robots" content="noindex, nofollow" />
+<link rel="icon" href="/panel-najmu/icons/icon-192.png" />
+<link rel="stylesheet" href="/panel-najmu/css/style.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <h1 id="pageTitle">Protokół wynajmu</h1>
+</header>
+
+<main id="app"></main>
+
+<!-- ===== TEMPLATES (cloned into #app by protokol.js) ===== -->
+
+<template id="tpl-password-gate">
+  <section class="view">
+    <p class="muted" id="gateHint">Podaj hasło do tego protokołu, które otrzymałeś/aś od wypożyczalni.</p>
+    <form id="passwordForm" class="form">
+      <fieldset>
+        <legend>Hasło do protokołu</legend>
+        <label>Hasło
+          <input name="password" type="password" required autocomplete="current-password" />
+        </label>
+      </fieldset>
+      <p id="gateError" class="error" hidden></p>
+      <button type="submit" class="btn btn-primary btn-block" id="gateSubmitBtn">Wejdź do protokołu</button>
+    </form>
+  </section>
+</template>
+
+<template id="tpl-info-screen">
+  <section class="view">
+    <p id="infoMessage" class="muted"></p>
+  </section>
+</template>
+
+<template id="tpl-guest-handover">
+  <section class="view">
+    <p class="muted">Wypełnij dane wydania pojazdu. Po zapisaniu protokół trafi automatycznie na Twój e-mail.</p>
+    <form id="handoverForm" class="form">
+      <fieldset>
+        <legend>Pojazd</legend>
+        <label>Nr rejestracyjny
+          <input name="vehiclePlate" required />
+        </label>
+        <label>Model pojazdu
+          <input name="vehicleModel" required />
+        </label>
+        <label>VIN
+          <input name="vehicleVin" />
+        </label>
+        <div class="row">
+          <label>Przebieg (km)
+            <input name="mileage" inputmode="numeric" required />
+          </label>
+          <label>Paliwo (%)
+            <input name="fuel" inputmode="numeric" required />
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Najemca</legend>
+        <label>Typ najemcy
+          <select name="tenantType" id="tenantTypeSelect">
+            <option value="osoba">Osoba prywatna</option>
+            <option value="firma">Firma</option>
+          </select>
+        </label>
+        <label id="tenantPeselWrap">PESEL
+          <input name="tenantPesel" />
+        </label>
+        <label id="tenantNipWrap" hidden>NIP
+          <input name="tenantNip" />
+        </label>
+        <label id="tenantNameLabel">Imię i nazwisko
+          <input name="tenantName" required />
+        </label>
+        <label>Telefon
+          <input name="tenantPhone" type="tel" required />
+        </label>
+        <label>E-mail
+          <input name="tenantEmail" type="email" required />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Kierowca</legend>
+        <label>Imię i nazwisko kierowcy
+          <input name="driverName" required />
+        </label>
+        <label>Nr Prawa Jazdy (5.)
+          <input name="driverLicense" required />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Adres najemcy</legend>
+        <div class="row">
+          <label>Ulica
+            <input name="tenantStreet" required />
+          </label>
+          <label>Nr domu
+            <input name="tenantHouseNumber" required />
+          </label>
+        </div>
+        <div class="row">
+          <label>Nr mieszkania
+            <input name="tenantApartmentNumber" />
+          </label>
+          <label>Kod pocztowy
+            <input name="tenantPostalCode" required />
+          </label>
+        </div>
+        <label>Miejscowość
+          <input name="tenantCity" required />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Stan pojazdu</legend>
+        <label>Karoseria
+          <select name="bodyCondition">
+            <option value="czysta">Czysta</option>
+            <option value="brudna">Brudna</option>
+          </select>
+        </label>
+        <label>Przestrzeń pasażerska
+          <select name="passengerAreaCondition">
+            <option value="czysta">Czysta</option>
+            <option value="brudna">Brudna</option>
+          </select>
+        </label>
+        <label>Przestrzeń ładunkowa
+          <select name="cargoAreaCondition">
+            <option value="czysta">Czysta</option>
+            <option value="brudna">Brudna</option>
+          </select>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Schemat uszkodzeń</legend>
+        <div class="damage-map-wrap">
+          <canvas id="damageMap" class="damage-map" width="600" height="400"></canvas>
+          <div class="damage-map-overlay" id="damageMapOverlay">Dotknij, aby zaznaczyć uszkodzenie</div>
+        </div>
+        <div class="damage-map-pending-actions" id="damageMapPendingActions" hidden>
+          <button type="button" class="btn btn-secondary" id="damageMapDiscardBtn">Odrzuć</button>
+          <button type="button" class="btn btn-primary" id="damageMapConfirmBtn">Zatwierdź zaznaczenie</button>
+        </div>
+        <button type="button" class="btn btn-text" data-action="clear-damage-map">Wyczyść wszystkie zaznaczenia</button>
+      </fieldset>
+
+      <fieldset>
+        <legend>Przekazane wyposażenie</legend>
+        <label class="checkbox-label">
+          <input type="checkbox" name="equipmentShelf" /> Półka double-deck
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="equipmentCargoBar" /> Poprzeczka do blokowania ładunku
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="equipmentStraps" /> Zapinki (6 szt.)
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="equipmentPowerCable" /> Kabel do zasilania chłodni na postoju
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Uwagi</legend>
+        <textarea name="notes" rows="3"></textarea>
+      </fieldset>
+
+      <fieldset>
+        <legend>Zdjęcia</legend>
+        <div id="photoStrip" class="photo-strip"></div>
+        <label class="btn btn-secondary btn-block file-btn">
+          + Dodaj zdjęcie
+          <input type="file" accept="image/*" capture="environment" id="photoInput" hidden />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Twój podpis</legend>
+        <div class="sig-placeholder" id="sigPlaceholder">Dotknij, aby podpisać</div>
+        <img class="sig-preview" id="sigPreview" alt="Podpis najemcy" hidden />
+        <button type="button" class="btn btn-text" id="sigEditBtn" hidden>Podpisz ponownie</button>
+      </fieldset>
+
+      <p id="formError" class="error" hidden></p>
+
+      <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
+        Zapisz protokół wydania
+      </button>
+    </form>
+  </section>
+</template>
+
+<template id="tpl-guest-return">
+  <section class="view">
+    <div id="returnHeader" class="return-header muted">Wczytywanie…</div>
+    <p class="muted">Wypełnij dane zwrotu pojazdu. Po zapisaniu protokół trafi automatycznie na Twój e-mail.</p>
+    <form id="returnForm" class="form" hidden>
+      <fieldset>
+        <legend>Stan przy zwrocie</legend>
+        <div class="row">
+          <label>Przebieg (km)
+            <input name="mileage" inputmode="numeric" required />
+          </label>
+          <label>Paliwo (%)
+            <input name="fuel" inputmode="numeric" required />
+          </label>
+        </div>
+        <label>Uwagi
+          <textarea name="notes" rows="3"></textarea>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Stan pojazdu</legend>
+        <label>Karoseria
+          <select name="bodyCondition">
+            <option value="czysta">Czysta</option>
+            <option value="brudna">Brudna</option>
+          </select>
+        </label>
+        <label>Przestrzeń pasażerska
+          <select name="passengerAreaCondition">
+            <option value="czysta">Czysta</option>
+            <option value="brudna">Brudna</option>
+          </select>
+        </label>
+        <label>Przestrzeń ładunkowa
+          <select name="cargoAreaCondition">
+            <option value="czysta">Czysta</option>
+            <option value="brudna">Brudna</option>
+          </select>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Schemat uszkodzeń</legend>
+        <div class="damage-map-wrap">
+          <canvas id="damageMap" class="damage-map" width="600" height="400"></canvas>
+          <div class="damage-map-overlay" id="damageMapOverlay">Dotknij, aby zaznaczyć uszkodzenie</div>
+        </div>
+        <div class="damage-map-pending-actions" id="damageMapPendingActions" hidden>
+          <button type="button" class="btn btn-secondary" id="damageMapDiscardBtn">Odrzuć</button>
+          <button type="button" class="btn btn-primary" id="damageMapConfirmBtn">Zatwierdź zaznaczenie</button>
+        </div>
+        <button type="button" class="btn btn-text" data-action="clear-damage-map">Wyczyść wszystkie zaznaczenia</button>
+        <p class="damage-map-legend">
+          <span class="damage-map-legend-item"><span class="damage-map-legend-dot damage-map-legend-dot--existing"></span>Uszkodzenie zgłoszone przy wydaniu</span>
+          <span class="damage-map-legend-item"><span class="damage-map-legend-dot damage-map-legend-dot--new"></span>Nowe uszkodzenie stwierdzone przy zwrocie</span>
+        </p>
+      </fieldset>
+
+      <fieldset id="returnEquipmentFieldset" hidden>
+        <legend>Zwracane wyposażenie</legend>
+        <div id="returnEquipmentContainer"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Zdjęcia</legend>
+        <div id="photoStrip" class="photo-strip"></div>
+        <label class="btn btn-secondary btn-block file-btn">
+          + Dodaj zdjęcie
+          <input type="file" accept="image/*" capture="environment" id="photoInput" hidden />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Twój podpis</legend>
+        <div class="sig-placeholder" id="sigPlaceholder">Dotknij, aby podpisać</div>
+        <img class="sig-preview" id="sigPreview" alt="Podpis najemcy" hidden />
+        <button type="button" class="btn btn-text" id="sigEditBtn" hidden>Podpisz ponownie</button>
+      </fieldset>
+
+      <p id="formError" class="error" hidden></p>
+
+      <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
+        Zapisz protokół zwrotu
+      </button>
+    </form>
+  </section>
+</template>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script type="module" src="/panel-najmu/protokol/protokol.js"></script>
+</body>
+</html>

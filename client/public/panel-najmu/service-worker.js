@@ -1,13 +1,14 @@
-const CACHE = "car-rental-shell-v2";
+const CACHE = "car-rental-shell-v3";
 const SHELL_FILES = [
   "/panel-najmu/",
   "/panel-najmu/index.html",
   "/panel-najmu/css/style.css",
   "/panel-najmu/js/app.js",
-  "/panel-najmu/js/signature.js",
-  "/panel-najmu/js/damage-map.js",
-  "/panel-najmu/js/pdf.js",
-  "/panel-najmu/js/firebase-config.js",
+  "/panel-najmu/shared/signature.js",
+  "/panel-najmu/shared/damage-map.js",
+  "/panel-najmu/shared/pdf.js",
+  "/panel-najmu/shared/firebase-config.js",
+  "/panel-najmu/shared/protocol-actions.js",
   "/panel-najmu/img/van-diagram.png",
   "/panel-najmu/img/logo.png",
   "/panel-najmu/fonts/Roboto-Regular.ttf",

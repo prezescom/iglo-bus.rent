@@ -1,7 +1,17 @@
 import { next } from "@vercel/functions";
 
+// `/panel-najmu/protokol/*` i `/panel-najmu/shared/*` (plus kilka
+// konkretnych statycznych assetów) są celowo WYŁĄCZONE z Basic Auth — to
+// publiczna, samoobsługowa strona protokołu dla najemcy (patrz
+// client/public/panel-najmu/protokol/), chroniona nie Basic Authem tylko
+// hasłem do jednego konkretnego protokołu (Cloud Function
+// verifyProtocolPassword). Cała reszta panelu (js/app.js z pełnym dostępem
+// operatorskim, index.html, itd.) zostaje za Basic Authem jak dotąd.
 export const config = {
-  matcher: "/panel-najmu/:path*",
+  matcher: [
+    "/panel-najmu",
+    "/panel-najmu/((?!protokol/|shared/|css/style\\.css|fonts/|img/logo\\.png|img/van-diagram\\.png).*)",
+  ],
 };
 
 function unauthorized(): Response {

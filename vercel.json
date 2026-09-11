@@ -2,6 +2,8 @@
   "rewrites": [
     { "source": "/panel-najmu", "destination": "/panel-najmu/index.html" },
     { "source": "/panel-najmu/", "destination": "/panel-najmu/index.html" },
+    { "source": "/panel-najmu/protokol", "destination": "/panel-najmu/protokol/index.html" },
+    { "source": "/panel-najmu/protokol/", "destination": "/panel-najmu/protokol/index.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

@@ -24,12 +24,71 @@
 <template id="tpl-list">
   <section class="view">
     <button class="btn btn-primary btn-block" data-action="new-handover">+ Nowe wydanie pojazdu</button>
+    <button class="btn btn-secondary btn-block" data-action="new-protocol-link">+ Nowy protokół (link dla najemcy)</button>
+    <button class="btn btn-secondary btn-block" data-action="view-drafts">Szkice protokołów</button>
     <button class="btn btn-secondary btn-block" data-action="view-history">Zakończone wynajmy</button>
     <button class="btn btn-secondary btn-block" data-action="view-vehicles">Baza pojazdów</button>
     <button class="btn btn-secondary btn-block" data-action="view-tenants">Baza najemców</button>
     <button class="btn btn-secondary btn-block" data-action="new-contract">Wygeneruj umowę</button>
     <button class="btn btn-secondary btn-block" data-action="view-posts">Blog</button>
     <div id="rentalList" class="rental-list">
+      <p class="muted">Wczytywanie…</p>
+    </div>
+  </section>
+</template>
+
+<template id="tpl-new-protocol">
+  <section class="view">
+    <p class="muted">Załóż wstępny protokół i wygeneruj link, który najemca otworzy samodzielnie — bez logowania do panelu, tylko hasłem ustawionym tutaj. Tym samym hasłem, pod tym samym linkiem, najemca później zrobi też zwrot pojazdu.</p>
+    <form id="newProtocolForm" class="form">
+      <fieldset>
+        <legend>Pojazd</legend>
+        <label>Nr rejestracyjny
+          <input name="vehiclePlate" required />
+        </label>
+        <label>Model pojazdu
+          <input name="vehicleModel" />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Najemca (opcjonalnie — najemca i tak wypełni/poprawi te dane sam)</legend>
+        <label>Imię i nazwisko
+          <input name="tenantName" />
+        </label>
+        <label>Telefon
+          <input name="tenantPhone" type="tel" />
+        </label>
+        <label>E-mail
+          <input name="tenantEmail" type="email" />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Hasło do tego protokołu</legend>
+        <label>Hasło (min. 6 znaków) — przekaż je najemcy razem z linkiem
+          <input name="password" type="text" required minlength="6" />
+        </label>
+      </fieldset>
+
+      <p id="newProtocolError" class="error" hidden></p>
+
+      <button type="submit" class="btn btn-primary btn-block" id="newProtocolSubmitBtn">
+        Utwórz protokół i link
+      </button>
+    </form>
+    <div id="newProtocolResult" hidden>
+      <p class="muted">Protokół utworzony. Przekaż najemcy poniższy link i hasło (np. SMS-em):</p>
+      <p><strong>Link:</strong> <span id="newProtocolLink"></span></p>
+      <button type="button" class="btn btn-secondary btn-block" id="copyLinkBtn">Kopiuj link</button>
+      <button type="button" class="btn btn-text" id="newProtocolBackBtn">Wróć do listy</button>
+    </div>
+  </section>
+</template>
+
+<template id="tpl-drafts">
+  <section class="view">
+    <div id="draftsList" class="rental-list">
       <p class="muted">Wczytywanie…</p>
     </div>
   </section>
