@@ -190,9 +190,12 @@ function renderGuestHandover(rentalId, existingRecord) {
   );
 
   // Dane, które pracownik mógł już wpisać przy wstępnym zakładaniu protokołu
-  // (np. nr rejestracyjny pojazdu) — podpowiadamy je najemcy, żeby nie
-  // musiał ich przepisywać.
+  // (np. nr rejestracyjny pojazdu, PESEL, adres, wyposażenie) — podpowiadamy
+  // je najemcy, żeby nie musiał ich przepisywać.
   prefillForm(form, existingRecord);
+  // Odśwież widoczność pól PESEL/NIP zgodnie z wczytanym typem najemcy
+  // (ustawienie .value nie wywołuje samo z siebie listenera "change").
+  form.elements["tenantType"].dispatchEvent(new Event("change"));
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();

@@ -43,17 +43,32 @@
     <form id="newProtocolForm" class="form">
       <fieldset>
         <legend>Pojazd</legend>
-        <label>Nr rejestracyjny
-          <input name="vehiclePlate" required />
+        <label class="autocomplete-wrap">Nr rejestracyjny
+          <input name="vehiclePlate" id="newProtocolPlateInput" autocomplete="off" required />
         </label>
         <label>Model pojazdu
           <input name="vehicleModel" />
+        </label>
+        <label>VIN
+          <input name="vehicleVin" />
         </label>
       </fieldset>
 
       <fieldset>
         <legend>Najemca (opcjonalnie — najemca i tak wypełni/poprawi te dane sam)</legend>
-        <label>Imię i nazwisko
+        <label>Typ najemcy
+          <select name="tenantType" id="newProtocolTenantTypeSelect">
+            <option value="osoba">Osoba prywatna</option>
+            <option value="firma">Firma</option>
+          </select>
+        </label>
+        <label id="newProtocolTenantPeselWrap" class="autocomplete-wrap">PESEL
+          <input name="tenantPesel" id="newProtocolTenantPeselInput" autocomplete="off" />
+        </label>
+        <label id="newProtocolTenantNipWrap" class="autocomplete-wrap" hidden>NIP
+          <input name="tenantNip" id="newProtocolTenantNipInput" autocomplete="off" />
+        </label>
+        <label id="newProtocolTenantNameLabel">Imię i nazwisko
           <input name="tenantName" />
         </label>
         <label>Telefon
@@ -61,6 +76,45 @@
         </label>
         <label>E-mail
           <input name="tenantEmail" type="email" />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Adres najemcy (opcjonalnie — podpowie się po wybraniu najemcy z bazy)</legend>
+        <div class="row">
+          <label>Ulica
+            <input name="tenantStreet" />
+          </label>
+          <label>Nr domu
+            <input name="tenantHouseNumber" />
+          </label>
+        </div>
+        <div class="row">
+          <label>Nr mieszkania
+            <input name="tenantApartmentNumber" />
+          </label>
+          <label>Kod pocztowy
+            <input name="tenantPostalCode" />
+          </label>
+        </div>
+        <label>Miejscowość
+          <input name="tenantCity" />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Przekazane wyposażenie</legend>
+        <label class="checkbox-label">
+          <input type="checkbox" name="equipmentShelf" /> Półka double-deck
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="equipmentCargoBar" /> Poprzeczka do blokowania ładunku
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="equipmentStraps" /> Zapinki (6 szt.)
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="equipmentPowerCable" /> Kabel do zasilania chłodni na postoju
         </label>
       </fieldset>
 

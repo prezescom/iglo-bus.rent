@@ -193,6 +193,71 @@ async function renderNewProtocol() {
   const submitBtn = document.getElementById("newProtocolSubmitBtn");
   const resultEl = document.getElementById("newProtocolResult");
 
+  // ---- Pojazd: podpowiedź nr rejestracyjnego z bazy pojazdów ----
+  const plateInput = document.getElementById("newProtocolPlateInput");
+  const modelInput = form.elements["vehicleModel"];
+  const vinInput = form.elements["vehicleVin"];
+  let knownVehicles = [];
+  try {
+    knownVehicles = await fetchVehicles();
+  } catch (e) {
+    // Brak dostępu do bazy pojazdów nie powinien blokować zakładania protokołu.
+  }
+  wireAutocomplete(plateInput, () =>
+    knownVehicles.map((v) => ({
+      value: v.plate,
+      label: v.plate,
+      sub: [v.make, v.model].filter(Boolean).join(" ")
+    }))
+  );
+  plateInput.addEventListener("change", () => {
+    const match = knownVehicles.find((v) => normalizePlateId(v.plate) === normalizePlateId(plateInput.value));
+    if (match) {
+      modelInput.value = `${match.make || ""} ${match.model || ""}`.trim();
+      vinInput.value = match.vin || "";
+    }
+  });
+
+  // ---- Najemca: typ + podpowiedź PESEL/NIP z bazy najemców (adres itd.) ----
+  wireTenantTypeToggle(
+    document.getElementById("newProtocolTenantTypeSelect"),
+    document.getElementById("newProtocolTenantPeselWrap"),
+    document.getElementById("newProtocolTenantNipWrap"),
+    document.getElementById("newProtocolTenantNameLabel")
+  );
+
+  let knownTenants = [];
+  try {
+    knownTenants = await fetchTenants();
+  } catch (e) {
+    // Brak dostępu do bazy najemców nie powinien blokować zakładania protokołu.
+  }
+  wireAutocomplete(document.getElementById("newProtocolTenantPeselInput"), () =>
+    knownTenants
+      .filter((t) => t.tenantType !== "firma")
+      .map((t) => ({ value: t.pesel, label: t.name, sub: t.pesel }))
+  );
+  wireAutocomplete(document.getElementById("newProtocolTenantNipInput"), () =>
+    knownTenants
+      .filter((t) => t.tenantType === "firma")
+      .map((t) => ({ value: t.nip, label: t.name, sub: t.nip }))
+  );
+
+  function autofillTenant(inputEl) {
+    const match = knownTenants.find((t) => normalizeTenantId(t.tenantType === "firma" ? t.nip : t.pesel) === normalizeTenantId(inputEl.value));
+    if (!match) return;
+    form.elements["tenantName"].value = match.name || "";
+    form.elements["tenantPhone"].value = match.phone || "";
+    form.elements["tenantEmail"].value = match.email || "";
+    form.elements["tenantStreet"].value = match.street || "";
+    form.elements["tenantHouseNumber"].value = match.houseNumber || "";
+    form.elements["tenantApartmentNumber"].value = match.apartmentNumber || "";
+    form.elements["tenantPostalCode"].value = match.postalCode || "";
+    form.elements["tenantCity"].value = match.city || "";
+  }
+  form.elements["tenantPesel"].addEventListener("change", (e) => autofillTenant(e.target));
+  form.elements["tenantNip"].addEventListener("change", (e) => autofillTenant(e.target));
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     errorEl.hidden = true;
@@ -207,23 +272,23 @@ async function renderNewProtocol() {
       const record = {
         vehiclePlate: plate,
         vehicleModel: fd.get("vehicleModel") || "",
-        vehicleVin: "",
+        vehicleVin: fd.get("vehicleVin") || "",
         vehicleMileageAtHandover: "",
         vehicleFuelAtHandover: "",
         vehicleMileageAtReturn: "",
         vehicleFuelAtReturn: "",
         distanceTraveled: "",
-        tenantType: "osoba",
+        tenantType: fd.get("tenantType"),
         tenantName: fd.get("tenantName") || "",
-        tenantNip: "",
-        tenantPesel: "",
+        tenantNip: fd.get("tenantNip") || "",
+        tenantPesel: fd.get("tenantPesel") || "",
         tenantPhone: fd.get("tenantPhone") || "",
         tenantEmail: fd.get("tenantEmail") || "",
-        tenantStreet: "",
-        tenantHouseNumber: "",
-        tenantApartmentNumber: "",
-        tenantPostalCode: "",
-        tenantCity: "",
+        tenantStreet: fd.get("tenantStreet") || "",
+        tenantHouseNumber: fd.get("tenantHouseNumber") || "",
+        tenantApartmentNumber: fd.get("tenantApartmentNumber") || "",
+        tenantPostalCode: fd.get("tenantPostalCode") || "",
+        tenantCity: fd.get("tenantCity") || "",
         driverName: "",
         driverLicenseNumber: "",
         lessorEmail: LESSOR_EMAIL,
@@ -238,10 +303,10 @@ async function renderNewProtocol() {
         returnBodyCondition: "",
         returnPassengerAreaCondition: "",
         returnCargoAreaCondition: "",
-        equipmentShelf: false,
-        equipmentCargoBar: false,
-        equipmentStraps: false,
-        equipmentPowerCable: false,
+        equipmentShelf: form.elements["equipmentShelf"].checked,
+        equipmentCargoBar: form.elements["equipmentCargoBar"].checked,
+        equipmentStraps: form.elements["equipmentStraps"].checked,
+        equipmentPowerCable: form.elements["equipmentPowerCable"].checked,
         handoverPhotoUrls: [],
         returnPhotoUrls: [],
         handoverSignatureUrl: "",
@@ -1491,6 +1556,9 @@ async function renderHandover(draftRentalId) {
       if (el.type === "checkbox") el.checked = Boolean(value);
       else el.value = value;
     }
+    // Odśwież widoczność pól PESEL/NIP zgodnie z wczytanym typem najemcy
+    // (ustawienie .value nie wywołuje samo z siebie listenera "change").
+    handoverForm.elements["tenantType"].dispatchEvent(new Event("change"));
   }
 
   document.getElementById("handoverForm").addEventListener("submit", async (e) => {
