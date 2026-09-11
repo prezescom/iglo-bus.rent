@@ -43,33 +43,53 @@ let damageMap = null;
 // błędnie użyta też przez panel operatora, dając "Missing or insufficient
 // permissions" wszędzie. Dlatego zanim uznamy sesję za gotową, sprawdzamy
 // claimy i w razie potrzeby wylogowujemy/logujemy się od nowa anonimowo.
-let authReadyPromise;
-function waitForAuthReady() {
-  if (!authReadyPromise) {
-    authReadyPromise = new Promise((resolve) => {
-      const unsubscribe = onAuthStateChanged(auth, async (user) => {
-        if (!user) {
+// Celowo NIE zapamiętujemy wyniku na stałe (żadnego zapamiętanego Promise) —
+// karta panelu i karta protokol/ w tej samej przeglądarce dzielą to samo
+// IndexedDB logowania Firebase, więc sesja w już otwartej karcie panelu
+// potrafi zostać podmieniona na zawężoną (protocolAccess) w dowolnym
+// momencie, nawet długo po pierwszym załadowaniu — np. gdy operator w
+// międzyczasie otworzy i zaloguje link do protokołu w innej karcie tej
+// samej przeglądarki. render() woła tę funkcję przy każdej nawigacji, więc
+// świeże sprawdzenie tutaj samo naprawia sytuację przy kolejnym kliknięciu.
+async function waitForAuthReady() {
+  let user = auth.currentUser;
+  if (!user) {
+    user = await new Promise((resolve) => {
+      const unsubscribe = onAuthStateChanged(auth, (u) => {
+        if (u) {
+          unsubscribe();
+          resolve(u);
+        } else {
           signInAnonymously(auth).catch((e) => showToast("Błąd logowania: " + e.message));
-          return;
         }
-        try {
-          const { claims } = await user.getIdTokenResult();
-          if (claims.protocolAccess) {
-            await signOut(auth);
-            signInAnonymously(auth).catch((e) => showToast("Błąd logowania: " + e.message));
-            return;
-          }
-        } catch (e) {
-          // Brak możliwości odczytania claimów nie powinien blokować dalej —
-          // spróbujemy z tym, co jest.
-        }
-        unsubscribe();
-        resolve(user);
       });
     });
   }
-  return authReadyPromise;
+  try {
+    const { claims } = await user.getIdTokenResult();
+    if (claims.protocolAccess) {
+      await signOut(auth);
+      await signInAnonymously(auth);
+      return waitForAuthReady();
+    }
+  } catch (e) {
+    // Brak możliwości odczytania claimów nie powinien blokować dalej —
+    // spróbujemy z tym, co jest.
+  }
+  return user;
 }
+
+// Siatka bezpieczeństwa dla widoku, na którym operator siedzi bez nawigacji
+// (więc render() by się nie odpalił samo z siebie), gdy w międzyczasie inna
+// karta tej samej przeglądarki podmieni sesję na zawężoną (protocolAccess)
+// — odśwież bieżący widok, żeby waitForAuthReady() to wykryło i naprawiło.
+let lastKnownUid = null;
+onAuthStateChanged(auth, (user) => {
+  if (user && user.uid !== lastKnownUid) {
+    lastKnownUid = user.uid;
+    render();
+  }
+});
 
 // ---------- Routing (simple hash-based) ----------
 window.addEventListener("hashchange", render);
