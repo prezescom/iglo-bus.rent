@@ -1,7 +1,7 @@
-import { firebaseConfig, LESSOR_EMAIL, FUNCTIONS_REGION } from "./shared/firebase-config.js";
-import { initSignatureField } from "./shared/signature.js";
-import { initDamageMap } from "./shared/damage-map.js";
-import { generateProtocolPdf, preloadPdfAssets } from "./shared/pdf.js";
+import { firebaseConfig, LESSOR_EMAIL, FUNCTIONS_REGION } from "../shared/firebase-config.js";
+import { initSignatureField } from "../shared/signature.js";
+import { initDamageMap } from "../shared/damage-map.js";
+import { generateProtocolPdf, preloadPdfAssets } from "../shared/pdf.js";
 import { generateContractDocx, resolveTemplateKey } from "./contracts.js";
 
 const DAMAGE_MAP_DIAGRAM_URL = "/panel-najmu/img/van-diagram.png";
