@@ -179,6 +179,14 @@ function applyFieldLock(form, existingRecord) {
     const el = form.elements[name];
     if (el) el.disabled = true;
   });
+  // Dane najemcy i jego adres nie są najemcy w ogóle potrzebne do wglądu
+  // (wypożyczalnia już je zebrała przy zakładaniu protokołu) — w
+  // przeciwieństwie do pojazdu/wyposażenia, które zostają widoczne, tylko
+  // zablokowane do edycji (żeby najemca mógł je zweryfikować).
+  const tenantFieldset = document.getElementById("tenantFieldset");
+  const addressFieldset = document.getElementById("addressFieldset");
+  if (tenantFieldset) tenantFieldset.hidden = true;
+  if (addressFieldset) addressFieldset.hidden = true;
   const note = document.createElement("p");
   note.className = "muted";
   note.textContent = "Dane pojazdu, najemcy, adresu i wyposażenia zostały uzupełnione przez wypożyczalnię i nie można ich tu zmienić.";
