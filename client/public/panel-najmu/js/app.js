@@ -1704,6 +1704,11 @@ async function renderHandover(draftRentalId) {
       returnSignatureUrl: "",
       handoverDamageMapUrl: "",
       returnDamageMapUrl: "",
+      // Zapisane wprost na wynajmie (oprócz bazy pojazdów, patrz
+      // updateVehicleDamageMarks niżej) — dzięki temu zwrot tego konkretnego
+      // wynajmu podpowie te same zaznaczenia nawet jeśli zrobi go najemca
+      // przez link, który nie ma dostępu do bazy pojazdów.
+      handoverDamageMarks: damageMap.getMarks(),
       handoverProtocolPdfUrl: "",
       returnProtocolPdfUrl: "",
       status: "wydany"
@@ -1825,10 +1830,20 @@ async function renderReturn(rentalId) {
     // Brak wpisu pojazdu w bazie nie powinien blokować zwrotu.
   }
 
-  try {
-    damageMap.setMarks(await fetchVehicleDamageMarks(record.vehiclePlate));
-  } catch (e) {
-    // Brak zapisanego schematu nie powinien blokować zwrotu.
+  // Zaznaczenia z wydania TEGO wynajmu (zapisane wprost na rekordzie — patrz
+  // renderHandover/protokol.js) mają pierwszeństwo przed "ostatnim znanym"
+  // schematem z bazy pojazdów, żeby zwrot pokazywał dokładnie to, co
+  // zaznaczono przy wydaniu, a nie stan z zupełnie innego wynajmu tego
+  // samego pojazdu. Starsze wynajmy sprzed tej zmiany nie mają jeszcze tego
+  // pola — dla nich zostaje dotychczasowy fallback do bazy pojazdów.
+  if (record.handoverDamageMarks) {
+    damageMap.setMarks(record.handoverDamageMarks);
+  } else {
+    try {
+      damageMap.setMarks(await fetchVehicleDamageMarks(record.vehiclePlate));
+    } catch (e) {
+      // Brak zapisanego schematu nie powinien blokować zwrotu.
+    }
   }
 
   // Pokaż do potwierdzenia tylko to wyposażenie, które faktycznie zostało

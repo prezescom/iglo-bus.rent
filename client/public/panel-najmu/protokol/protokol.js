@@ -329,6 +329,11 @@ function renderGuestHandover(rentalId, existingRecord) {
       returnSignatureUrl: "",
       handoverDamageMapUrl: "",
       returnDamageMapUrl: "",
+      // Zapisane wprost na wynajmie (nie w bazie pojazdów — najemca nie ma
+      // do niej dostępu, patrz firestore.rules), żeby zwrot (czy to przez
+      // panel, czy przez ten sam link) mógł podpowiedzieć te same zaznaczone
+      // uszkodzenia zamiast zaczynać od pustej mapy.
+      handoverDamageMarks: damageMap.getMarks(),
       handoverProtocolPdfUrl: "",
       returnProtocolPdfUrl: "",
       id: rentalId,
@@ -399,6 +404,7 @@ function renderGuestReturn(rentalId, record) {
     diagramUrl: DAMAGE_MAP_DIAGRAM_URL,
     distinguishOrigin: true
   });
+  damageMap.setMarks(record.handoverDamageMarks || []);
   appEl.querySelector('[data-action="clear-damage-map"]').addEventListener("click", () => damageMap.clear());
 
   const equipmentOptions = [
