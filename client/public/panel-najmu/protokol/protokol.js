@@ -398,7 +398,7 @@ function renderGuestHandover(rentalId, existingRecord) {
   });
 }
 
-// ---------- ZWROT (wypełniane przez najemcę, tym samym hasłem) ----------
+// ---------- ZWROT (wypełniane przez najemcę, własny osobny link/hasło) ----------
 function renderGuestReturn(rentalId, record) {
   preloadPdfAssets();
   const tpl = document.getElementById("tpl-guest-return");
