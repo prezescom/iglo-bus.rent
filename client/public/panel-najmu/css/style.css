@@ -196,6 +196,8 @@ input:disabled, select:disabled, textarea:disabled {
 
 .error { color: var(--error); font-size: 14px; font-weight: 600; margin: 0; }
 .muted { color: var(--muted); font-size: 14px; }
+.photo-guide { margin: 0 0 10px; padding-left: 20px; }
+.photo-guide li { margin-bottom: 2px; }
 
 .toast {
   position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
