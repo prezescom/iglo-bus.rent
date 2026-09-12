@@ -75,6 +75,22 @@ function showInfoScreen(message) {
   document.getElementById("infoMessage").textContent = message;
 }
 
+// Wywoływane zaraz po zapisaniu KAŻDEJ fazy protokołu (wydania lub zwrotu):
+// dezaktywuje hasło do tego protokołu (patrz expireProtocolAccess w
+// functions/index.js) i wylogowuje bieżącą sesję — kolejna faza wymaga
+// nowego hasła ustawionego ręcznie przez pracownika w panelu. Najlepszy
+// wysiłek: dane protokołu są już bezpiecznie zapisane w tym momencie, więc
+// błąd samej dezaktywacji (np. chwilowy brak sieci) nie powinien pokazywać
+// się najemcy jako błąd zapisu.
+async function expireAccessAndSignOut(rentalId) {
+  try {
+    await httpsCallable(functions, "expireProtocolAccess")({ rentalId });
+  } catch (e) {
+    // Ignorowane celowo — patrz komentarz wyżej.
+  }
+  await signOut(auth).catch(() => {});
+}
+
 async function render() {
   const rentalId = currentRentalId();
   currentPhotos = [];
@@ -346,7 +362,8 @@ function renderGuestHandover(rentalId, existingRecord) {
       await sharedSendProtocolEmail(functions, rentalId, "wydanie", pdfUrl, record.tenantEmail, record.lessorEmail, record.vehiclePlate, record.handoverTimestamp);
 
       showToast("Zapisano protokół wydania. Kopię wysłaliśmy na Twój e-mail.");
-      renderGuestReturn(rentalId, finalRecord);
+      await expireAccessAndSignOut(rentalId);
+      showInfoScreen("Protokół wydania zapisany. Kopię wysłaliśmy na Twój e-mail. Ten link jest teraz nieaktywny — do zwrotu pojazdu poproś wypożyczalnię o nowe hasło.");
     } catch (err) {
       errorEl.textContent = "Błąd zapisu: " + err.message;
       errorEl.hidden = false;
@@ -462,7 +479,8 @@ function renderGuestReturn(rentalId, record) {
       await sharedSendProtocolEmail(functions, rentalId, "zwrot", pdfUrl, updated.tenantEmail, updated.lessorEmail, updated.vehiclePlate, updated.returnTimestamp);
 
       showToast("Zapisano protokół zwrotu. Dziękujemy!");
-      showInfoScreen("Protokół zwrotu zapisany. Kopię wysłaliśmy na Twój e-mail. Dziękujemy!");
+      await expireAccessAndSignOut(rentalId);
+      showInfoScreen("Protokół zwrotu zapisany. Kopię wysłaliśmy na Twój e-mail. Ten link jest teraz nieaktywny. Dziękujemy!");
     } catch (err) {
       errorEl.textContent = "Błąd zapisu: " + err.message;
       errorEl.hidden = false;

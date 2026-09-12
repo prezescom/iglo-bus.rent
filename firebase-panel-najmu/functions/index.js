@@ -20,6 +20,11 @@
  *     the hash from setProtocolPassword and, on success, mints a Firebase
  *     custom token scoped to that one rental via a "protocolAccess" claim
  *     (see firestore.rules / storage.rules).
+ *  7. expireProtocolAccess    — callable, requires the tenant's own scoped
+ *     custom token for that rentalId. Called by protokol.js right after
+ *     saving each phase (handover or return) to immediately deactivate the
+ *     password — the next phase needs a fresh one set via
+ *     setProtocolPassword.
  *
  * Setup required (see PANEL-NAJMU-SETUP.md):
  *   firebase functions:secrets:set ZOHO_PASS
@@ -238,6 +243,29 @@ exports.verifyProtocolPassword = onCall({ region: REGION }, async (request) => {
 
   const token = await admin.auth().createCustomToken(`protocol-${rentalId}`, { protocolAccess: rentalId });
   return { token };
+});
+
+/**
+ * Callable, wywoływana przez samego najemcę (protokol.js) zaraz po zapisaniu
+ * KAŻDEJ fazy protokołu (wydania lub zwrotu) — dezaktywuje hasło do tego
+ * jednego protokołu, żeby link natychmiast przestał działać. Kolejna faza
+ * (np. zwrot po wydaniu) wymaga NOWEGO hasła, ustawionego ręcznie przez
+ * pracownika w panelu ("Szkice protokołów" → "Ustaw nowe hasło" — patrz
+ * setProtocolPassword powyżej, które po prostu nadpisuje ten sam dokument).
+ * Autoryzacja: wołający musi mieć custom token zawężony właśnie do TEGO
+ * rentalId (ten sam, który wydaje verifyProtocolPassword) — nie da się w
+ * ten sposób dezaktywować cudzego protokołu.
+ */
+exports.expireProtocolAccess = onCall({ region: REGION }, async (request) => {
+  const { rentalId } = request.data;
+  if (!rentalId || typeof rentalId !== "string") {
+    throw new HttpsError("invalid-argument", "Brakuje rentalId.");
+  }
+  if (!request.auth || request.auth.token.protocolAccess !== rentalId) {
+    throw new HttpsError("permission-denied", "Brak uprawnień do tego protokołu.");
+  }
+  await admin.firestore().collection("protocolAccess").doc(rentalId).delete();
+  return { success: true };
 });
 
 /**
