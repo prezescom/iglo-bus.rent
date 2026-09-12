@@ -1,14 +1,17 @@
 // Samoobsługowa strona protokołu dla najemcy — BEZ Basic Auth (patrz
 // middleware.ts) i BEZ signInAnonymously operatorskiego (patrz js/app.js).
-// Jedyne co daje dostęp do jednego konkretnego wynajmu to hasło do TEGO
-// protokołu, zweryfikowane przez Cloud Function verifyProtocolPassword,
-// która w zamian wydaje Firebase custom token z claimem "protocolAccess"
-// ograniczającym uprawnienia wyłącznie do rentals/{rentalId} (patrz
-// firestore.rules / storage.rules). To samo hasło obsługuje wydanie i zwrot
-// tego samego wynajmu — nie trzeba go podawać osobno przy zwrocie, dopóki
-// sesja w tej przeglądarce jest wciąż aktywna; jeśli nie jest (inne
-// urządzenie, wyczyszczone dane), strona po prostu prosi o to samo hasło
-// jeszcze raz.
+// Adres (#<token> w hashu) NIE jest identyfikatorem wynajmu — to losowy,
+// nieodgadnialny token wydany dla JEDNEJ konkretnej fazy (wydanie albo
+// zwrot) przez pracownika (patrz setProtocolPassword w functions/index.js).
+// Jedyne co daje dostęp to hasło do TEGO tokenu, zweryfikowane przez Cloud
+// Function verifyProtocolPassword, która w zamian wydaje Firebase custom
+// token z claimem "protocolAccess" ograniczającym uprawnienia wyłącznie do
+// rentals/{rentalId} (patrz firestore.rules / storage.rules). Wydanie i
+// zwrot mają OSOBNE linki/tokeny — po zapisaniu jednej fazy jej token
+// natychmiast przestaje istnieć (expireProtocolAccess), a kolejna faza
+// wymaga zupełnie nowego linku ustawionego przez pracownika. Dopóki sesja w
+// TEJ SAMEJ karcie przeglądarki jest wciąż aktywna, nie trzeba ponownie
+// podawać hasła po odświeżeniu strony (patrz sessionStorage poniżej).
 import { firebaseConfig, FUNCTIONS_REGION } from "../shared/firebase-config.js";
 import { initSignatureField } from "../shared/signature.js";
 import { initDamageMap } from "../shared/damage-map.js";
@@ -56,9 +59,17 @@ let damageMap = null;
 window.addEventListener("hashchange", render);
 window.addEventListener("DOMContentLoaded", render);
 
-function currentRentalId() {
+function currentToken() {
   return decodeURIComponent(location.hash.replace("#", "").trim());
 }
+
+// Bookkeeping sesji w TEJ karcie (sessionStorage, jak setPersistence
+// poniżej) — pozwala odróżnić "wciąż ten sam link, można kontynuować bez
+// hasła" od "inny/nowy link w tej samej karcie, trzeba spytać o hasło od
+// nowa", mimo że sam token w hashu nie mówi nic o tym, do którego wynajmu
+// należy (to ustala wyłącznie verifyProtocolPassword po stronie serwera).
+const SESSION_TOKEN_KEY = "protokolActiveToken";
+const SESSION_RENTAL_KEY = "protokolActiveRentalId";
 
 let toastTimer;
 function showToast(msg) {
@@ -82,47 +93,54 @@ function showInfoScreen(message) {
 // wysiłek: dane protokołu są już bezpiecznie zapisane w tym momencie, więc
 // błąd samej dezaktywacji (np. chwilowy brak sieci) nie powinien pokazywać
 // się najemcy jako błąd zapisu.
-async function expireAccessAndSignOut(rentalId) {
+async function expireAccessAndSignOut() {
   try {
-    await httpsCallable(functions, "expireProtocolAccess")({ rentalId });
+    await httpsCallable(functions, "expireProtocolAccess")({});
   } catch (e) {
     // Ignorowane celowo — patrz komentarz wyżej.
   }
+  sessionStorage.removeItem(SESSION_TOKEN_KEY);
+  sessionStorage.removeItem(SESSION_RENTAL_KEY);
   await signOut(auth).catch(() => {});
 }
 
 async function render() {
-  const rentalId = currentRentalId();
   currentPhotos = [];
-
-  if (!rentalId) {
-    showInfoScreen("Brak identyfikatora protokołu w adresie — użyj linku otrzymanego od wypożyczalni.");
-    return;
-  }
 
   // Musi być ustawione zanim cokolwiek sprawdzi/zmieni stan logowania — w
   // przeciwnym razie sygnOut poniżej (dla sesji operatorskiej z panelu,
-  // wykrytej jako "zła" dla tego rentalId) wylogowałby ją też z panelu w
-  // innej karcie tej samej przeglądarki, bo domyślnie obie karty dzielą to
-  // samo IndexedDB.
+  // wykrytej jako "zła" dla tego linku) wylogowałby ją też z panelu w innej
+  // karcie tej samej przeglądarki, bo domyślnie obie karty dzielą to samo
+  // IndexedDB.
   await authPersistenceReady;
 
   const user = await waitForInitialAuth();
   const claims = user ? (await user.getIdTokenResult()).claims : null;
+  const hashToken = currentToken();
 
-  if (!claims || claims.protocolAccess !== rentalId) {
-    // Albo w ogóle niezalogowany, albo zalogowany do INNEGO protokołu
-    // (np. ten sam telefon miał otwarty wcześniej inny link) — w obu
-    // przypadkach trzeba podać hasło do TEGO protokołu. Jeśli to, co
-    // zobaczyliśmy, to cudza sesja (np. operatorska z panelu w innej
-    // karcie) — dzięki setPersistence powyżej nie dotyka już współdzielonego
-    // IndexedDB, więc signOut tutaj nie rusza panelu w innej karcie.
-    if (user) await signOut(auth).catch(() => {});
-    renderPasswordGate(rentalId);
+  // Kontynuacja bez ponownego pytania o hasło TYLKO gdy: jest aktywna sesja
+  // z claimem protocolAccess, ORAZ hash w adresie wciąż wskazuje na dokładnie
+  // ten sam token, którym ta sesja została otwarta (zapisany lokalnie w tej
+  // karcie przy logowaniu — patrz renderPasswordGate). Sam claim nie
+  // wystarczy, bo token w hashu nie ujawnia, do którego wynajmu należy —
+  // trzeba to rzeczywiście dopasować, żeby inny/nowszy link otwarty w tej
+  // samej karcie nie "odziedziczył" cudzej, wciąż żywej sesji.
+  if (
+    claims && claims.protocolAccess &&
+    hashToken && sessionStorage.getItem(SESSION_TOKEN_KEY) === hashToken &&
+    sessionStorage.getItem(SESSION_RENTAL_KEY) === claims.protocolAccess
+  ) {
+    await renderProtocolForPhase(claims.protocolAccess);
     return;
   }
 
-  await renderProtocolForPhase(rentalId);
+  if (user) await signOut(auth).catch(() => {});
+
+  if (!hashToken) {
+    showInfoScreen("Brak linku protokołu w adresie — użyj linku otrzymanego od wypożyczalni.");
+    return;
+  }
+  renderPasswordGate(hashToken);
 }
 
 function waitForInitialAuth() {
@@ -135,7 +153,7 @@ function waitForInitialAuth() {
 }
 
 // ---------- EKRAN HASŁA ----------
-function renderPasswordGate(rentalId) {
+function renderPasswordGate(token) {
   const tpl = document.getElementById("tpl-password-gate");
   appEl.replaceChildren(tpl.content.cloneNode(true));
   const form = document.getElementById("passwordForm");
@@ -151,10 +169,12 @@ function renderPasswordGate(rentalId) {
     submitBtn.textContent = "Sprawdzanie…";
     try {
       const verify = httpsCallable(functions, "verifyProtocolPassword");
-      const result = await verify({ rentalId, password });
+      const result = await verify({ token, password });
       await authPersistenceReady;
-      await signInWithCustomToken(auth, result.data.token);
-      await renderProtocolForPhase(rentalId);
+      await signInWithCustomToken(auth, result.data.customToken);
+      sessionStorage.setItem(SESSION_TOKEN_KEY, token);
+      sessionStorage.setItem(SESSION_RENTAL_KEY, result.data.rentalId);
+      await renderProtocolForPhase(result.data.rentalId);
     } catch (err) {
       errorEl.textContent = err.message || "Nieprawidłowe hasło.";
       errorEl.hidden = false;
@@ -367,7 +387,7 @@ function renderGuestHandover(rentalId, existingRecord) {
       await sharedSendProtocolEmail(functions, rentalId, "wydanie", pdfUrl, record.tenantEmail, record.lessorEmail, record.vehiclePlate, record.handoverTimestamp);
 
       showToast("Zapisano protokół wydania. Kopię wysłaliśmy na Twój e-mail.");
-      await expireAccessAndSignOut(rentalId);
+      await expireAccessAndSignOut();
       showInfoScreen("Protokół wydania zapisany. Kopię wysłaliśmy na Twój e-mail. Ten link jest teraz nieaktywny — do zwrotu pojazdu poproś wypożyczalnię o nowe hasło.");
     } catch (err) {
       errorEl.textContent = "Błąd zapisu: " + err.message;
@@ -485,7 +505,7 @@ function renderGuestReturn(rentalId, record) {
       await sharedSendProtocolEmail(functions, rentalId, "zwrot", pdfUrl, updated.tenantEmail, updated.lessorEmail, updated.vehiclePlate, updated.returnTimestamp);
 
       showToast("Zapisano protokół zwrotu. Dziękujemy!");
-      await expireAccessAndSignOut(rentalId);
+      await expireAccessAndSignOut();
       showInfoScreen("Protokół zwrotu zapisany. Kopię wysłaliśmy na Twój e-mail. Ten link jest teraz nieaktywny. Dziękujemy!");
     } catch (err) {
       errorEl.textContent = "Błąd zapisu: " + err.message;

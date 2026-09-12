@@ -196,7 +196,6 @@ async function renderList() {
       const missingProtocol = !r.handoverProtocolPdfUrl;
       const card = document.createElement("div");
       card.className = "rental-card";
-      const link = `${location.origin}/panel-najmu/protokol/#${d.id}`;
       card.innerHTML = `
         <div class="plate">${escapeHtml(r.vehicleModel)} • ${escapeHtml(r.vehiclePlate)}</div>
         <div class="tenant">Najemca: ${escapeHtml(r.tenantName)}</div>
@@ -210,7 +209,11 @@ async function renderList() {
         const newPassword = prompt("Hasło, którym najemca sam zrobi zwrot pod linkiem (min. 6 znaków):");
         if (!newPassword) return;
         try {
-          await httpsCallable(functions, "setProtocolPassword")({ rentalId: d.id, password: newPassword });
+          // Zwrot dostaje własny, nowy link (token) — ten do wydania (jeśli
+          // jeszcze istniał) jest tym samym wywołaniem unieważniany po stronie
+          // funkcji (patrz setProtocolPassword w functions/index.js).
+          const result = await httpsCallable(functions, "setProtocolPassword")({ rentalId: d.id, password: newPassword, phase: "zwrot" });
+          const link = `${location.origin}/panel-najmu/protokol/#${result.data.token}`;
           showToast(`Ustawiono hasło do zwrotu. Link: ${link}`);
         } catch (e) {
           showToast("Błąd: " + e.message);
@@ -372,9 +375,9 @@ async function renderNewProtocol() {
         status: "szkic"
       };
       await setDoc(doc(db, "rentals", rentalId), record);
-      await httpsCallable(functions, "setProtocolPassword")({ rentalId, password });
+      const passwordResult = await httpsCallable(functions, "setProtocolPassword")({ rentalId, password, phase: "wydanie" });
 
-      const link = `${location.origin}/panel-najmu/protokol/#${rentalId}`;
+      const link = `${location.origin}/panel-najmu/protokol/#${passwordResult.data.token}`;
       document.getElementById("newProtocolLink").textContent = link;
       form.hidden = true;
       resultEl.hidden = false;
@@ -412,7 +415,6 @@ async function renderDrafts() {
     listEl.innerHTML = "";
     snap.forEach((d) => {
       const r = d.data();
-      const link = `${location.origin}/panel-najmu/protokol/#${d.id}`;
       const card = document.createElement("div");
       card.className = "rental-card";
       card.innerHTML = `
@@ -429,6 +431,11 @@ async function renderDrafts() {
       `;
       card.querySelector('[data-action="finish"]').addEventListener("click", () => navigate(`handover/${d.id}`));
       card.querySelector('[data-action="show-link"]').addEventListener("click", async () => {
+        if (!r.activeProtocolToken) {
+          showToast("Brak aktywnego linku — najpierw ustaw hasło.");
+          return;
+        }
+        const link = `${location.origin}/panel-najmu/protokol/#${r.activeProtocolToken}`;
         try {
           await navigator.clipboard.writeText(link);
           showToast(`Skopiowano link: ${link}`);
@@ -451,7 +458,11 @@ async function renderDrafts() {
         const newPassword = prompt("Nowe hasło do tego protokołu (min. 6 znaków):");
         if (!newPassword) return;
         try {
-          await httpsCallable(functions, "setProtocolPassword")({ rentalId: d.id, password: newPassword });
+          const result = await httpsCallable(functions, "setProtocolPassword")({ rentalId: d.id, password: newPassword, phase: "wydanie" });
+          // Zapamiętaj nowy token lokalnie, żeby "Pokaż link" od razu działał
+          // bez ponownego wczytywania listy szkiców.
+          r.activeProtocolToken = result.data.token;
+          const link = `${location.origin}/panel-najmu/protokol/#${result.data.token}`;
           showToast(`Ustawiono nowe hasło. Link: ${link}`);
         } catch (e) {
           showToast("Błąd: " + e.message);

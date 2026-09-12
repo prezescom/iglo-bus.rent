@@ -57,13 +57,16 @@ Poza panelem operatora (Basic Auth) jest osobna, publiczna mini-aplikacja pod `i
 
 Jak to działa:
 
-1. Pracownik w panelu klika **„+ Nowy protokół (link dla najemcy)”**, wpisuje pojazd (+ opcjonalnie dane najemcy) i **ręcznie ustala hasło do tego jednego protokołu**. Powstaje wynajem w statusie `szkic` + link `iglo-bus.rent/panel-najmu/protokol/#<ID_wynajmu>`.
+1. Pracownik w panelu klika **„+ Nowy protokół (link dla najemcy)”**, wpisuje pojazd (+ opcjonalnie dane najemcy) i **ręcznie ustala hasło do wydania**. Powstaje wynajem w statusie `szkic` + link postaci `iglo-bus.rent/panel-najmu/protokol/#<losowy_token>` — token jest losowy i nieodgadnialny, sam URL niczego o wynajmie nie zdradza (w przeciwieństwie do ID wynajmu, które da się odtworzyć znając nr rejestracyjny i datę).
 2. Pracownik przekazuje ten link i hasło najemcy (SMS/telefon) — poza aplikacją, nie ma automatycznej wysyłki.
 3. Najemca otwiera link, podaje hasło → Cloud Function `verifyProtocolPassword` (patrz `firebase-panel-najmu/functions/index.js`) weryfikuje je i wydaje Firebase custom token zawężony do TEGO JEDNEGO wynajmu (claim `protocolAccess`, patrz `firestore.rules`/`storage.rules`) — bez logowania do panelu i bez dostępu do reszty bazy (pojazdów/najemców/innych wynajmów).
-4. Najemca wypełnia i finalizuje protokół wydania (zdjęcia, podpis, PDF, e-mail) samodzielnie. To samo hasło, pod tym samym linkiem, obsługuje też zwrot pojazdu — nie trzeba go ustawiać drugi raz.
-5. Pracownik może w każdej chwili dokończyć/edytować ten sam protokół z panelu, przez zwykłe logowanie — zakładka **„Szkice protokołów”** na liście pokazuje protokoły oczekujące na najemcę.
+4. Najemca wypełnia i finalizuje protokół wydania (zdjęcia, podpis, PDF, e-mail) samodzielnie. Zaraz po zapisaniu ten link **przestaje działać na zawsze** (`expireProtocolAccess` kasuje token i unieważnia sesję w Firebase Auth) — otwarcie go ponownie pokazuje „link nieprawidłowy lub wygasł", nie ekran hasła.
+5. Do zwrotu pracownik ustawia **zupełnie nowy, osobny link + hasło** („Ustaw hasło do samoobsługowego zwrotu" na liście aktywnych wynajmów) — stary link do wydania nie działałby nawet gdyby ktoś go sobie zachował. Ten sam mechanizm (nowy token + automatyczne wygaśnięcie po zapisie) obowiązuje przy zwrocie.
+6. Pracownik może w każdej chwili dokończyć/edytować ten sam protokół z panelu, przez zwykłe logowanie — zakładka **„Szkice protokołów”** na liście pokazuje protokoły oczekujące na najemcę.
 
-Nowa kolekcja Firestore `protocolAccess/{rentalId}` trzyma tylko hash hasła (bcrypt) — reguły blokują jej odczyt/zapis całkowicie, dotyka jej wyłącznie Admin SDK w Cloud Functions. Hasła są automatycznie kasowane razem ze zdjęciami po 10 dniach od zamknięcia wynajmu (patrz `cleanupOldRentals`).
+Nowa kolekcja Firestore `protocolAccess/{token}` trzyma hash hasła (bcrypt) razem z ID wynajmu i fazą (wydanie/zwrot), kluczowana losowym tokenem z linku, nie ID wynajmu — reguły blokują jej odczyt/zapis całkowicie, dotyka jej wyłącznie Admin SDK w Cloud Functions. Aktualny token/faza są też zapisane na `rentals/{rentalId}.activeProtocolToken`, żeby panel mógł pokazać/skopiować bieżący link (przycisk „Pokaż link”) bez dodatkowego wywołania. Ustawienie nowego hasła (`setProtocolPassword`) od razu kasuje poprzedni token tego wynajmu, więc w danej chwili istnieje najwyżej jeden ważny link na wynajem. Wygasłe/nieużywane tokeny są też automatycznie kasowane razem ze zdjęciami po 10 dniach od zamknięcia wynajmu (patrz `cleanupOldRentals`).
+
+**Brute-force:** licznik nieudanych prób w `protocolAccess/{token}` blokuje dany link na 15 minut po 8 błędnych hasłach (globalnie, nie per adres IP, więc dotyczy też rozproszonych prób). To realna ochrona przy krótkich, ręcznie wpisywanych hasłach — warto mimo to dyktować najemcy hasło z odrobiną złożoności (nie samo imię/nazwisko), skoro i tak jest ustalane ręcznie.
 
 Ten sam deploy z kroku 1 (`firebase deploy --only functions,firestore:rules,storage`) wdraża też te zmiany — nic dodatkowego nie trzeba konfigurować poza tym, co już jest w kroku 1 (`cd functions && npm install` doinstaluje `bcryptjs`).
 

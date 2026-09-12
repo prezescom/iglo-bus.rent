@@ -13,17 +13,24 @@
  *  4. cleanupOldApplications  — scheduled daily, deletes job application
  *     docs older than 90 days.
  *  5. setProtocolPassword     — callable, operator-only (request.auth from
- *     the panel). Hashes and stores the per-protocol password used by the
- *     tenant's self-service link (client/public/panel-najmu/protokol/).
+ *     the panel). Generates a new random, unguessable link token for one
+ *     phase (wydanie/zwrot) of one rental, hashes and stores the password
+ *     the operator typed in against that token (client/public/panel-najmu/
+ *     protokol/ links to it as .../protokol/#<token> — NOT the rentalId, so
+ *     the URL itself carries no guessable information). Any previous token
+ *     for that rental is invalidated in the same call, so handover and
+ *     return always get their own, separate link.
  *  6. verifyProtocolPassword  — callable, PUBLIC (no panel login, no Basic
  *     Auth — this is the whole point). Checks a submitted password against
- *     the hash from setProtocolPassword and, on success, mints a Firebase
+ *     the hash stored for that link token and, on success, mints a Firebase
  *     custom token scoped to that one rental via a "protocolAccess" claim
  *     (see firestore.rules / storage.rules).
  *  7. expireProtocolAccess    — callable, requires the tenant's own scoped
- *     custom token for that rentalId. Called by protokol.js right after
- *     saving each phase (handover or return) to immediately deactivate the
- *     password — the next phase needs a fresh one set via
+ *     custom token. Called by protokol.js right after saving each phase
+ *     (handover or return) to immediately deactivate that phase's link token
+ *     AND password, and revokes the tenant's Firebase refresh tokens so an
+ *     already-issued session can't silently renew itself past that point —
+ *     the next phase needs a brand new link + password set via
  *     setProtocolPassword.
  *
  * Setup required (see PANEL-NAJMU-SETUP.md):
@@ -40,6 +47,7 @@ const nodemailer = require("nodemailer");
 const path = require("path");
 const ExcelJS = require("exceljs");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 
 admin.initializeApp();
 
@@ -59,6 +67,14 @@ const ZOHO_USER = "kontakt@iglo-bus.rent";
 
 // Hasło do tej skrzynki — jedyna prawdziwa tajemnica, trzymana w Secret Manager.
 const zohoPass = defineSecret("ZOHO_PASS");
+
+// Losowy, nieodgadnialny token do linku samoobsługowego protokołu — to ON
+// (nie rentalId) trafia do URL-a (.../protokol/#<token>), więc sam link
+// niczego o wynajmie nie zdradza i nie da się go odgadnąć znając nr
+// rejestracyjny/datę. 21 bajtów losowości (168 bitów) zakodowane base64url.
+function generateProtocolToken() {
+  return crypto.randomBytes(21).toString("base64url");
+}
 
 function formatDateRRMMDD(timestamp) {
   const d = timestamp ? new Date(timestamp) : new Date();
@@ -166,62 +182,97 @@ ${emailFooterText()}`;
 
 /**
  * Callable function (operator-only, request.auth wymagane — patrz
- * firestore.rules): ustawia/nadpisuje hasło do samoobsługowego linku
- * konkretnego protokołu. Hasz trafia do protocolAccess/{rentalId}, nigdy
- * czytelnego dla klienta (reguły blokują odczyt tej kolekcji całkowicie —
- * dotyka jej tylko Admin SDK, czyli te dwie funkcje).
+ * firestore.rules): tworzy NOWY, osobny link samoobsługowy dla jednej fazy
+ * (wydanie albo zwrot) jednego wynajmu. Generuje losowy token (funkcja
+ * generateProtocolToken powyżej), hashuje podane przez pracownika hasło i
+ * zapisuje oba w protocolAccess/{token} — token, nie rentalId, jest kluczem
+ * dokumentu i tym, co trafia do URL-a, więc sam link (bez hasła) niczego nie
+ * zdradza. Poprzedni token tego wynajmu (jeśli był) jest od razu kasowany,
+ * więc wydanie i zwrot zawsze mają swój OSOBNY link — stary automatycznie
+ * przestaje działać, zanim jeszcze powstanie nowy.
+ * Aktualny token/faza są też zapisywane na rentals/{rentalId}
+ * (activeProtocolToken/activeProtocolPhase), żeby panel mógł pokazać/
+ * skopiować bieżący link bez dodatkowego wywołania (patrz "Pokaż link" w
+ * app.js) — same hasze pozostają wyłącznie w protocolAccess, nieczytelnym
+ * dla klienta.
  */
 exports.setProtocolPassword = onCall({ region: REGION }, async (request) => {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Wymagane zalogowanie do panelu.");
   }
-  const { rentalId, password } = request.data;
+  const { rentalId, password, phase } = request.data;
   if (!rentalId || typeof rentalId !== "string") {
     throw new HttpsError("invalid-argument", "Brakuje rentalId.");
+  }
+  if (phase !== "wydanie" && phase !== "zwrot") {
+    throw new HttpsError("invalid-argument", "Brakuje poprawnej fazy (wydanie/zwrot).");
   }
   if (!password || typeof password !== "string" || password.length < PROTOCOL_PASSWORD_MIN_LENGTH) {
     throw new HttpsError("invalid-argument", `Hasło musi mieć co najmniej ${PROTOCOL_PASSWORD_MIN_LENGTH} znaków.`);
   }
 
-  const passwordHash = await bcrypt.hash(password, 10);
-  await admin.firestore().collection("protocolAccess").doc(rentalId).set({
-    passwordHash,
-    createdAt: Date.now(),
-    failedAttempts: 0,
-    lockedUntil: 0
-  });
+  const rentalRef = admin.firestore().collection("rentals").doc(rentalId);
+  const rentalSnap = await rentalRef.get();
+  if (!rentalSnap.exists) {
+    throw new HttpsError("not-found", "Nie znaleziono wynajmu o tym identyfikatorze.");
+  }
+  const previousToken = rentalSnap.data().activeProtocolToken || "";
 
-  return { success: true };
+  const token = generateProtocolToken();
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  const writes = [
+    admin.firestore().collection("protocolAccess").doc(token).set({
+      rentalId,
+      phase,
+      passwordHash,
+      createdAt: Date.now(),
+      failedAttempts: 0,
+      lockedUntil: 0
+    }),
+    rentalRef.update({ activeProtocolToken: token, activeProtocolPhase: phase })
+  ];
+  if (previousToken) {
+    writes.push(admin.firestore().collection("protocolAccess").doc(previousToken).delete());
+  }
+  await Promise.all(writes);
+
+  return { token };
 });
 
 /**
  * Callable function, PUBLICZNA (wywoływana z client/public/panel-najmu/
  * protokol/, bez Basic Auth i bez logowania operatorskiego): weryfikuje
- * hasło do jednego protokołu i w razie zgodności wydaje Firebase custom
- * token z claimem "protocolAccess" = ID tego wynajmu, ograniczającym dostęp
- * WYŁĄCZNIE do tego jednego dokumentu (patrz firestore.rules/storage.rules).
- * Ten sam token/hasło obsługuje zarówno wydanie, jak i zwrot tego samego
- * wynajmu — nie trzeba go ustawiać osobno dla każdej fazy.
+ * hasło do jednego linku (token z URL-a, patrz setProtocolPassword) i w
+ * razie zgodności wydaje Firebase custom token z claimem "protocolAccess" =
+ * ID wynajmu, do którego ten link należy, ograniczającym dostęp WYŁĄCZNIE do
+ * tego jednego dokumentu (patrz firestore.rules/storage.rules). Wydanie i
+ * zwrot mają teraz OSOBNE tokeny/linki (patrz setProtocolPassword) — ten
+ * sam token nigdy nie obsługuje obu faz.
  *
  * Prosty licznik nieudanych prób w Firestore (nie IP-based, bo to prosta
- * apka jednego operatora) blokuje protokół na 15 minut po 8 błędnych
+ * apka jednego operatora) blokuje dany link na 15 minut po 8 błędnych
  * próbach — wystarczające utrudnienie brute-force przy hasłach wpisywanych
  * ręcznie przez pracownika.
  */
 exports.verifyProtocolPassword = onCall({ region: REGION }, async (request) => {
-  const { rentalId, password } = request.data;
-  if (!rentalId || typeof rentalId !== "string" || !password || typeof password !== "string") {
-    throw new HttpsError("invalid-argument", "Brakuje rentalId lub hasła.");
+  const { token, password } = request.data;
+  if (!token || typeof token !== "string" || !password || typeof password !== "string") {
+    throw new HttpsError("invalid-argument", "Brakuje tokenu lub hasła.");
   }
 
-  const accessRef = admin.firestore().collection("protocolAccess").doc(rentalId);
+  const accessRef = admin.firestore().collection("protocolAccess").doc(token);
   const snap = await accessRef.get();
-  // Ten sam komunikat co przy złym haśle — nie zdradzamy, czy protokół
-  // o takim ID w ogóle istnieje.
-  const genericError = () => new HttpsError("permission-denied", "Nieprawidłowe hasło.");
-  if (!snap.exists) throw genericError();
+  // Token nie istnieje (nigdy nie wydany, albo już wygasł po zapisaniu tej
+  // fazy / nadpisaniu nowym linkiem) — osobny, jasny komunikat: to nie jest
+  // "złe hasło", to nieaktualny link. Nie zdradza to nic o samym wynajmie,
+  // bo token jest losowy i niepowiązany z rentalId w żaden odgadnialny sposób.
+  if (!snap.exists) {
+    throw new HttpsError("not-found", "Ten link jest nieprawidłowy lub już wygasł. Poproś wypożyczalnię o nowy.");
+  }
 
   const access = snap.data();
+  const genericError = () => new HttpsError("permission-denied", "Nieprawidłowe hasło.");
   const now = Date.now();
   if (access.lockedUntil && access.lockedUntil > now) {
     throw new HttpsError("resource-exhausted", "Zbyt wiele nieudanych prób. Spróbuj ponownie za kilka minut.");
@@ -241,30 +292,54 @@ exports.verifyProtocolPassword = onCall({ region: REGION }, async (request) => {
 
   await accessRef.update({ failedAttempts: 0, lockedUntil: 0 });
 
-  const token = await admin.auth().createCustomToken(`protocol-${rentalId}`, { protocolAccess: rentalId });
-  return { token };
+  const customToken = await admin.auth().createCustomToken(`protocol-${access.rentalId}`, {
+    protocolAccess: access.rentalId,
+    protocolAccessToken: token
+  });
+  return { customToken, rentalId: access.rentalId, phase: access.phase };
 });
 
 /**
  * Callable, wywoływana przez samego najemcę (protokol.js) zaraz po zapisaniu
- * KAŻDEJ fazy protokołu (wydania lub zwrotu) — dezaktywuje hasło do tego
- * jednego protokołu, żeby link natychmiast przestał działać. Kolejna faza
- * (np. zwrot po wydaniu) wymaga NOWEGO hasła, ustawionego ręcznie przez
- * pracownika w panelu ("Szkice protokołów" → "Ustaw nowe hasło" — patrz
- * setProtocolPassword powyżej, które po prostu nadpisuje ten sam dokument).
- * Autoryzacja: wołający musi mieć custom token zawężony właśnie do TEGO
- * rentalId (ten sam, który wydaje verifyProtocolPassword) — nie da się w
- * ten sposób dezaktywować cudzego protokołu.
+ * KAŻDEJ fazy protokołu (wydania lub zwrotu) — dezaktywuje TEN JEDEN link
+ * (usuwa protocolAccess/{token}, więc żadne hasło już do niego nie pasuje —
+ * próba wejścia pod tym samym adresem daje "link nieprawidłowy lub wygasł",
+ * a nie ekran hasła) i unieważnia odświeżanie sesji tego najemcy w Firebase
+ * Auth (revokeRefreshTokens) — gdyby przeglądarka miała gdzieś zapamiętany
+ * token dostępu, nie odnowi go już po wygaśnięciu. Kolejna faza (np. zwrot
+ * po wydaniu) wymaga NOWEGO, osobnego linku + hasła, ustawionych ręcznie
+ * przez pracownika w panelu ("Szkice protokołów" / lista aktywnych wynajmów
+ * → "Ustaw nowe hasło"/"Ustaw hasło do samoobsługowego zwrotu" — patrz
+ * setProtocolPassword powyżej).
+ * Autoryzacja: wołający musi mieć custom token zawężony właśnie do tego
+ * konkretnego linku (claimy protocolAccess/protocolAccessToken wydane przez
+ * verifyProtocolPassword) — nie da się w ten sposób dezaktywować cudzego
+ * protokołu ani cudzego linku.
  */
 exports.expireProtocolAccess = onCall({ region: REGION }, async (request) => {
-  const { rentalId } = request.data;
-  if (!rentalId || typeof rentalId !== "string") {
-    throw new HttpsError("invalid-argument", "Brakuje rentalId.");
-  }
-  if (!request.auth || request.auth.token.protocolAccess !== rentalId) {
+  const claims = request.auth && request.auth.token;
+  const rentalId = claims && claims.protocolAccess;
+  const token = claims && claims.protocolAccessToken;
+  if (!rentalId || !token) {
     throw new HttpsError("permission-denied", "Brak uprawnień do tego protokołu.");
   }
-  await admin.firestore().collection("protocolAccess").doc(rentalId).delete();
+
+  await admin.firestore().collection("protocolAccess").doc(token).delete();
+
+  const rentalRef = admin.firestore().collection("rentals").doc(rentalId);
+  const rentalSnap = await rentalRef.get();
+  if (rentalSnap.exists && rentalSnap.data().activeProtocolToken === token) {
+    await rentalRef.update({ activeProtocolToken: "", activeProtocolPhase: "" });
+  }
+
+  try {
+    await admin.auth().revokeRefreshTokens(request.auth.uid);
+  } catch (e) {
+    // Najlepszy wysiłek — usunięcie tokenu dostępu powyżej i tak blokuje
+    // każde KOLEJNE logowanie/zapytanie wymagające nowej weryfikacji hasła.
+    console.error("Nie udało się unieważnić sesji najemcy:", e);
+  }
+
   return { success: true };
 });
 
@@ -306,6 +381,11 @@ exports.cleanupOldRentals = onSchedule(
         const [files] = await bucket.getFiles({ prefix: `rentals/${rentalId}/` });
         const filesToDelete = files.filter((f) => !f.name.endsWith("-protokol.pdf"));
         await Promise.all(filesToDelete.map((f) => f.delete()));
+        // Hasło/link do samoobsługowego protokołu (jeśli w ogóle był aktywny —
+        // patrz activeProtocolToken w setProtocolPassword) nie ma już czego
+        // chronić — wynajem jest zamknięty i wyczyszczony, link przestaje
+        // mieć sens.
+        const activeToken = doc.data().activeProtocolToken;
         await doc.ref.update({
           photosCleanedUp: true,
           handoverPhotoUrls: [],
@@ -313,12 +393,13 @@ exports.cleanupOldRentals = onSchedule(
           handoverSignatureUrl: "",
           returnSignatureUrl: "",
           handoverDamageMapUrl: "",
-          returnDamageMapUrl: ""
+          returnDamageMapUrl: "",
+          activeProtocolToken: "",
+          activeProtocolPhase: ""
         });
-        // Hasło do samoobsługowego linku tego protokołu (jeśli w ogóle było
-        // ustawione) nie ma już czego chronić — wynajem jest zamknięty i
-        // wyczyszczony, link przestaje mieć sens.
-        await admin.firestore().collection("protocolAccess").doc(rentalId).delete();
+        if (activeToken) {
+          await admin.firestore().collection("protocolAccess").doc(activeToken).delete();
+        }
         console.log(`Wyczyszczono zdjęcia/podpisy wynajmu ${rentalId} (${filesToDelete.length} plików), protokoły zachowane.`);
       } catch (err) {
         console.error(`Błąd czyszczenia wynajmu ${rentalId}:`, err);
