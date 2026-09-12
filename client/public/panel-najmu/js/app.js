@@ -202,6 +202,7 @@ async function renderList() {
         ${missingProtocol ? '<div class="error">Brak wygenerowanego protokołu wydania (PDF)!</div>' : ""}
         <button class="btn btn-secondary" data-action="return">Zarejestruj zwrot</button>
         <button class="btn-text" data-action="return-password">Ustaw hasło do samoobsługowego zwrotu</button>
+        <button class="btn-text" data-action="show-return-link">Pokaż link do zwrotu</button>
         ${missingProtocol ? '<button class="btn-text" data-action="regen">Wygeneruj protokół awaryjnie</button>' : ""}
       `;
       card.querySelector('[data-action="return"]').addEventListener("click", () => navigate(`return/${d.id}`));
@@ -213,10 +214,28 @@ async function renderList() {
           // jeszcze istniał) jest tym samym wywołaniem unieważniany po stronie
           // funkcji (patrz setProtocolPassword w functions/index.js).
           const result = await httpsCallable(functions, "setProtocolPassword")({ rentalId: d.id, password: newPassword, phase: "zwrot" });
+          // Zapamiętaj token lokalnie, żeby "Pokaż link do zwrotu" od razu
+          // działał bez ponownego wczytywania listy.
+          r.activeProtocolToken = result.data.token;
           const link = `${location.origin}/panel-najmu/protokol/#${result.data.token}`;
           showToast(`Ustawiono hasło do zwrotu. Link: ${link}`);
         } catch (e) {
           showToast("Błąd: " + e.message);
+        }
+      });
+      card.querySelector('[data-action="show-return-link"]').addEventListener("click", async () => {
+        if (!r.activeProtocolToken) {
+          showToast("Brak aktywnego linku — najpierw ustaw hasło do zwrotu.");
+          return;
+        }
+        const link = `${location.origin}/panel-najmu/protokol/#${r.activeProtocolToken}`;
+        try {
+          await navigator.clipboard.writeText(link);
+          showToast(`Skopiowano link: ${link}`);
+        } catch (e) {
+          // Kopiowanie może być zablokowane (np. brak uprawnień przeglądarki)
+          // — pokaż link do ręcznego skopiowania zamiast cichej porażki.
+          window.prompt("Link do protokołu (skopiuj ręcznie):", link);
         }
       });
       const regenBtn = card.querySelector('[data-action="regen"]');
