@@ -24,7 +24,11 @@
  *     Auth — this is the whole point). Checks a submitted password against
  *     the hash stored for that link token and, on success, mints a Firebase
  *     custom token scoped to that one rental via a "protocolAccess" claim
- *     (see firestore.rules / storage.rules).
+ *     (see firestore.rules / storage.rules), plus a "vehiclePlateId" claim
+ *     (normalized plate of that rental's vehicle) that lets the tenant read
+ *     — read-only — that ONE vehicle document, so previously-documented
+ *     damage (marks + photos, set by staff via the vehicle database) still
+ *     carries into the self-service protocol, same as in the panel.
  *  7. expireProtocolAccess    — callable, requires the tenant's own scoped
  *     custom token. Called by protokol.js right after saving each phase
  *     (handover or return) to immediately deactivate that phase's link token
@@ -74,6 +78,14 @@ const zohoPass = defineSecret("ZOHO_PASS");
 // rejestracyjny/datę. 21 bajtów losowości (168 bitów) zakodowane base64url.
 function generateProtocolToken() {
   return crypto.randomBytes(21).toString("base64url");
+}
+
+// Musi być identyczna z normalizePlateId w client/public/panel-najmu/shared/
+// protocol-actions.js (i js/app.js) — to ten sam ciąg jest używany jako ID
+// dokumentu w kolekcji vehicles, więc obie strony (klient przy zapisie,
+// funkcja przy wydawaniu claimu do odczytu) muszą się zgadzać co do litery.
+function normalizePlateId(plate) {
+  return (plate || "").trim().toUpperCase().replace(/\s+/g, "");
 }
 
 function formatDateRRMMDD(timestamp) {
@@ -292,10 +304,24 @@ exports.verifyProtocolPassword = onCall({ region: REGION }, async (request) => {
 
   await accessRef.update({ failedAttempts: 0, lockedUntil: 0 });
 
-  const customToken = await admin.auth().createCustomToken(`protocol-${access.rentalId}`, {
-    protocolAccess: access.rentalId,
-    protocolAccessToken: token
-  });
+  // Dorzucamy claim z ID pojazdu (znormalizowany nr rejestracyjny — patrz
+  // normalizePlateId powyżej), żeby najemca mógł odczytać WYŁĄCZNIE ten jeden
+  // dokument w kolekcji vehicles (patrz firestore.rules) i zobaczyć/dołączyć
+  // do PDF-u już wcześniej udokumentowane uszkodzenia tego konkretnego
+  // pojazdu — bez tego cała kolekcja vehicles jest dla niego zablokowana.
+  // Najlepszy wysiłek: brak/błąd przy ustalaniu płyty nie blokuje logowania.
+  let vehiclePlateId = null;
+  try {
+    const rentalSnap = await admin.firestore().collection("rentals").doc(access.rentalId).get();
+    const plate = rentalSnap.exists ? rentalSnap.data().vehiclePlate : null;
+    if (plate) vehiclePlateId = normalizePlateId(plate);
+  } catch (e) {
+    console.error("Nie udało się ustalić pojazdu dla claimu vehiclePlateId:", e);
+  }
+
+  const claims = { protocolAccess: access.rentalId, protocolAccessToken: token };
+  if (vehiclePlateId) claims.vehiclePlateId = vehiclePlateId;
+  const customToken = await admin.auth().createCustomToken(`protocol-${access.rentalId}`, claims);
   return { customToken, rentalId: access.rentalId, phase: access.phase };
 });
 

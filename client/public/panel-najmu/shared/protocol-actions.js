@@ -85,10 +85,10 @@ export async function uploadPdfBlob(storage, rentalId, phase, plate, timestampMs
 // rozdzielczości aparatu — oryginał trafia bez zmian do Storage.
 const PDF_PHOTO_MAX_DIMENSION = 1600;
 
-export async function fileToDataUrl(file) {
+async function blobToResizedDataUrl(blob) {
   if (typeof createImageBitmap === "function") {
     try {
-      const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+      const bitmap = await createImageBitmap(blob, { imageOrientation: "from-image" });
       const scale = Math.min(1, PDF_PHOTO_MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
       const canvas = document.createElement("canvas");
       canvas.width = Math.round(bitmap.width * scale);
@@ -104,8 +104,37 @@ export async function fileToDataUrl(file) {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
     reader.onerror = reject;
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(blob);
   });
+}
+
+export async function fileToDataUrl(file) {
+  return blobToResizedDataUrl(file);
+}
+
+// Pobiera zdjęcie spod adresu Storage (np. już udokumentowane uszkodzenie
+// zapisane na stałe przy pojeździe, patrz vehicleDamagePhotosToDataUrls
+// niżej) i zamienia na data URL do osadzenia w PDF-ie. `null` przy błędzie —
+// brak jednego zdjęcia nie powinien wywalać całego protokołu.
+export async function urlToDataUrl(url) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await blobToResizedDataUrl(await res.blob());
+  } catch (e) {
+    return null;
+  }
+}
+
+// Zdjęcia udokumentowanych uszkodzeń zapisane na stałe przy pojeździe
+// (kolekcja vehicles, pole damagePhotoUrls — ustawiane przez pracownika w
+// panelu, patrz js/app.js) — dołączane do PDF-u przy wydaniu/zwrocie, żeby
+// najemca (i wypożyczalnia) widzieli pełną historię, nie tylko to, co
+// zaznaczono w bieżącym protokole.
+export async function vehicleDamagePhotosToDataUrls(photos) {
+  if (!photos || !photos.length) return [];
+  const results = await Promise.all(photos.map((p) => urlToDataUrl(p.url)));
+  return results.filter(Boolean);
 }
 
 export async function sendProtocolEmail(functionsInstance, rentalId, phase, pdfUrl, tenantEmail, lessorEmail, vehiclePlate, timestamp) {

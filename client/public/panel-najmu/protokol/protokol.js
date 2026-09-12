@@ -17,9 +17,9 @@ import { initSignatureField } from "../shared/signature.js";
 import { initDamageMap } from "../shared/damage-map.js";
 import { generateProtocolPdf, preloadPdfAssets } from "../shared/pdf.js";
 import {
-  escapeHtml, fileToDataUrl, wireTenantTypeToggle, prefillForm,
+  escapeHtml, fileToDataUrl, wireTenantTypeToggle, prefillForm, normalizePlateId,
   uploadPhotoFiles, uploadSignatureBlob, uploadDamageMapBlob, uploadPdfBlob,
-  sendProtocolEmail as sharedSendProtocolEmail
+  vehicleDamagePhotosToDataUrls, sendProtocolEmail as sharedSendProtocolEmail
 } from "../shared/protocol-actions.js";
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -248,7 +248,7 @@ function applyFieldLock(form, existingRecord) {
   form.prepend(note);
 }
 
-function renderGuestHandover(rentalId, existingRecord) {
+async function renderGuestHandover(rentalId, existingRecord) {
   preloadPdfAssets();
   const tpl = document.getElementById("tpl-guest-handover");
   appEl.replaceChildren(tpl.content.cloneNode(true));
@@ -267,6 +267,28 @@ function renderGuestHandover(rentalId, existingRecord) {
     diagramUrl: DAMAGE_MAP_DIAGRAM_URL
   });
   appEl.querySelector('[data-action="clear-damage-map"]').addEventListener("click", () => damageMap.clear());
+
+  // Uszkodzenia i zdjęcia udokumentowane wcześniej przy tym pojeździe (baza
+  // pojazdów w panelu, patrz js/app.js) — tak jak przy zwykłym wydaniu z
+  // panelu, najemca pod linkiem też powinien je zobaczyć na mapie i mieć
+  // dołączone do PDF-u, zamiast zaczynać od pustej mapy. Dostęp do TEGO
+  // JEDNEGO pojazdu daje claim "vehiclePlateId" wydany przy logowaniu (patrz
+  // verifyProtocolPassword w functions/index.js) — reszta bazy pojazdów
+  // pozostaje niedostępna.
+  let vehicleDamagePhotos = [];
+  if (existingRecord.vehiclePlate) {
+    try {
+      const vehicleSnap = await getDoc(doc(db, "vehicles", normalizePlateId(existingRecord.vehiclePlate)));
+      if (vehicleSnap.exists()) {
+        const v = vehicleSnap.data();
+        damageMap.setMarks(v.lastDamageMapMarks || []);
+        vehicleDamagePhotos = v.damagePhotoUrls || [];
+      }
+    } catch (e) {
+      // Brak dostępu/danych nie powinien blokować wydania — po prostu
+      // zacznie się od pustej mapy, bez wcześniej udokumentowanych zdjęć.
+    }
+  }
 
   const form = document.getElementById("handoverForm");
   wireTenantTypeToggle(
@@ -364,16 +386,17 @@ function renderGuestHandover(rentalId, existingRecord) {
     submitBtn.textContent = "Zapisywanie…";
     try {
       const docRef = doc(db, "rentals", rentalId);
-      const [, photoUrls, sigUrl, damageMapUrl, photoDataUrls] = await Promise.all([
+      const [, photoUrls, sigUrl, damageMapUrl, photoDataUrls, vehicleDamagePhotoDataUrls] = await Promise.all([
         setDoc(docRef, record),
         uploadPhotoFiles(storage, rentalId, "wydanie", record.vehiclePlate, record.handoverTimestamp, currentPhotos),
         (async () => uploadSignatureBlob(storage, rentalId, "wydanie", record.vehiclePlate, record.handoverTimestamp, await sigPad.toBlob()))(),
         (async () => uploadDamageMapBlob(storage, rentalId, "wydanie", record.vehiclePlate, record.handoverTimestamp, await damageMap.toBlob()))(),
-        Promise.all(currentPhotos.map(fileToDataUrl))
+        Promise.all(currentPhotos.map(fileToDataUrl)),
+        vehicleDamagePhotosToDataUrls(vehicleDamagePhotos)
       ]);
       const sigDataUrl = sigPad.toDataUrl();
       const damageMapDataUrl = damageMap.toDataUrl();
-      const pdfBlob = await generateProtocolPdf(record, "wydanie", sigDataUrl, damageMapDataUrl, photoDataUrls);
+      const pdfBlob = await generateProtocolPdf(record, "wydanie", sigDataUrl, damageMapDataUrl, photoDataUrls, vehicleDamagePhotoDataUrls);
       const pdfUrl = await uploadPdfBlob(storage, rentalId, "wydanie", record.vehiclePlate, record.handoverTimestamp, pdfBlob);
 
       const finalRecord = {
@@ -399,7 +422,7 @@ function renderGuestHandover(rentalId, existingRecord) {
 }
 
 // ---------- ZWROT (wypełniane przez najemcę, własny osobny link/hasło) ----------
-function renderGuestReturn(rentalId, record) {
+async function renderGuestReturn(rentalId, record) {
   preloadPdfAssets();
   const tpl = document.getElementById("tpl-guest-return");
   appEl.replaceChildren(tpl.content.cloneNode(true));
@@ -426,6 +449,21 @@ function renderGuestReturn(rentalId, record) {
   });
   damageMap.setMarks(record.handoverDamageMarks || []);
   appEl.querySelector('[data-action="clear-damage-map"]').addEventListener("click", () => damageMap.clear());
+
+  // Zdjęcia uszkodzeń udokumentowane wcześniej przy tym pojeździe (baza
+  // pojazdów w panelu) — jak przy zwykłym zwrocie z panelu, dołączane do
+  // PDF-u zwrotu obok nowych zaznaczeń z tego wynajmu. Dostęp do TEGO
+  // JEDNEGO pojazdu daje claim "vehiclePlateId" (patrz renderGuestHandover
+  // wyżej i verifyProtocolPassword w functions/index.js).
+  let vehicleDamagePhotos = [];
+  if (record.vehiclePlate) {
+    try {
+      const vehicleSnap = await getDoc(doc(db, "vehicles", normalizePlateId(record.vehiclePlate)));
+      if (vehicleSnap.exists()) vehicleDamagePhotos = vehicleSnap.data().damagePhotoUrls || [];
+    } catch (e) {
+      // Brak dostępu/danych nie powinien blokować zwrotu.
+    }
+  }
 
   const equipmentOptions = [
     { field: "equipmentShelf", label: "Półka double-deck" },
@@ -485,15 +523,16 @@ function renderGuestReturn(rentalId, record) {
     submitBtn.disabled = true;
     submitBtn.textContent = "Zapisywanie…";
     try {
-      const [photoUrls, sigUrl, damageMapUrl, photoDataUrls] = await Promise.all([
+      const [photoUrls, sigUrl, damageMapUrl, photoDataUrls, vehicleDamagePhotoDataUrls] = await Promise.all([
         uploadPhotoFiles(storage, rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp, currentPhotos),
         (async () => uploadSignatureBlob(storage, rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp, await sigPad.toBlob()))(),
         (async () => uploadDamageMapBlob(storage, rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp, await damageMap.toBlob()))(),
-        Promise.all(currentPhotos.map(fileToDataUrl))
+        Promise.all(currentPhotos.map(fileToDataUrl)),
+        vehicleDamagePhotosToDataUrls(vehicleDamagePhotos)
       ]);
       const sigDataUrl = sigPad.toDataUrl();
       const damageMapDataUrl = damageMap.toDataUrl();
-      const pdfBlob = await generateProtocolPdf(updated, "zwrot", sigDataUrl, damageMapDataUrl, photoDataUrls);
+      const pdfBlob = await generateProtocolPdf(updated, "zwrot", sigDataUrl, damageMapDataUrl, photoDataUrls, vehicleDamagePhotoDataUrls);
       const pdfUrl = await uploadPdfBlob(storage, rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp, pdfBlob);
 
       updated.returnPhotoUrls = photoUrls;

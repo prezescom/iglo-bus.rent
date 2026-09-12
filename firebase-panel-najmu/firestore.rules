@@ -18,6 +18,13 @@ service cloud.firestore {
     }
     match /vehicles/{plateId} {
       allow read, write: if request.auth != null && !('protocolAccess' in request.auth.token);
+      // Najemca pod linkiem (token zawężony do jednego rentalId) — WYŁĄCZNIE
+      // odczyt WŁASNEGO pojazdu (ten przypisany do jego wynajmu, claim
+      // "vehiclePlateId" wydany przez verifyProtocolPassword w
+      // functions/index.js), żeby zobaczyć i dołączyć do PDF-u uszkodzenia
+      // już wcześniej udokumentowane przez pracownika. Żadnego zapisu, żaden
+      // dostęp do innych pojazdów.
+      allow read: if request.auth != null && request.auth.token.vehiclePlateId == plateId;
     }
     match /tenants/{tenantId} {
       allow read, write: if request.auth != null && !('protocolAccess' in request.auth.token);
