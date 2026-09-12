@@ -196,14 +196,26 @@ async function renderList() {
       const missingProtocol = !r.handoverProtocolPdfUrl;
       const card = document.createElement("div");
       card.className = "rental-card";
+      const link = `${location.origin}/panel-najmu/protokol/#${d.id}`;
       card.innerHTML = `
         <div class="plate">${escapeHtml(r.vehicleModel)} • ${escapeHtml(r.vehiclePlate)}</div>
         <div class="tenant">Najemca: ${escapeHtml(r.tenantName)}</div>
         ${missingProtocol ? '<div class="error">Brak wygenerowanego protokołu wydania (PDF)!</div>' : ""}
         <button class="btn btn-secondary" data-action="return">Zarejestruj zwrot</button>
+        <button class="btn-text" data-action="return-password">Ustaw hasło do samoobsługowego zwrotu</button>
         ${missingProtocol ? '<button class="btn-text" data-action="regen">Wygeneruj protokół awaryjnie</button>' : ""}
       `;
       card.querySelector('[data-action="return"]').addEventListener("click", () => navigate(`return/${d.id}`));
+      card.querySelector('[data-action="return-password"]').addEventListener("click", async () => {
+        const newPassword = prompt("Hasło, którym najemca sam zrobi zwrot pod linkiem (min. 6 znaków):");
+        if (!newPassword) return;
+        try {
+          await httpsCallable(functions, "setProtocolPassword")({ rentalId: d.id, password: newPassword });
+          showToast(`Ustawiono hasło do zwrotu. Link: ${link}`);
+        } catch (e) {
+          showToast("Błąd: " + e.message);
+        }
+      });
       const regenBtn = card.querySelector('[data-action="regen"]');
       if (regenBtn) {
         regenBtn.addEventListener("click", () => navigate(`regenerate/wydanie__${d.id}`));
