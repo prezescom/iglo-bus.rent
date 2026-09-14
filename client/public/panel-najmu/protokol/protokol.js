@@ -556,17 +556,21 @@ async function renderGuestReturn(rentalId, record) {
 }
 
 // ---------- Pomocnicze (zdjęcia) ----------
+// Pole "+ Dodaj zdjęcie" (bez atrybutu capture) pozwala wybrać zdjęcie
+// zrobione aparatem, ale też jedno lub wiele istniejących zdjęć z galerii
+// telefonu / dysku komputera (patrz atrybut multiple w protokol/index.html)
+// — dlatego przechodzimy po wszystkich wybranych plikach, nie tylko pierwszym.
 function wirePhotoStrip() {
   const strip = document.getElementById("photoStrip");
   const input = document.getElementById("photoInput");
   input.addEventListener("change", () => {
-    const file = input.files[0];
-    if (!file) return;
-    currentPhotos.push(file);
-    const img = document.createElement("img");
-    img.className = "photo-thumb";
-    img.src = URL.createObjectURL(file);
-    strip.appendChild(img);
+    for (const file of input.files) {
+      currentPhotos.push(file);
+      const img = document.createElement("img");
+      img.className = "photo-thumb";
+      img.src = URL.createObjectURL(file);
+      strip.appendChild(img);
+    }
     input.value = "";
   });
 }
