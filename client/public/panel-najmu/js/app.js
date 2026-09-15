@@ -1132,6 +1132,8 @@ async function renderContractForm() {
   contractTypeSelect.addEventListener("change", updateConditionalFieldsVisibility);
   updateConditionalFieldsVisibility();
 
+  wireContractTemplateManager();
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     errorEl.hidden = true;
@@ -1175,7 +1177,7 @@ async function renderContractForm() {
         tenant: selectedTenant,
         vehicle: selectedVehicle,
         form: formData
-      });
+      }, storage);
       const fileName = `Umowa_${selectedVehicle.plate}_${fd.get("contractDate") || ""}.docx`;
       downloadBlob(blob, fileName);
       showToast("Wygenerowano umowę.");
@@ -1186,6 +1188,80 @@ async function renderContractForm() {
       submitBtn.disabled = false;
       submitBtn.textContent = "Generuj umowę (.docx)";
     }
+  });
+}
+
+// ---------- ZARZĄDZANIE SZABLONAMI UMÓW ----------
+// Pozwala podmienić dowolny z 6 wbudowanych szablonów .docx (patrz
+// TEMPLATE_FILES w contracts.js) bez zmiany kodu/deployu — wgrany plik
+// trafia do Storage pod deterministyczną ścieżką contract-templates/
+// {templateKey}.docx, którą generateContractDocx w contracts.js sprawdza
+// jako pierwszą, zanim spadnie na wbudowany plik statyczny.
+const CONTRACT_TEMPLATE_LABELS = {
+  konsument_umowa: "Konsument — Umowa",
+  konsument_ramowa: "Konsument — Umowa ramowa",
+  konsument_jednostkowa: "Konsument — Umowa najmu jednostkowego",
+  firma_ramowa: "Firma — Umowa ramowa",
+  firma_scalona_elektroniczna: "Firma — Umowa scalona (e-podpis)",
+  firma_scalona_papierowa: "Firma — Umowa scalona (papierowa)"
+};
+
+async function wireContractTemplateManager() {
+  const container = document.getElementById("contractTemplatesList");
+  if (!container) return;
+
+  let existing = new Set();
+  try {
+    const listing = await listAll(ref(storage, "contract-templates"));
+    existing = new Set(listing.items.map((item) => item.name));
+  } catch (e) {
+    // Folder może jeszcze nie istnieć (żaden szablon nigdy nie był
+    // podmieniony) — to nie błąd, po prostu wszystkie są wbudowane.
+  }
+
+  container.innerHTML = "";
+  Object.entries(CONTRACT_TEMPLATE_LABELS).forEach(([key, label]) => {
+    const fileName = `${key}.docx`;
+    const isCustom = existing.has(fileName);
+    const row = document.createElement("div");
+    row.className = "rental-card";
+    row.innerHTML = `
+      <div class="plate">${escapeHtml(label)}</div>
+      <div class="tenant">${isCustom ? "Własny szablon (wgrany)" : "Szablon wbudowany"}</div>
+      <label class="btn btn-secondary btn-block file-btn">
+        Podmień szablon (.docx)
+        <input type="file" accept=".docx" hidden data-role="upload" />
+      </label>
+      ${isCustom ? '<button type="button" class="btn-text" data-role="restore">Przywróć domyślny</button>' : ""}
+    `;
+    row.querySelector('[data-role="upload"]').addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        const r = ref(storage, `contract-templates/${fileName}`);
+        await uploadBytes(r, file, {
+          contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        });
+        showToast(`Podmieniono szablon: ${label}`);
+        wireContractTemplateManager();
+      } catch (err) {
+        showToast("Błąd wgrywania: " + err.message);
+      }
+    });
+    const restoreBtn = row.querySelector('[data-role="restore"]');
+    if (restoreBtn) {
+      restoreBtn.addEventListener("click", async () => {
+        if (!confirm(`Przywrócić wbudowany szablon dla „${label}"?`)) return;
+        try {
+          await deleteObject(ref(storage, `contract-templates/${fileName}`));
+          showToast("Przywrócono wbudowany szablon.");
+          wireContractTemplateManager();
+        } catch (err) {
+          showToast("Błąd: " + err.message);
+        }
+      });
+    }
+    container.appendChild(row);
   });
 }
 

@@ -4,6 +4,14 @@
 // window.Docxtemplater) — zachowuje pełne formatowanie oryginału: tabele,
 // nagłówki, style. PDF nie jest generowany automatycznie — Word/Google Docs
 // zamieniają .docx na PDF jednym kliknięciem (Plik → Zapisz jako PDF).
+//
+// Każdy z 6 typów umowy można podmienić z panelu (patrz
+// wireContractTemplateManager w js/app.js) bez zmiany kodu — wgrany plik
+// trafia do Firebase Storage pod deterministyczną ścieżką
+// contract-templates/{templateKey}.docx, którą generateContractDocx
+// sprawdza jako pierwszą, zanim spadnie na wbudowany plik statyczny
+// poniżej. Wymagane tagi dla każdego typu — patrz CONTRACT-TEMPLATES.md.
+import { ref, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 const TEMPLATE_FILES = {
   konsument_umowa: "/panel-najmu/contracts/templates/umowa-konsument.docx",
@@ -168,9 +176,25 @@ function buildTemplateData(templateKey, { tenant, vehicle, form }) {
   }
 }
 
-export async function generateContractDocx(templateKey, ctx) {
-  const url = TEMPLATE_FILES[templateKey];
-  if (!url) throw new Error(`Nieznany typ szablonu: ${templateKey}`);
+// `storage` (opcjonalny, instancja Firebase Storage z app.js) — gdy podany,
+// najpierw próbuje własnego, wgranego przez pracownika szablonu; brak
+// (jeszcze nigdy nie podmieniony, albo błąd odczytu) cicho wraca do
+// wbudowanego pliku statycznego z TEMPLATE_FILES.
+export async function generateContractDocx(templateKey, ctx, storage) {
+  const builtinUrl = TEMPLATE_FILES[templateKey];
+  if (!builtinUrl) throw new Error(`Nieznany typ szablonu: ${templateKey}`);
+
+  let url = builtinUrl;
+  let isCustomTemplate = false;
+  if (storage) {
+    try {
+      url = await getDownloadURL(ref(storage, `contract-templates/${templateKey}.docx`));
+      isCustomTemplate = true;
+    } catch (e) {
+      // Brak własnego szablonu dla tego typu umowy — zostajemy przy wbudowanym.
+    }
+  }
+
   const buffer = await fetch(url).then((r) => {
     if (!r.ok) throw new Error(`Nie udało się pobrać wzoru umowy (${r.status}).`);
     return r.arrayBuffer();
@@ -178,7 +202,9 @@ export async function generateContractDocx(templateKey, ctx) {
 
   const zip = new window.PizZip(buffer);
 
-  if (TEMPLATES_NEEDING_KOD_POCZTOWY_FIX.has(templateKey)) {
+  // Poprawka literówki źródłowej dotyczy tylko wbudowanych plików — świeżo
+  // wgrany, własny szablon ma być poprawny sam w sobie.
+  if (!isCustomTemplate && TEMPLATES_NEEDING_KOD_POCZTOWY_FIX.has(templateKey)) {
     // W oryginalnych wzorach brakuje otwierającego "[" przed "kod_pocztowy]"
     // (literówka w plikach źródłowych „Umowa najmu scalona…") — bez tej
     // poprawki pole nie zostałoby podstawione.

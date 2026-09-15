@@ -552,6 +552,12 @@
         Generuj umowę (.docx)
       </button>
     </form>
+
+    <details style="margin-top: 8px;">
+      <summary style="cursor:pointer; font-weight:600; color: var(--accent); padding: 8px 0;">Zarządzaj szablonami umów</summary>
+      <p class="muted">Podmień wzór .docx dla dowolnego typu umowy — bez zmiany kodu. Szablon musi zawierać dokładnie te same tagi w nawiasach kwadratowych co oryginał (patrz <code>CONTRACT-TEMPLATES.md</code> w repozytorium), inaczej generowanie się nie powiedzie albo pola zostaną puste.</p>
+      <div id="contractTemplatesList" class="rental-list">Wczytywanie…</div>
+    </details>
   </section>
 </template>
 

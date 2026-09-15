@@ -14,6 +14,13 @@ service firebase.storage {
     match /vehicles/{plateId}/{allPaths=**} {
       allow read, write: if request.auth != null;
     }
+    // Własne (podmienione przez pracownika) szablony umów .docx — patrz
+    // wireContractTemplateManager w js/app.js i generateContractDocx w
+    // js/contracts.js. Prywatne — umowy nie są przeznaczone do publicznego
+    // podglądu, tylko do generowania z panelu.
+    match /contract-templates/{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
     // Obrazki wyróżniające wpisów bloga — publicznie czytelne (są osadzane
     // na iglo-bus.rent/blog dla niezalogowanych odwiedzających), zapis tylko
     // z panelu najmu.
