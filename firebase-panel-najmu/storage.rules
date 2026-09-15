@@ -28,6 +28,13 @@ service firebase.storage {
       allow read: if true;
       allow write: if request.auth != null;
     }
+    // Zdjęcia floty (strona główna, sekcja "Flota i cennik") — publicznie
+    // czytelne z tego samego powodu co blog/, zapis tylko z panelu najmu
+    // (renderFleetCmsForm w js/app.js).
+    match /fleet/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
     // Zbiorczy plik .xlsx z aplikacjami o pracę (iglo-bus.rent/praca),
     // dopisywany wierszami przez Cloud Function przy każdym nowym zgłoszeniu.
     // Odczyt tylko zalogowany (Admin SDK w funkcji i tak omija te reguły).

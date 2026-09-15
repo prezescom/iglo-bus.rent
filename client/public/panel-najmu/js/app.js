@@ -152,6 +152,12 @@ async function render() {
   } else if (view === "tenant") {
     pageTitle.textContent = param ? "Edytuj najemcę" : "Nowy najemca";
     renderTenantForm(param);
+  } else if (view === "fleet-cms") {
+    pageTitle.textContent = "Flota i cennik (strona główna)";
+    renderFleetCms();
+  } else if (view === "fleet-vehicle") {
+    pageTitle.textContent = param ? "Edytuj pojazd" : "Nowy pojazd";
+    renderFleetCmsForm(param || null);
   } else if (view === "contract") {
     pageTitle.textContent = "Wygeneruj umowę";
     renderContractForm();
@@ -187,6 +193,7 @@ async function renderList() {
   appEl.querySelector('[data-action="view-history"]').addEventListener("click", () => navigate("history"));
   appEl.querySelector('[data-action="view-vehicles"]').addEventListener("click", () => navigate("vehicles"));
   appEl.querySelector('[data-action="view-tenants"]').addEventListener("click", () => navigate("tenants"));
+  appEl.querySelector('[data-action="view-fleet-cms"]').addEventListener("click", () => navigate("fleet-cms"));
   appEl.querySelector('[data-action="new-contract"]').addEventListener("click", () => navigate("contract"));
   appEl.querySelector('[data-action="view-posts"]').addEventListener("click", () => navigate("posts"));
 
@@ -1280,6 +1287,302 @@ function downloadBlob(blob, fileName) {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+// ---------- FLOTA I CENNIK (strona główna iglo-bus.rent) ----------
+// Treść karty każdego pojazdu na stronie głównej (zdjęcia, cennik, opis) —
+// kolekcja Firestore "fleetVehicles", czytana bezpośrednio przez React
+// (client/src/lib/fleet.ts) dokładnie tak jak blog czyta "posts" (patrz
+// niżej). NIE MYLIĆ z kolekcją "vehicles" (Baza pojazdów) — to dane
+// operacyjne do protokołów wynajmu, osobna sprawa.
+async function uploadFleetImage(vehicleId, file, kind) {
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  const r = ref(storage, `fleet/${vehicleId}/${kind}-${unique}.${ext}`);
+  await uploadBytes(r, file, { contentType: file.type || "image/jpeg" });
+  return getDownloadURL(r);
+}
+
+async function renderFleetCms() {
+  const tpl = document.getElementById("tpl-fleet-cms");
+  appEl.replaceChildren(tpl.content.cloneNode(true));
+  appEl.querySelector('[data-action="new-fleet-vehicle"]').addEventListener("click", () => navigate("fleet-vehicle"));
+
+  const listEl = document.getElementById("fleetCmsList");
+  try {
+    const snap = await getDocs(collection(db, "fleetVehicles"));
+    const vehicles = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    vehicles.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    if (!vehicles.length) {
+      listEl.innerHTML = '<p class="muted">Brak pojazdów. Dodaj pierwszy, żeby pojawił się na stronie głównej.</p>';
+      return;
+    }
+    listEl.innerHTML = "";
+    vehicles.forEach((v) => {
+      const card = document.createElement("div");
+      card.className = "rental-card";
+      card.innerHTML = `
+        <div class="plate">${escapeHtml(v.titlePl || v.id)}</div>
+        <div class="tenant">${v.status === "published" ? "🟢 Opublikowany" : "⚪ Szkic"} • Kolejność: ${v.order ?? 0}</div>
+        <button class="btn btn-secondary" data-action="edit">Edytuj</button>
+      `;
+      card.querySelector('[data-action="edit"]').addEventListener("click", () => navigate(`fleet-vehicle/${v.id}`));
+      listEl.appendChild(card);
+    });
+  } catch (e) {
+    listEl.innerHTML = `<p class="error">Błąd wczytywania: ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+// Jeden wiersz edytora cennika (zakres dni + cena + etykieta per język).
+// Etykieta jest podpowiadana automatycznie z zakresu, ale TYLKO gdy pole
+// jest jeszcze puste — nie nadpisuje ręcznej poprawki pracownika (np.
+// specjalnego tekstu "30+ dni (miesięcznie)" dla otwartego zakresu).
+function addFleetTierRow(container, tier) {
+  const t = tier || { id: `tier-${Date.now()}-${Math.random().toString(36).slice(2, 7)}` };
+  const row = document.createElement("fieldset");
+  row.dataset.tierId = t.id;
+  row.innerHTML = `
+    <legend>Zakres cenowy</legend>
+    <div class="row">
+      <label>Od (dni)
+        <input type="number" min="1" class="tier-min" value="${t.minDays ?? ""}" />
+      </label>
+      <label>Do (dni, puste = bez górnej granicy)
+        <input type="number" min="1" class="tier-max" value="${t.maxDays ?? ""}" />
+      </label>
+    </div>
+    <label>Cena (PLN)
+      <input type="number" min="0" step="0.01" class="tier-price" value="${t.pricePln ?? ""}" />
+    </label>
+    <label>Etykieta — PL
+      <input class="tier-label-pl" value="${escapeHtml(t.labelPl || "")}" />
+    </label>
+    <label>Etykieta — EN
+      <input class="tier-label-en" value="${escapeHtml(t.labelEn || "")}" />
+    </label>
+    <label>Etykieta — CS
+      <input class="tier-label-cs" value="${escapeHtml(t.labelCs || "")}" />
+    </label>
+    <button type="button" class="btn-text" data-action="remove-tier">Usuń ten zakres</button>
+  `;
+  const minInput = row.querySelector(".tier-min");
+  const maxInput = row.querySelector(".tier-max");
+  const labelPlInput = row.querySelector(".tier-label-pl");
+  const labelEnInput = row.querySelector(".tier-label-en");
+  const labelCsInput = row.querySelector(".tier-label-cs");
+  function suggestLabels() {
+    const min = Number(minInput.value) || null;
+    const max = Number(maxInput.value) || null;
+    if (!min) return;
+    if (!labelPlInput.value) labelPlInput.value = max ? `${min}–${max} dni` : `${min}+ dni`;
+    if (!labelEnInput.value) labelEnInput.value = max ? `${min}–${max} days` : `${min}+ days`;
+    if (!labelCsInput.value) labelCsInput.value = max ? `${min}–${max} dní` : `${min}+ dní`;
+  }
+  minInput.addEventListener("change", suggestLabels);
+  maxInput.addEventListener("change", suggestLabels);
+  row.querySelector('[data-action="remove-tier"]').addEventListener("click", () => row.remove());
+  container.appendChild(row);
+}
+
+async function renderFleetCmsForm(vehicleId) {
+  const tpl = document.getElementById("tpl-fleet-cms-form");
+  appEl.replaceChildren(tpl.content.cloneNode(true));
+
+  const form = document.getElementById("fleetForm");
+  const errorEl = document.getElementById("fleetFormError");
+  const submitBtn = document.getElementById("fleetSubmitBtn");
+  const deleteBtn = document.getElementById("fleetDeleteBtn");
+  const heroPreviewWrap = document.getElementById("fleetHeroPreviewWrap");
+  const heroPreview = document.getElementById("fleetHeroPreview");
+  const heroInput = document.getElementById("fleetHeroInput");
+  const galleryStrip = document.getElementById("fleetGalleryStrip");
+  const galleryInput = document.getElementById("fleetGalleryInput");
+  const tiersContainer = document.getElementById("fleetTiersContainer");
+  const addTierBtn = document.getElementById("fleetAddTierBtn");
+
+  let existing = null;
+  let heroImageUrl = "";
+  let selectedHeroFile = null;
+  let galleryImageUrls = []; // istniejące zdjęcia galerii, zachowane (chyba że usunięte poniżej)
+  let selectedGalleryFiles = []; // nowe pliki wybrane w tej sesji, jeszcze nie wgrane
+
+  function renderGalleryStrip() {
+    galleryStrip.innerHTML = "";
+    galleryImageUrls.forEach((url, i) => {
+      const wrap = document.createElement("div");
+      wrap.innerHTML = `<img class="photo-thumb" src="${url}" /><button type="button" class="btn-text">Usuń</button>`;
+      wrap.querySelector("button").addEventListener("click", () => {
+        galleryImageUrls.splice(i, 1);
+        renderGalleryStrip();
+      });
+      galleryStrip.appendChild(wrap);
+    });
+    selectedGalleryFiles.forEach((file) => {
+      const img = document.createElement("img");
+      img.className = "photo-thumb";
+      img.src = URL.createObjectURL(file);
+      galleryStrip.appendChild(img);
+    });
+  }
+
+  if (vehicleId) {
+    deleteBtn.hidden = false;
+    try {
+      const snap = await getDoc(doc(db, "fleetVehicles", vehicleId));
+      if (snap.exists()) {
+        existing = snap.data();
+        for (const el of form.elements) {
+          if (!el.name || !(el.name in existing)) continue;
+          el.value = existing[el.name] ?? "";
+        }
+        form.elements["status"].value = existing.status || "draft";
+        form.elements["order"].value = existing.order ?? 0;
+        const di = existing.dimensionsInternal || {};
+        const de = existing.dimensionsExternal || {};
+        form.elements["intLength"].value = di.length ?? "";
+        form.elements["intWidth"].value = di.width ?? "";
+        form.elements["intHeight"].value = di.height ?? "";
+        form.elements["extLength"].value = de.length ?? "";
+        form.elements["extWidth"].value = de.width ?? "";
+        form.elements["extHeight"].value = de.height ?? "";
+
+        heroImageUrl = existing.heroImageUrl || "";
+        if (heroImageUrl) {
+          heroPreview.src = heroImageUrl;
+          heroPreviewWrap.hidden = false;
+        }
+        galleryImageUrls = [...(existing.galleryImageUrls || [])];
+        renderGalleryStrip();
+
+        (existing.pricingTiers || []).forEach((t) => addFleetTierRow(tiersContainer, t));
+      }
+    } catch (e) {
+      errorEl.textContent = "Błąd wczytywania: " + e.message;
+      errorEl.hidden = false;
+    }
+  }
+
+  heroInput.addEventListener("change", () => {
+    const file = heroInput.files[0];
+    if (!file) return;
+    selectedHeroFile = file;
+    heroPreview.src = URL.createObjectURL(file);
+    heroPreviewWrap.hidden = false;
+    heroInput.value = "";
+  });
+
+  galleryInput.addEventListener("change", () => {
+    for (const file of galleryInput.files) selectedGalleryFiles.push(file);
+    renderGalleryStrip();
+    galleryInput.value = "";
+  });
+
+  addTierBtn.addEventListener("click", () => addFleetTierRow(tiersContainer, null));
+
+  deleteBtn.addEventListener("click", async () => {
+    if (!vehicleId) return;
+    if (!confirm(`Usunąć pojazd „${existing?.titlePl || vehicleId}" ze strony głównej? Tej operacji nie można cofnąć.`)) return;
+    deleteBtn.disabled = true;
+    try {
+      await deleteDoc(doc(db, "fleetVehicles", vehicleId));
+      showToast("Usunięto pojazd.");
+      navigate("fleet-cms");
+    } catch (e) {
+      errorEl.textContent = "Błąd usuwania: " + e.message;
+      errorEl.hidden = false;
+      deleteBtn.disabled = false;
+    }
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errorEl.hidden = true;
+
+    if (!heroImageUrl && !selectedHeroFile) {
+      errorEl.textContent = "Wybierz zdjęcie główne pojazdu.";
+      errorEl.hidden = false;
+      return;
+    }
+
+    const fd = new FormData(form);
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Zapisywanie…";
+    try {
+      const id = vehicleId || (await generateFleetVehicleId(fd.get("titlePl")));
+
+      if (selectedHeroFile) {
+        heroImageUrl = await uploadFleetImage(id, selectedHeroFile, "hero");
+      }
+      if (selectedGalleryFiles.length) {
+        const uploaded = await Promise.all(selectedGalleryFiles.map((f) => uploadFleetImage(id, f, "gallery")));
+        galleryImageUrls = [...galleryImageUrls, ...uploaded];
+      }
+
+      const tiers = Array.from(tiersContainer.children).map((row) => ({
+        id: row.dataset.tierId,
+        minDays: Number(row.querySelector(".tier-min").value) || 0,
+        maxDays: row.querySelector(".tier-max").value ? Number(row.querySelector(".tier-max").value) : null,
+        pricePln: Number(row.querySelector(".tier-price").value) || 0,
+        labelPl: row.querySelector(".tier-label-pl").value || "",
+        labelEn: row.querySelector(".tier-label-en").value || "",
+        labelCs: row.querySelector(".tier-label-cs").value || ""
+      }));
+
+      const record = {
+        status: fd.get("status"),
+        order: Number(fd.get("order")) || 0,
+        titlePl: fd.get("titlePl") || "",
+        titleEn: fd.get("titleEn") || "",
+        titleCs: fd.get("titleCs") || "",
+        groupPl: fd.get("groupPl") || "",
+        groupEn: fd.get("groupEn") || "",
+        groupCs: fd.get("groupCs") || "",
+        descriptionPl: fd.get("descriptionPl") || "",
+        descriptionEn: fd.get("descriptionEn") || "",
+        descriptionCs: fd.get("descriptionCs") || "",
+        heroImageUrl,
+        galleryImageUrls,
+        dimensionsInternal: {
+          length: Number(fd.get("intLength")) || 0,
+          width: Number(fd.get("intWidth")) || 0,
+          height: Number(fd.get("intHeight")) || 0
+        },
+        dimensionsExternal: {
+          length: Number(fd.get("extLength")) || 0,
+          width: Number(fd.get("extWidth")) || 0,
+          height: Number(fd.get("extHeight")) || 0
+        },
+        loadCapacityKg: Number(fd.get("loadCapacityKg")) || 0,
+        grossWeightKg: Number(fd.get("grossWeightKg")) || 0,
+        depositPln: Number(fd.get("depositPln")) || 0,
+        pricingTiers: tiers
+      };
+
+      await setDoc(doc(db, "fleetVehicles", id), record, { merge: true });
+      showToast("Zapisano pojazd.");
+      navigate("fleet-cms");
+    } catch (err) {
+      errorEl.textContent = "Błąd zapisu: " + err.message;
+      errorEl.hidden = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Zapisz pojazd";
+    }
+  });
+}
+
+// ID dokumentu (= slug w Storage) generowany z tytułu PL, z doklejanym
+// numerem przy kolizji — ten sam wzorzec co generateReadableRentalId dla
+// wynajmów.
+async function generateFleetVehicleId(titlePl) {
+  const base = slugify(titlePl) || "pojazd";
+  let candidate = base;
+  let i = 1;
+  while ((await getDoc(doc(db, "fleetVehicles", candidate))).exists()) {
+    i++;
+    candidate = `${base}-${i}`;
+  }
+  return candidate;
 }
 
 // ---------- BLOG (posty na iglo-bus.rent/blog) ----------

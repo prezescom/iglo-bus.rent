@@ -30,6 +30,7 @@
     <button class="btn btn-secondary btn-block" data-action="view-history">Zakończone wynajmy</button>
     <button class="btn btn-secondary btn-block" data-action="view-vehicles">Baza pojazdów</button>
     <button class="btn btn-secondary btn-block" data-action="view-tenants">Baza najemców</button>
+    <button class="btn btn-secondary btn-block" data-action="view-fleet-cms">Zarządzaj stroną główną (flota i cennik)</button>
     <button class="btn btn-secondary btn-block" data-action="new-contract">Wygeneruj umowę</button>
     <button class="btn btn-secondary btn-block" data-action="view-posts">Blog</button>
     <div id="rentalList" class="rental-list">
@@ -379,6 +380,140 @@
       <button type="submit" class="btn btn-primary btn-block" id="tenantSubmitBtn">
         Zapisz najemcę
       </button>
+    </form>
+  </section>
+</template>
+
+<template id="tpl-fleet-cms">
+  <section class="view">
+    <button class="btn btn-primary btn-block" data-action="new-fleet-vehicle">+ Dodaj pojazd</button>
+    <p class="muted">Kolejność na liście = kolejność wg pola „Kolejność” (rosnąco).</p>
+    <div id="fleetCmsList" class="rental-list">
+      <p class="muted">Wczytywanie…</p>
+    </div>
+  </section>
+</template>
+
+<template id="tpl-fleet-cms-form">
+  <section class="view">
+    <form id="fleetForm" class="form">
+      <fieldset>
+        <legend>Widoczność</legend>
+        <label>Status
+          <select name="status" id="fleetStatusSelect">
+            <option value="draft">Szkic (niewidoczny publicznie)</option>
+            <option value="published">Opublikowany</option>
+          </select>
+        </label>
+        <label>Kolejność na stronie (mniejsza liczba = wyżej)
+          <input type="number" name="order" id="fleetOrderInput" value="0" step="1" />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Nazwa i grupa</legend>
+        <label>Tytuł — PL
+          <input name="titlePl" required />
+        </label>
+        <label>Tytuł — EN
+          <input name="titleEn" />
+        </label>
+        <label>Tytuł — CS
+          <input name="titleCs" />
+        </label>
+        <label>Grupa — PL <span class="muted">(np. „Grupa S”)</span>
+          <input name="groupPl" />
+        </label>
+        <label>Grupa — EN
+          <input name="groupEn" />
+        </label>
+        <label>Grupa — CS
+          <input name="groupCs" />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Opis (widoczny pod cennikiem na karcie pojazdu)</legend>
+        <label>Opis — PL
+          <textarea name="descriptionPl" rows="2"></textarea>
+        </label>
+        <label>Opis — EN
+          <textarea name="descriptionEn" rows="2"></textarea>
+        </label>
+        <label>Opis — CS
+          <textarea name="descriptionCs" rows="2"></textarea>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Zdjęcie główne</legend>
+        <div id="fleetHeroPreviewWrap" hidden>
+          <img id="fleetHeroPreview" class="post-image-preview" alt="Podgląd zdjęcia głównego" />
+        </div>
+        <label class="btn btn-secondary btn-block file-btn">
+          Wybierz / podmień zdjęcie główne
+          <input type="file" accept="image/*" id="fleetHeroInput" hidden />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Galeria</legend>
+        <div id="fleetGalleryStrip" class="photo-strip"></div>
+        <label class="btn btn-secondary btn-block file-btn">
+          + Dodaj zdjęcia do galerii
+          <input type="file" accept="image/*" multiple id="fleetGalleryInput" hidden />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Specyfikacja</legend>
+        <div class="row">
+          <label>Ładowność (kg)
+            <input type="number" name="loadCapacityKg" min="0" />
+          </label>
+          <label>DMC (kg)
+            <input type="number" name="grossWeightKg" min="0" />
+          </label>
+        </div>
+        <label>Kaucja (PLN)
+          <input type="number" name="depositPln" min="0" />
+        </label>
+        <p class="muted">Wymiary wewnętrzne ładowni (cm)</p>
+        <div class="row">
+          <label>Długość
+            <input type="number" name="intLength" min="0" />
+          </label>
+          <label>Szerokość
+            <input type="number" name="intWidth" min="0" />
+          </label>
+          <label>Wysokość
+            <input type="number" name="intHeight" min="0" />
+          </label>
+        </div>
+        <p class="muted">Wymiary zewnętrzne pojazdu (cm)</p>
+        <div class="row">
+          <label>Długość
+            <input type="number" name="extLength" min="0" />
+          </label>
+          <label>Szerokość
+            <input type="number" name="extWidth" min="0" />
+          </label>
+          <label>Wysokość
+            <input type="number" name="extHeight" min="0" />
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Cennik (zakresy dni)</legend>
+        <div id="fleetTiersContainer"></div>
+        <button type="button" class="btn btn-secondary btn-block" id="fleetAddTierBtn">+ Dodaj zakres cenowy</button>
+      </fieldset>
+
+      <p id="fleetFormError" class="error" hidden></p>
+
+      <button type="submit" class="btn btn-primary btn-block" id="fleetSubmitBtn">Zapisz pojazd</button>
+      <button type="button" class="btn btn-text" id="fleetDeleteBtn" hidden>Usuń pojazd</button>
     </form>
   </section>
 </template>
