@@ -2830,7 +2830,10 @@ async function sendProtocolEmail(rentalId, phase, pdfUrl, tenantEmail, lessorEma
 // wysyła protokół do klienta — po drodze może jeszcze dodać zdjęcia.
 // Wynajmy sprzed tej zmiany nie mają w ogóle pola handoverEmailSent/
 // returnEmailSent (mail poszedł wtedy automatycznie, staromodnie) — filtr
-// "!== true" poniżej celowo je pomija, bez potrzeby migracji danych.
+// poniżej sprawdza WPROST "=== false" (a nie np. "!== true"), żeby takie
+// starsze wynajmy (pole w ogóle nieustawione, czyli undefined) NIE trafiały
+// na tę listę. Bez tego setki już dawno wysłanych, historycznych protokołów
+// pojawiłyby się jako rzekomo czekające na wysyłkę.
 async function renderSendProtocolsList() {
   const tpl = document.getElementById("tpl-send-protocols-list");
   appEl.replaceChildren(tpl.content.cloneNode(true));
@@ -2843,11 +2846,11 @@ async function renderSendProtocolsList() {
     const items = [];
     handoverSnap.forEach((d) => {
       const r = d.data();
-      if (r.handoverProtocolPdfUrl && r.handoverEmailSent !== true) items.push({ id: d.id, r, phase: "wydanie" });
+      if (r.handoverProtocolPdfUrl && r.handoverEmailSent === false) items.push({ id: d.id, r, phase: "wydanie" });
     });
     returnSnap.forEach((d) => {
       const r = d.data();
-      if (r.returnProtocolPdfUrl && r.returnEmailSent !== true) items.push({ id: d.id, r, phase: "zwrot" });
+      if (r.returnProtocolPdfUrl && r.returnEmailSent === false) items.push({ id: d.id, r, phase: "zwrot" });
     });
     if (!items.length) {
       listEl.innerHTML = '<p class="muted">Brak protokołów oczekujących na wysyłkę.</p>';
