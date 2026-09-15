@@ -130,6 +130,13 @@ async function render() {
     pageTitle.textContent = "Protokół awaryjny";
     const [phase, rentalId] = (param || "").split("__");
     renderRegenerate(phase, rentalId);
+  } else if (view === "send-protocols") {
+    pageTitle.textContent = "Protokoły do wysłania";
+    renderSendProtocolsList();
+  } else if (view === "send-protocol") {
+    pageTitle.textContent = "Wyślij protokół";
+    const [phase, rentalId] = (param || "").split("__");
+    renderSendProtocol(phase, rentalId);
   } else if (view === "history") {
     pageTitle.textContent = "Zakończone wynajmy";
     renderHistory();
@@ -176,6 +183,7 @@ async function renderList() {
   appEl.querySelector('[data-action="new-handover"]').addEventListener("click", () => navigate("handover"));
   appEl.querySelector('[data-action="new-protocol-link"]').addEventListener("click", () => navigate("new-protocol"));
   appEl.querySelector('[data-action="view-drafts"]').addEventListener("click", () => navigate("drafts"));
+  appEl.querySelector('[data-action="view-send-protocols"]').addEventListener("click", () => navigate("send-protocols"));
   appEl.querySelector('[data-action="view-history"]').addEventListener("click", () => navigate("history"));
   appEl.querySelector('[data-action="view-vehicles"]').addEventListener("click", () => navigate("vehicles"));
   appEl.querySelector('[data-action="view-tenants"]').addEventListener("click", () => navigate("tenants"));
@@ -1741,6 +1749,12 @@ async function renderHandover(draftRentalId) {
       handoverDamageMarks: damageMap.getMarks(),
       handoverProtocolPdfUrl: "",
       returnProtocolPdfUrl: "",
+      // Zapis już NIE wysyła maila automatycznie (patrz komentarz przy
+      // sendProtocolEmail niżej) — dopóki ta flaga jest false, protokół
+      // widnieje w panelu na liście "Protokoły do wysłania"
+      // (renderSendProtocolsList), gdzie operator może dodać zdjęcia i
+      // dopiero wtedy wysłać.
+      handoverEmailSent: false,
       status: "wydany"
     };
 
@@ -1786,16 +1800,13 @@ async function renderHandover(draftRentalId) {
         handoverProtocolPdfUrl: pdfUrl
       });
 
-      showToast("Zapisano protokół wydania — wysyłam e-mail…");
+      showToast("Potwierdzono protokół wydania. Wyślij go z listy „Protokoły do wysłania”, gdy będzie gotowy.");
       navigate("list");
 
-      // Mail i aktualizacja schematu w bazie pojazdu nie decydują o tym,
-      // czy zapis się udał — dane są już bezpiecznie w Firestore/Storage —
-      // więc nie blokują nimi przejścia do listy. Uruchamiane w tle, z
-      // osobną obsługą błędu, żeby awaria maila nie wyglądała jak
-      // niepowodzenie całego zapisu protokołu.
-      sendProtocolEmail(docRef.id, "wydanie", pdfUrl, record.tenantEmail, LESSOR_EMAIL, record.vehiclePlate, record.handoverTimestamp)
-        .catch((e) => showToast("Protokół zapisany, ale mail się nie wysłał: " + e.message));
+      // Wysyłka maila jest teraz osobnym krokiem z panelu (patrz
+      // renderSendProtocol) — dopiero tam, gdzie operator może jeszcze
+      // dodać zdjęcia przed wysyłką. Aktualizacja schematu w bazie pojazdu
+      // nadal dzieje się od razu, w tle — nie decyduje o powodzeniu zapisu.
       updateVehicleDamageMarks(record.vehiclePlate, damageMap.getMarks()).catch(() => {
         // Brak wpisu pojazdu w bazie nie powinien niepokoić operatora.
       });
@@ -1803,7 +1814,7 @@ async function renderHandover(draftRentalId) {
       errorEl.textContent = "Błąd zapisu: " + err.message;
       errorEl.hidden = false;
       submitBtn.disabled = false;
-      submitBtn.textContent = "Zapisz protokół wydania i wyślij e-mail";
+      submitBtn.textContent = "Potwierdź protokół wydania";
     }
   });
 }
@@ -1931,6 +1942,9 @@ async function renderReturn(rentalId) {
       returnedEquipment,
       returnTimestamp: now,
       closedTimestamp: now, // uruchamia 10-dniowy zegar czyszczenia
+      // Patrz komentarz przy handoverEmailSent w renderHandover — wysyłka
+      // maila jest teraz osobnym krokiem z panelu.
+      returnEmailSent: false,
       status: "zwrocony"
     };
 
@@ -1968,14 +1982,12 @@ async function renderReturn(rentalId) {
       await setDoc(doc(db, "rentals", rentalId), updated);
 
       const distanceMsg = Number.isFinite(distanceTraveled) ? ` (przejechano ${distanceTraveled} km)` : "";
-      showToast(`Zapisano protokół zwrotu${distanceMsg} — wysyłam e-mail…`);
+      showToast(`Potwierdzono protokół zwrotu${distanceMsg}. Wyślij go z listy „Protokoły do wysłania”, gdy będzie gotowy.`);
       navigate("list");
 
-      // Mail i aktualizacja bazy pojazdów nie decydują o powodzeniu zapisu
-      // (dane wynajmu są już bezpiecznie zapisane) — w tle, bez blokowania
-      // przejścia do listy, patrz komentarz przy wydaniu pojazdu.
-      sendProtocolEmail(rentalId, "zwrot", pdfUrl, updated.tenantEmail, updated.lessorEmail, updated.vehiclePlate, updated.returnTimestamp)
-        .catch((e) => showToast("Protokół zapisany, ale mail się nie wysłał: " + e.message));
+      // Wysyłka maila jest teraz osobnym krokiem z panelu (patrz
+      // renderSendProtocol) — aktualizacja bazy pojazdów nadal dzieje się od
+      // razu, w tle, bez blokowania przejścia do listy.
       setDoc(
         doc(db, "vehicles", normalizePlateId(updated.vehiclePlate)),
         { lastMileage: mileageAtReturn, lastDamageMapMarks: damageMap.getMarks() },
@@ -1987,7 +1999,7 @@ async function renderReturn(rentalId) {
       errorEl.textContent = "Błąd zapisu: " + err.message;
       errorEl.hidden = false;
       submitBtn.disabled = false;
-      submitBtn.textContent = "Zapisz protokół zwrotu i wyślij e-mail";
+      submitBtn.textContent = "Potwierdź protokół zwrotu";
     }
   });
 }
@@ -2430,6 +2442,184 @@ async function renderRegenerate(phase, rentalId) {
 async function sendProtocolEmail(rentalId, phase, pdfUrl, tenantEmail, lessorEmail, vehiclePlate, timestamp) {
   const callable = httpsCallable(functions, "sendProtocolEmail");
   await callable({ rentalId, phase, pdfUrl, tenantEmail, lessorEmail, vehiclePlate, timestamp });
+}
+
+// ---------- PROTOKOŁY DO WYSŁANIA ----------
+// Odkąd zapis protokołu (renderHandover/renderReturn, panel i link dla
+// najemcy — protokol/protokol.js) tylko go potwierdza i NIE wysyła już maila
+// automatycznie, ta sekcja jest jedynym miejscem, gdzie operator faktycznie
+// wysyła protokół do klienta — po drodze może jeszcze dodać zdjęcia.
+// Wynajmy sprzed tej zmiany nie mają w ogóle pola handoverEmailSent/
+// returnEmailSent (mail poszedł wtedy automatycznie, staromodnie) — filtr
+// "!== true" poniżej celowo je pomija, bez potrzeby migracji danych.
+async function renderSendProtocolsList() {
+  const tpl = document.getElementById("tpl-send-protocols-list");
+  appEl.replaceChildren(tpl.content.cloneNode(true));
+  const listEl = document.getElementById("sendProtocolsList");
+  try {
+    const [handoverSnap, returnSnap] = await Promise.all([
+      getDocs(query(collection(db, "rentals"), where("status", "==", "wydany"))),
+      getDocs(query(collection(db, "rentals"), where("status", "==", "zwrocony")))
+    ]);
+    const items = [];
+    handoverSnap.forEach((d) => {
+      const r = d.data();
+      if (r.handoverProtocolPdfUrl && r.handoverEmailSent !== true) items.push({ id: d.id, r, phase: "wydanie" });
+    });
+    returnSnap.forEach((d) => {
+      const r = d.data();
+      if (r.returnProtocolPdfUrl && r.returnEmailSent !== true) items.push({ id: d.id, r, phase: "zwrot" });
+    });
+    if (!items.length) {
+      listEl.innerHTML = '<p class="muted">Brak protokołów oczekujących na wysyłkę.</p>';
+      return;
+    }
+    listEl.innerHTML = "";
+    items.forEach(({ id, r, phase }) => {
+      const card = document.createElement("div");
+      card.className = "rental-card";
+      card.innerHTML = `
+        <div class="plate">${escapeHtml(r.vehicleModel)} • ${escapeHtml(r.vehiclePlate)}</div>
+        <div class="tenant">Najemca: ${escapeHtml(r.tenantName)} — ${phase === "wydanie" ? "wydanie" : "zwrot"}</div>
+        <button class="btn btn-secondary" data-action="open">Przejrzyj i wyślij</button>
+      `;
+      card.querySelector('[data-action="open"]').addEventListener("click", () => navigate(`send-protocol/${phase}__${id}`));
+      listEl.appendChild(card);
+    });
+  } catch (e) {
+    listEl.innerHTML = `<p class="error">Błąd wczytywania: ${escapeHtml(e.message)}</p>`;
+  }
+}
+
+// Widok przeglądu przed wysyłką — pozwala DODAĆ zdjęcia (nie usuwać
+// istniejących), po czym generuje PDF na nowo (tylko jeśli faktycznie
+// dodano zdjęcia — inaczej wysyła z już gotowym pdfUrl bez ponownego
+// generowania) i dopiero wtedy woła sendProtocolEmail.
+async function renderSendProtocol(phase, rentalId) {
+  preloadPdfAssets();
+  const tpl = document.getElementById("tpl-send-protocol");
+  appEl.replaceChildren(tpl.content.cloneNode(true));
+  const headerEl = document.getElementById("sendProtocolHeader");
+  const errorEl = document.getElementById("sendProtocolError");
+  const form = document.getElementById("sendProtocolForm");
+  const submitBtn = document.getElementById("sendProtocolBtn");
+  const isHandover = phase === "wydanie";
+
+  let record;
+  try {
+    const snap = await getDoc(doc(db, "rentals", rentalId));
+    if (!snap.exists()) {
+      headerEl.textContent = "Nie znaleziono wynajmu.";
+      return;
+    }
+    record = snap.data();
+  } catch (e) {
+    headerEl.textContent = "Błąd wczytywania: " + e.message;
+    return;
+  }
+
+  headerEl.innerHTML = `<strong>${escapeHtml(record.vehicleModel)} • ${escapeHtml(record.vehiclePlate)}</strong><br>Najemca: ${escapeHtml(record.tenantName)} — ${isHandover ? "wydanie" : "zwrot"}`;
+
+  wirePhotoStrip();
+
+  let recovered;
+  try {
+    recovered = await fetchRecoveredAssets(rentalId, phase);
+
+    const sigPreview = document.getElementById("sendProtocolSigPreview");
+    if (recovered.sigDataUrl) sigPreview.src = recovered.sigDataUrl;
+    else sigPreview.hidden = true;
+
+    const damagePreview = document.getElementById("sendProtocolDamageMapPreview");
+    if (recovered.damageMapDataUrl) {
+      damagePreview.src = recovered.damageMapDataUrl;
+    } else {
+      damagePreview.hidden = true;
+    }
+
+    const existingStrip = document.getElementById("sendProtocolExistingPhotoStrip");
+    if (recovered.photoDataUrls.length) {
+      recovered.photoDataUrls.forEach((src) => {
+        const img = document.createElement("img");
+        img.className = "photo-thumb";
+        img.src = src;
+        existingStrip.appendChild(img);
+      });
+    } else {
+      document.getElementById("sendProtocolExistingPhotoEmpty").hidden = false;
+    }
+
+    form.hidden = false;
+  } catch (e) {
+    errorEl.textContent = "Błąd wczytywania zdjęć/podpisu: " + e.message;
+    errorEl.hidden = false;
+    return;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errorEl.hidden = true;
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Wysyłanie…";
+    try {
+      const timestamp = isHandover ? record.handoverTimestamp : record.returnTimestamp;
+      const photoField = isHandover ? "handoverPhotoUrls" : "returnPhotoUrls";
+      const pdfField = isHandover ? "handoverProtocolPdfUrl" : "returnProtocolPdfUrl";
+      const sentField = isHandover ? "handoverEmailSent" : "returnEmailSent";
+
+      let pdfUrl = record[pdfField];
+      let allPhotoUrls = record[photoField] || [];
+
+      if (currentPhotos.length) {
+        // Numerujemy dalej za już odzyskanymi zdjęciami (recovered.photoItems),
+        // żeby nie nadpisać istniejących plików w Storage tą samą nazwą.
+        const startIndex = recovered.photoItems.length;
+        const prefix = storageFilePrefix(record.vehiclePlate, timestamp);
+        const [newUrls, newPhotoDataUrls] = await Promise.all([
+          Promise.all(
+            currentPhotos.map(async (file, i) => {
+              const r = ref(storage, `rentals/${rentalId}/${phase}/${prefix}-${startIndex + i + 1}.jpg`);
+              await uploadBytes(r, file);
+              return getDownloadURL(r);
+            })
+          ),
+          Promise.all(currentPhotos.map(fileToDataUrl))
+        ]);
+        allPhotoUrls = [...allPhotoUrls, ...newUrls];
+
+        let vehicleDamagePhotos = [];
+        try {
+          const vehicleSnap = await getDoc(doc(db, "vehicles", normalizePlateId(record.vehiclePlate)));
+          vehicleDamagePhotos = vehicleSnap.exists() ? vehicleSnap.data().damagePhotoUrls || [] : [];
+        } catch (err) {
+          // Brak dostępu do bazy pojazdów nie powinien blokować wysyłki.
+        }
+        const vehicleDamagePhotoDataUrls = await vehicleDamagePhotosToDataUrls(vehicleDamagePhotos);
+
+        const pdfBlob = await generateProtocolPdf(
+          record, phase, recovered.sigDataUrl, recovered.damageMapDataUrl,
+          [...recovered.photoDataUrls, ...newPhotoDataUrls], vehicleDamagePhotoDataUrls
+        );
+        pdfUrl = await uploadPdf(rentalId, phase, pdfBlob, record.vehiclePlate, timestamp);
+      }
+
+      await sendProtocolEmail(rentalId, phase, pdfUrl, record.tenantEmail, record.lessorEmail, record.vehiclePlate, timestamp);
+
+      await setDoc(
+        doc(db, "rentals", rentalId),
+        { [photoField]: allPhotoUrls, [pdfField]: pdfUrl, [sentField]: true },
+        { merge: true }
+      );
+
+      showToast("Protokół wysłany.");
+      navigate("send-protocols");
+    } catch (err) {
+      errorEl.textContent = "Błąd wysyłki: " + err.message;
+      errorEl.hidden = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Wyślij protokół";
+    }
+  });
 }
 
 function escapeHtml(str) {

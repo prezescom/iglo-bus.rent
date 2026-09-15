@@ -26,6 +26,7 @@
     <button class="btn btn-primary btn-block" data-action="new-handover">+ Nowe wydanie pojazdu</button>
     <button class="btn btn-secondary btn-block" data-action="new-protocol-link">+ Nowy protokół (link dla najemcy)</button>
     <button class="btn btn-secondary btn-block" data-action="view-drafts">Szkice protokołów</button>
+    <button class="btn btn-secondary btn-block" data-action="view-send-protocols">Protokoły do wysłania</button>
     <button class="btn btn-secondary btn-block" data-action="view-history">Zakończone wynajmy</button>
     <button class="btn btn-secondary btn-block" data-action="view-vehicles">Baza pojazdów</button>
     <button class="btn btn-secondary btn-block" data-action="view-tenants">Baza najemców</button>
@@ -152,6 +153,51 @@
     <div id="draftsList" class="rental-list">
       <p class="muted">Wczytywanie…</p>
     </div>
+  </section>
+</template>
+
+<template id="tpl-send-protocols-list">
+  <section class="view">
+    <p class="muted">Protokoły potwierdzone (wydanie lub zwrot), które nie zostały jeszcze wysłane mailem do najemcy — otwórz, żeby ewentualnie dodać zdjęcia i wysłać.</p>
+    <div id="sendProtocolsList" class="rental-list">
+      <p class="muted">Wczytywanie…</p>
+    </div>
+  </section>
+</template>
+
+<template id="tpl-send-protocol">
+  <section class="view">
+    <div id="sendProtocolHeader" class="return-header muted">Wczytywanie…</div>
+    <p id="sendProtocolError" class="error" hidden></p>
+    <form id="sendProtocolForm" class="form" hidden>
+      <fieldset>
+        <legend>Zdjęcia już w protokole</legend>
+        <div id="sendProtocolExistingPhotoStrip" class="photo-strip"></div>
+        <p class="muted" id="sendProtocolExistingPhotoEmpty" hidden>Brak zdjęć w tym protokole.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Dodaj kolejne zdjęcia (opcjonalnie)</legend>
+        <p class="muted">Jeśli dodasz zdjęcia, protokół (PDF) zostanie wygenerowany na nowo z uwzględnieniem nowych zdjęć, zanim wyśle się mail.</p>
+        <div id="photoStrip" class="photo-strip"></div>
+        <label class="btn btn-secondary btn-block file-btn">
+          + Dodaj zdjęcie
+          <input type="file" accept="image/*" multiple id="photoInput" hidden />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Schemat uszkodzeń</legend>
+        <img id="sendProtocolDamageMapPreview" style="width:100%;height:auto;border-radius:8px;border:1px solid var(--line);" alt="Schemat uszkodzeń" />
+      </fieldset>
+
+      <fieldset>
+        <legend>Podpis</legend>
+        <img id="sendProtocolSigPreview" class="sig-preview" alt="Podpis" />
+      </fieldset>
+
+      <button type="submit" class="btn btn-primary btn-block" id="sendProtocolBtn">Wyślij protokół</button>
+    </form>
   </section>
 </template>
 
@@ -675,7 +721,7 @@
       <p id="formError" class="error" hidden></p>
 
       <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
-        Zapisz protokół wydania i wyślij e-mail
+        Potwierdź protokół wydania
       </button>
     </form>
   </section>
@@ -772,7 +818,7 @@
       <p id="formError" class="error" hidden></p>
 
       <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
-        Zapisz protokół zwrotu i wyślij e-mail
+        Potwierdź protokół zwrotu
       </button>
     </form>
   </section>

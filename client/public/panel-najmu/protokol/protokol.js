@@ -19,7 +19,7 @@ import { generateProtocolPdf, preloadPdfAssets } from "../shared/pdf.js";
 import {
   escapeHtml, fileToDataUrl, wireTenantTypeToggle, prefillForm, normalizePlateId,
   uploadPhotoFiles, uploadSignatureBlob, uploadDamageMapBlob, uploadPdfBlob,
-  vehicleDamagePhotosToDataUrls, sendProtocolEmail as sharedSendProtocolEmail
+  vehicleDamagePhotosToDataUrls
 } from "../shared/protocol-actions.js";
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -378,6 +378,10 @@ async function renderGuestHandover(rentalId, existingRecord) {
       handoverDamageMarks: damageMap.getMarks(),
       handoverProtocolPdfUrl: "",
       returnProtocolPdfUrl: "",
+      // Zapis już NIE wysyła maila automatycznie — dopiero pracownik w
+      // panelu, z możliwością dołożenia zdjęć, wysyła protokół (patrz
+      // renderSendProtocol w js/app.js).
+      handoverEmailSent: false,
       id: rentalId,
       status: "wydany"
     };
@@ -407,16 +411,15 @@ async function renderGuestHandover(rentalId, existingRecord) {
         handoverProtocolPdfUrl: pdfUrl
       };
       await setDoc(docRef, finalRecord);
-      await sharedSendProtocolEmail(functions, rentalId, "wydanie", pdfUrl, record.tenantEmail, record.lessorEmail, record.vehiclePlate, record.handoverTimestamp);
 
-      showToast("Zapisano protokół wydania. Kopię wysłaliśmy na Twój e-mail.");
+      showToast("Protokół wydania potwierdzony.");
       await expireAccessAndSignOut();
-      showInfoScreen("Protokół wydania zapisany. Kopię wysłaliśmy na Twój e-mail. Ten link jest teraz nieaktywny — do zwrotu pojazdu poproś wypożyczalnię o nowe hasło.");
+      showInfoScreen("Protokół wydania potwierdzony. Wypożyczalnia go sprawdzi i wyśle Ci kopię e-mailem. Ten link jest teraz nieaktywny — do zwrotu pojazdu poproś wypożyczalnię o nowe hasło.");
     } catch (err) {
       errorEl.textContent = "Błąd zapisu: " + err.message;
       errorEl.hidden = false;
       submitBtn.disabled = false;
-      submitBtn.textContent = "Zapisz protokół wydania";
+      submitBtn.textContent = "Potwierdź";
     }
   });
 }
@@ -517,6 +520,8 @@ async function renderGuestReturn(rentalId, record) {
       returnedEquipment,
       returnTimestamp: now,
       closedTimestamp: now,
+      // Patrz komentarz przy handoverEmailSent w renderGuestHandover wyżej.
+      returnEmailSent: false,
       status: "zwrocony"
     };
 
@@ -541,16 +546,15 @@ async function renderGuestReturn(rentalId, record) {
       updated.returnProtocolPdfUrl = pdfUrl;
 
       await setDoc(doc(db, "rentals", rentalId), updated);
-      await sharedSendProtocolEmail(functions, rentalId, "zwrot", pdfUrl, updated.tenantEmail, updated.lessorEmail, updated.vehiclePlate, updated.returnTimestamp);
 
-      showToast("Zapisano protokół zwrotu. Dziękujemy!");
+      showToast("Protokół zwrotu potwierdzony. Dziękujemy!");
       await expireAccessAndSignOut();
-      showInfoScreen("Protokół zwrotu zapisany. Kopię wysłaliśmy na Twój e-mail. Ten link jest teraz nieaktywny. Dziękujemy!");
+      showInfoScreen("Protokół zwrotu potwierdzony. Wypożyczalnia go sprawdzi i wyśle Ci kopię e-mailem. Ten link jest teraz nieaktywny. Dziękujemy!");
     } catch (err) {
       errorEl.textContent = "Błąd zapisu: " + err.message;
       errorEl.hidden = false;
       submitBtn.disabled = false;
-      submitBtn.textContent = "Zapisz protokół zwrotu";
+      submitBtn.textContent = "Potwierdź";
     }
   });
 }
