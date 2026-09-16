@@ -119,7 +119,7 @@ export async function generateProtocolPdf(record, phase, signatureDataUrl, damag
   y = drawSectionHeader(doc, "KIEROWCA", y, contentWidth);
   y = drawDataRow(doc, y, contentWidth, [
     ["IMIĘ I NAZWISKO", record.driverName],
-    ["NR PRAWA JAZDY (5.)", record.driverLicenseNumber]
+    ["NUMER BLANKIETU", record.driverLicenseNumber]
   ]);
   y += 8;
 
