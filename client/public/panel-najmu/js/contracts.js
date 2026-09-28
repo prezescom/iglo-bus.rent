@@ -41,6 +41,39 @@ export function resolveTemplateKey(partyType, contractType, signatureForm) {
   return "konsument_umowa";
 }
 
+// Liczba dób między datami "YYYY-MM-DD" (UTC, żeby zmiana czasu nie
+// przesuwała wyniku) — ta sama zasada co kalkulator na stronie głównej.
+export function countRentalDays(isoFrom, isoTo) {
+  if (!isoFrom || !isoTo) return 0;
+  const [y1, m1, d1] = isoFrom.split("-").map(Number);
+  const [y2, m2, d2] = isoTo.split("-").map(Number);
+  const days = Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000);
+  return days > 0 ? days : 0;
+}
+
+// [stawka dobowa] = czynsz / liczba dób, zaokrąglone do grosza, format PL
+// ("183,33"). Pusty tekst, gdy brakuje czynszu albo okres jest niepoprawny.
+export function computeDailyRate(rentAmount, isoFrom, isoTo) {
+  const rent = Number(rentAmount);
+  const days = countRentalDays(isoFrom, isoTo);
+  if (!rent || !days) return "";
+  return (Math.round((rent / days) * 100) / 100).toLocaleString("pl-PL", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+// Tagi dostępne w KAŻDYM szablonie (niezależnie od typu umowy) — wgrany
+// własny wzór może ich użyć w dowolnym miejscu. Patrz CONTRACT-TEMPLATES.md.
+function commonTemplateData(form) {
+  return {
+    kaucja: form.depositAmount,
+    "stawka dobowa": form.dailyRate,
+    "limit km": form.mileageLimitKm,
+    wyjazd_zagraniczny: form.foreignTravel
+  };
+}
+
 function streetLine(tenant) {
   const base = [tenant.street, tenant.houseNumber].filter(Boolean).join(" ");
   return tenant.apartmentNumber ? `${base}/${tenant.apartmentNumber}` : base;
@@ -220,7 +253,7 @@ export async function generateContractDocx(templateKey, ctx, storage) {
     nullGetter: () => ""
   });
 
-  doc.render(buildTemplateData(templateKey, ctx));
+  doc.render({ ...commonTemplateData(ctx.form), ...buildTemplateData(templateKey, ctx) });
 
   return doc.getZip().generate({
     type: "blob",

@@ -648,6 +648,18 @@
             <input name="depositAmount" type="number" min="0" step="0.01" inputmode="decimal" required />
           </label>
         </div>
+        <p class="muted" id="contractDailyRateHint" hidden></p>
+        <div class="row">
+          <label>Limit km (km/doba)
+            <input name="mileageLimitKm" type="number" min="0" inputmode="numeric" value="300" required />
+          </label>
+          <label>Wyjazd zagraniczny (Strefa Schengen)
+            <select name="foreignTravel">
+              <option value="NIE">Nie</option>
+              <option value="TAK">Tak</option>
+            </select>
+          </label>
+        </div>
       </fieldset>
 
       <fieldset id="contractJednostkowaFieldset" hidden>

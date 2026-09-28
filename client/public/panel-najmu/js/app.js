@@ -2,7 +2,7 @@ import { firebaseConfig, LESSOR_EMAIL, FUNCTIONS_REGION } from "../shared/fireba
 import { initSignatureField } from "../shared/signature.js";
 import { initDamageMap } from "../shared/damage-map.js";
 import { generateProtocolPdf, preloadPdfAssets } from "../shared/pdf.js";
-import { generateContractDocx, resolveTemplateKey } from "./contracts.js";
+import { generateContractDocx, resolveTemplateKey, computeDailyRate, countRentalDays } from "./contracts.js";
 
 const DAMAGE_MAP_DIAGRAM_URL = "/panel-najmu/img/van-diagram.png";
 
@@ -1139,6 +1139,19 @@ async function renderContractForm() {
   contractTypeSelect.addEventListener("change", updateConditionalFieldsVisibility);
   updateConditionalFieldsVisibility();
 
+  // Podgląd [stawka dobowa] = czynsz / liczba dób — ta sama wartość trafi do umowy.
+  const dailyRateHint = document.getElementById("contractDailyRateHint");
+  function updateDailyRateHint() {
+    const from = form.elements["periodFrom"].value;
+    const to = form.elements["periodTo"].value;
+    const rate = computeDailyRate(form.elements["rentAmount"].value, from, to);
+    dailyRateHint.hidden = !rate;
+    if (rate) dailyRateHint.textContent = `Stawka dobowa: ${rate} zł (czynsz / ${countRentalDays(from, to)} dób)`;
+  }
+  ["periodFrom", "periodTo", "rentAmount"].forEach((name) =>
+    form.elements[name].addEventListener("input", updateDailyRateHint)
+  );
+
   wireContractTemplateManager();
 
   form.addEventListener("submit", async (e) => {
@@ -1174,7 +1187,10 @@ async function renderContractForm() {
       handoverPlace: fd.get("handoverPlace") || "",
       returnPlace: fd.get("returnPlace") || "",
       vatAmount: fd.get("vatAmount") || "",
-      grossRentAmount: fd.get("grossRentAmount") || ""
+      grossRentAmount: fd.get("grossRentAmount") || "",
+      dailyRate: computeDailyRate(fd.get("rentAmount"), fd.get("periodFrom"), fd.get("periodTo")),
+      mileageLimitKm: fd.get("mileageLimitKm") || "",
+      foreignTravel: fd.get("foreignTravel") || "NIE"
     };
 
     submitBtn.disabled = true;

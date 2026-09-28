@@ -13,6 +13,20 @@ każdego z 6 typów umowy — trafia do Firebase Storage i jest używany zamiast
 ktoś nie kliknie „Przywróć domyślny". Wgrywany plik musi zawierać **dokładnie te same tagi**
 (z listy poniżej, dla danego typu) — inaczej dane się nie podstawią albo generowanie zwróci błąd.
 
+## Tagi wspólne — dostępne w KAŻDYM szablonie
+
+Niezależnie od typu umowy, do każdego wzoru trafiają też poniższe tagi (patrz
+`commonTemplateData` w `contracts.js`) — można ich użyć w dowolnym miejscu wgrywanego pliku:
+
+| Tag | Wartość | Skąd |
+|---|---|---|
+| `[kaucja]` | np. `1500` | pole „Kaucja (PLN)" |
+| `[stawka dobowa]` | np. `183,33` | liczone automatycznie: czynsz / liczba dób (data do − data od), do grosza; puste, gdy brak czynszu lub dat |
+| `[limit km]` | np. `300` | pole „Limit km (km/doba)" (domyślnie 300) — sama liczba, jednostkę „km/doba" wpisz we wzorze |
+| `[wyjazd_zagraniczny]` | `TAK` / `NIE` | pole „Wyjazd zagraniczny (Strefa Schengen)" |
+
+Uwaga: `[stawka dobowa]` i `[limit km]` mają spację w nazwie — skopiuj je dokładnie tak.
+
 ## Wymagane tagi per typ umowy
 
 ### `konsument_umowa` — Konsument, Umowa

@@ -17,6 +17,7 @@ import { calculateRental } from "@/lib/fleet-pricing";
 import type { VehiclePricingRow } from "./vehicle-card";
 
 const DATE_FNS_LOCALE = { pl, en: enGB, cs };
+const NUMBER_LOCALE = { pl: "pl-PL", en: "en-GB", cs: "cs-CZ" };
 
 // "YYYY-MM-DD" <-> Date, licząc po lokalnych składowych daty (nie
 // toISOString/new Date(string), które przechodzą przez UTC i przy pewnych
@@ -145,8 +146,8 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
         `Termin wynajmu: ${dateFrom} → ${dateTo}`,
         `E-mail klienta: ${email}`,
         rentalCalculation ? `Liczba dni: ${rentalCalculation.days}` : null,
-        rentalCalculation ? `Szacowany koszt: ${rentalCalculation.totalCost.toLocaleString()} zł netto (${rentalCalculation.dailyRate} zł/doba)` : null,
-        rentalCalculation ? `Limit przebiegu: ${rentalCalculation.mileageLimitKm.toLocaleString()} km (${rentalCalculation.mileagePerDay} km/doba)` : null,
+        rentalCalculation ? `Szacowany koszt: ${rentalCalculation.totalCost.toLocaleString("pl-PL")} zł netto (${rentalCalculation.dailyRate} zł/doba)` : null,
+        rentalCalculation ? `Limit przebiegu: ${rentalCalculation.mileageLimitKm.toLocaleString("pl-PL")} km (${rentalCalculation.mileagePerDay} km/doba)` : null,
         notes ? `Uwagi: ${notes}` : null,
       ].filter(Boolean).join('\n');
 
@@ -288,10 +289,10 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
             <div className="text-sm" data-testid="rental-mileage-limit">
               <span className="text-slate-600">{t.booking.calcMileageLabel}</span>
               <div className="font-bold text-brand-dark">
-                {rentalCalculation.mileageLimitKm.toLocaleString()} km
+                {rentalCalculation.mileageLimitKm.toLocaleString(NUMBER_LOCALE[lang])} km
                 <span className="ml-2 text-xs font-normal text-slate-500">
                   ({t.booking.calcMileageDetail
-                    .replace("{perDay}", rentalCalculation.mileagePerDay.toLocaleString())
+                    .replace("{perDay}", rentalCalculation.mileagePerDay.toLocaleString(NUMBER_LOCALE[lang]))
                     .replace("{days}", formatDayCount(rentalCalculation.days, lang))})
                 </span>
               </div>
@@ -300,7 +301,7 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
               <div className="flex justify-between items-center">
                 <span className="font-semibold text-brand-dark">{t.booking.calcTotalLabel}</span>
                 <div className="text-right">
-                  <div className="text-xl font-bold text-brand-blue">{rentalCalculation.totalCost.toLocaleString()} {t.currency}</div>
+                  <div className="text-xl font-bold text-brand-blue">{rentalCalculation.totalCost.toLocaleString(NUMBER_LOCALE[lang])} {t.currency}</div>
                   <div className="text-xs text-slate-500">{t.booking.calcNet}</div>
                 </div>
               </div>
