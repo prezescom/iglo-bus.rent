@@ -89,6 +89,7 @@ interface Dictionary {
     photosSuffix: string;
     tablePeriod: string;
     tablePrice: string;
+    tableMileage: string;
     defaultDescription: string;
   };
   vehicleSpec: {
@@ -112,6 +113,8 @@ interface Dictionary {
     calcTotalLabel: string;
     calcNet: string;
     calcNote: string;
+    calcMileageLabel: string;
+    calcMileageDetail: string;
     emailLabel: string;
     emailPlaceholder: string;
     notesLabel: string;
@@ -251,6 +254,7 @@ const pl: Dictionary = {
     photosSuffix: "zdjęć",
     tablePeriod: "Okres",
     tablePrice: "Cena / doba",
+    tableMileage: "Limit km / doba",
     defaultDescription:
       "Zakres temperatur (−20°C do +20°C), rejestrator temperatur, agregat z podtrzymaniem 230V (opcja), kamera cofania, Android Auto, assistance na terenie EU. Kaucja zwrotna wg umowy.",
   },
@@ -275,6 +279,8 @@ const pl: Dictionary = {
     calcTotalLabel: "Szacowany koszt:",
     calcNet: "netto",
     calcNote: "* Kalkulacja orientacyjna. Ostateczną stawkę potwierdzimy e-mailem po sprawdzeniu dostępności.",
+    calcMileageLabel: "Limit przebiegu na cały najem:",
+    calcMileageDetail: "{perDay} km/doba × {days}",
     emailLabel: "Twój e‑mail",
     emailPlaceholder: "jan.kowalski@firma.pl",
     notesLabel: "Uwagi (opcjonalnie)",
@@ -482,6 +488,7 @@ const en: Dictionary = {
     photosSuffix: "photos",
     tablePeriod: "Period",
     tablePrice: "Price / day",
+    tableMileage: "Km limit / day",
     defaultDescription:
       "Temperature range (−20°C to +20°C), temperature logger, cooling unit with 230V mains backup (optional), reversing camera, Android Auto, EU-wide assistance. Deposit refundable per contract.",
   },
@@ -506,6 +513,8 @@ const en: Dictionary = {
     calcTotalLabel: "Estimated cost:",
     calcNet: "net",
     calcNote: "* Estimate only. We'll confirm the final rate by e-mail after checking availability.",
+    calcMileageLabel: "Mileage limit for the whole rental:",
+    calcMileageDetail: "{perDay} km/day × {days}",
     emailLabel: "Your e-mail",
     emailPlaceholder: "john.smith@company.com",
     notesLabel: "Notes (optional)",
@@ -713,6 +722,7 @@ const cs: Dictionary = {
     photosSuffix: "fotek",
     tablePeriod: "Období",
     tablePrice: "Cena / den",
+    tableMileage: "Limit km / den",
     defaultDescription:
       "Teplotní rozsah (−20 °C až +20 °C), záznamník teploty, agregát s napájením 230V (volitelně), couvací kamera, Android Auto, asistenční služba v rámci EU. Kauce se vrací dle smlouvy.",
   },
@@ -737,6 +747,8 @@ const cs: Dictionary = {
     calcTotalLabel: "Odhadovaná cena:",
     calcNet: "bez DPH",
     calcNote: "* Orientační výpočet. Konečnou sazbu potvrdíme e-mailem po ověření dostupnosti.",
+    calcMileageLabel: "Limit km na celý pronájem:",
+    calcMileageDetail: "{perDay} km/den × {days}",
     emailLabel: "Váš e-mail",
     emailPlaceholder: "jan.novak@firma.cz",
     notesLabel: "Poznámky (volitelné)",

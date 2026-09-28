@@ -4,6 +4,15 @@ import BookingForm from "./booking-form";
 import PhotoGallery from "./photo-gallery";
 import VehicleSpecDetails, { type VehicleCardDimensions } from "./vehicle-spec-details";
 import { useLanguage } from "@/lib/i18n/use-language";
+import type { PricingTierNumbers } from "@/lib/fleet-pricing";
+
+// Wiersz cennika: teksty do tabeli + liczby z panelu (dla kalkulatora).
+export type VehiclePricingRow = PricingTierNumbers & {
+  period: string;
+  price: string;
+  mileage: string;
+  highlighted?: boolean;
+};
 
 interface VehicleCardProps {
   vehicle: {
@@ -23,11 +32,7 @@ interface VehicleCardProps {
       alt: string;
       title?: string;
     }>;
-    pricing: Array<{
-      period: string;
-      price: string;
-      highlighted?: boolean;
-    }>;
+    pricing: VehiclePricingRow[];
   };
   delay?: number;
 }
@@ -126,6 +131,7 @@ export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
             <thead className="bg-slate-50">
               <tr>
                 <th className="text-left p-3 font-semibold text-brand-dark">{t.vehicleCard.tablePeriod}</th>
+                <th className="text-right p-3 font-semibold text-brand-dark">{t.vehicleCard.tableMileage}</th>
                 <th className="text-right p-3 font-semibold text-brand-dark">{t.vehicleCard.tablePrice}</th>
               </tr>
             </thead>
@@ -133,7 +139,8 @@ export default function VehicleCard({ vehicle, delay = 0 }: VehicleCardProps) {
               {vehicle.pricing.map((pricing, index) => (
                 <tr key={index} className={pricing.highlighted ? "bg-brand-light" : ""}>
                   <td className={`p-3 ${pricing.highlighted ? "font-medium" : ""}`}>{pricing.period}</td>
-                  <td className="p-3 text-right font-bold text-brand-blue">{pricing.price}</td>
+                  <td className="p-3 text-right text-slate-600 whitespace-nowrap">{pricing.mileage}</td>
+                  <td className="p-3 text-right font-bold text-brand-blue whitespace-nowrap">{pricing.price}</td>
                 </tr>
               ))}
             </tbody>

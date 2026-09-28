@@ -1352,9 +1352,14 @@ function addFleetTierRow(container, tier) {
         <input type="number" min="1" class="tier-max" value="${t.maxDays ?? ""}" />
       </label>
     </div>
-    <label>Cena (PLN)
-      <input type="number" min="0" step="0.01" class="tier-price" value="${t.pricePln ?? ""}" />
-    </label>
+    <div class="row">
+      <label>Cena (PLN)
+        <input type="number" min="0" step="0.01" class="tier-price" value="${t.pricePln ?? ""}" />
+      </label>
+      <label>Limit przebiegu (km/doba, puste = 300)
+        <input type="number" min="0" class="tier-km" placeholder="300" value="${t.mileageLimitKmPerDay ?? ""}" />
+      </label>
+    </div>
     <label>Etykieta — PL
       <input class="tier-label-pl" value="${escapeHtml(t.labelPl || "")}" />
     </label>
@@ -1524,6 +1529,7 @@ async function renderFleetCmsForm(vehicleId) {
         minDays: Number(row.querySelector(".tier-min").value) || 0,
         maxDays: row.querySelector(".tier-max").value ? Number(row.querySelector(".tier-max").value) : null,
         pricePln: Number(row.querySelector(".tier-price").value) || 0,
+        mileageLimitKmPerDay: row.querySelector(".tier-km").value ? Number(row.querySelector(".tier-km").value) : null,
         labelPl: row.querySelector(".tier-label-pl").value || "",
         labelEn: row.querySelector(".tier-label-en").value || "",
         labelCs: row.querySelector(".tier-label-cs").value || ""

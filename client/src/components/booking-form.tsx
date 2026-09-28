@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 import emailjs from '@emailjs/browser';
 import { useLanguage } from "@/lib/i18n/use-language";
 import { formatDayCount } from "@/lib/i18n/translations";
+import { calculateRental } from "@/lib/fleet-pricing";
+import type { VehiclePricingRow } from "./vehicle-card";
 
 const DATE_FNS_LOCALE = { pl, en: enGB, cs };
 
@@ -45,11 +47,7 @@ const SUNDAY = { dayOfWeek: [0] };
 
 interface BookingFormProps {
   vehicleTitle: string;
-  pricing: Array<{
-    period: string;
-    price: string;
-    highlighted?: boolean;
-  }>;
+  pricing: VehiclePricingRow[];
 }
 
 export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps) {
@@ -69,61 +67,17 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
   const rentalCalculation = useMemo(() => {
     if (!dateFrom || !dateTo) return null;
 
-    const startDate = new Date(dateFrom);
-    const endDate = new Date(dateTo);
-    
-    if (endDate <= startDate) return null;
+    const startDate = fromYMD(dateFrom);
+    const endDate = fromYMD(dateTo);
+    if (!startDate || !endDate || endDate <= startDate) return null;
 
-    const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (days <= 0) return null;
+    // Liczba dób między datami; Math.round (nie ceil) — zmiana czasu
+    // letni/zimowy daje różnicę 23 lub 25 godzin.
+    const days = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
 
-    // Extract numeric prices and determine which tier applies
-    let dailyRate = 0;
-    let tierUsed = "";
-
-    const findRate = (p: { period: string; price: string }) =>
-      parseInt(p.price.replace(/[^\d]/g, ''));
-
-    if (days >= 30) {
-      const tier = pricing.find(p =>
-        p.period.includes("30+") || p.period.includes("miesięcznie") || p.period === "miesiąc"
-      );
-      if (tier) {
-        const monthlyPrice = findRate(tier);
-        dailyRate = Math.round(monthlyPrice / 30);
-        tierUsed = tier.period;
-      }
-    } else if (days >= 15) {
-      const tier = pricing.find(p => p.period.includes("15–29"));
-      if (tier) { dailyRate = findRate(tier); tierUsed = tier.period; }
-    } else if (days >= 8) {
-      const tier = pricing.find(p => p.period.includes("8–14"));
-      if (tier) { dailyRate = findRate(tier); tierUsed = tier.period; }
-    } else if (days >= 4) {
-      const tier = pricing.find(p => p.period.includes("4–7"));
-      if (tier) { dailyRate = findRate(tier); tierUsed = tier.period; }
-    } else {
-      const tier = pricing.find(p => p.period.includes("1–3") || p.period === "doba");
-      if (tier) { dailyRate = findRate(tier); tierUsed = tier.period; }
-    }
-
-    // fallback: jeśli żaden tier nie pasuje (np. cennik tylko z "doba"), użyj stawki dobowej
-    if (dailyRate === 0) {
-      const dobaTier = pricing.find(p => p.period === "doba");
-      if (dobaTier) { dailyRate = findRate(dobaTier); tierUsed = dobaTier.period; }
-    }
-
-    if (dailyRate === 0) return null;
-
-    const totalCost = dailyRate * days;
-
-    return {
-      days,
-      dailyRate,
-      totalCost,
-      tierUsed
-    };
+    const result = calculateRental(pricing, days);
+    if (!result) return null;
+    return { ...result, tierUsed: result.tier.period };
   }, [dateFrom, dateTo, pricing]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -192,6 +146,7 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
         `E-mail klienta: ${email}`,
         rentalCalculation ? `Liczba dni: ${rentalCalculation.days}` : null,
         rentalCalculation ? `Szacowany koszt: ${rentalCalculation.totalCost.toLocaleString()} zł netto (${rentalCalculation.dailyRate} zł/doba)` : null,
+        rentalCalculation ? `Limit przebiegu: ${rentalCalculation.mileageLimitKm.toLocaleString()} km (${rentalCalculation.mileagePerDay} km/doba)` : null,
         notes ? `Uwagi: ${notes}` : null,
       ].filter(Boolean).join('\n');
 
@@ -328,6 +283,17 @@ export default function BookingForm({ vehicleTitle, pricing }: BookingFormProps)
               <div>
                 <span className="text-slate-600">{t.booking.calcRateLabel.replace("{tier}", rentalCalculation.tierUsed)}</span>
                 <div className="font-bold text-brand-blue">{rentalCalculation.dailyRate} {t.booking.perDaySuffix}</div>
+              </div>
+            </div>
+            <div className="text-sm" data-testid="rental-mileage-limit">
+              <span className="text-slate-600">{t.booking.calcMileageLabel}</span>
+              <div className="font-bold text-brand-dark">
+                {rentalCalculation.mileageLimitKm.toLocaleString()} km
+                <span className="ml-2 text-xs font-normal text-slate-500">
+                  ({t.booking.calcMileageDetail
+                    .replace("{perDay}", rentalCalculation.mileagePerDay.toLocaleString())
+                    .replace("{days}", formatDayCount(rentalCalculation.days, lang))})
+                </span>
               </div>
             </div>
             <div className="border-t border-brand-blue/20 pt-3">

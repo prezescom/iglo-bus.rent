@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import VehicleCard from "./vehicle-card";
 import { useLanguage } from "@/lib/i18n/use-language";
 import type { FleetVehicle } from "@/lib/fleet";
+import { tierMileagePerDay } from "@/lib/fleet-pricing";
 
 // Import dynamiczny (nie statyczny) celowo — home.tsx (a więc i ten
 // komponent) jest częścią głównego, niedzielonego na kawałki bundle'a
@@ -75,7 +76,12 @@ export default function FleetSection() {
         pricing: (v.pricingTiers || []).map((tier, i, arr) => ({
           period: pickTierLabel(tier, lang),
           price: `${tier.pricePln.toLocaleString(numberLocale)} ${t.currency}`,
-          highlighted: i === arr.length - 1
+          mileage: `${tierMileagePerDay(tier).toLocaleString(numberLocale)} km`,
+          highlighted: i === arr.length - 1,
+          minDays: tier.minDays,
+          maxDays: tier.maxDays,
+          pricePln: tier.pricePln,
+          mileageLimitKmPerDay: tier.mileageLimitKmPerDay
         }))
       };
     });

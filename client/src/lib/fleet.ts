@@ -6,6 +6,7 @@ export type FleetPricingTier = {
   minDays: number;
   maxDays: number | null; // null = otwarty zakres (np. "30+ dni")
   pricePln: number;
+  mileageLimitKmPerDay?: number | null; // puste = DEFAULT_MILEAGE_LIMIT_KM_PER_DAY (fleet-pricing.ts)
   labelPl: string;
   labelEn: string;
   labelCs: string;
