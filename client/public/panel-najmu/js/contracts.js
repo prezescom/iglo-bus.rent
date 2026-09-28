@@ -63,6 +63,49 @@ export function computeDailyRate(rentAmount, isoFrom, isoTo) {
   });
 }
 
+// Podpowiedź czynszu z cennika strony głównej (fleetVehicles.pricingTiers) —
+// TA SAMA zasada co kalkulator na stronie (client/src/lib/fleet-pricing.ts,
+// tam TypeScript w bundle'u Vite, tu czysty JS panelu — przy zmianie zasad
+// liczenia poprawić oba miejsca): zakres po minDays/maxDays, przy nakładaniu
+// się wygrywa wyższe "od", otwarty zakres (30+) to cena miesięczna / 30.
+export function suggestRentFromPricing(tiers, days) {
+  const valid = (tiers || []).filter((t) => t.pricePln > 0);
+  if (!valid.length || days <= 0) return null;
+  const matching = valid.filter((t) => days >= t.minDays && (t.maxDays == null || days <= t.maxDays));
+  const pool = matching.length ? matching : valid.filter((t) => t.minDays <= days);
+  const tier = pool.length
+    ? pool.reduce((a, b) => (b.minDays > a.minDays ? b : a))
+    : valid.reduce((a, b) => (b.minDays < a.minDays ? b : a));
+  // Cena miesięczna: sumę liczymy przed zaokrągleniem (30 dób = pełna
+  // cena z cennika, a nie 30 × zaokrąglona stawka dobowa).
+  const isMonthly = tier.maxDays == null;
+  const total = isMonthly ? Math.round((tier.pricePln * days) / 30) : tier.pricePln * days;
+  const dailyRate = isMonthly ? Math.round(tier.pricePln / 30) : tier.pricePln;
+  return { tier, dailyRate, total };
+}
+
+// Dobiera pozycję cennika do pojazdu z bazy po modelu (np. pojazd "Toyota
+// ProAce City" → "Toyota ProAce City (S)", a nie "Toyota ProAce (M)") —
+// wygrywa najdłuższy tytuł cennika, którego nazwa bez "(S)/(M)/(L)" zawiera
+// się w marce+modelu pojazdu.
+export function matchPricingVehicle(fleetVehicles, vehicle) {
+  const norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
+  const name = norm([vehicle?.make, vehicle?.model].filter(Boolean).join(" "));
+  if (!name) return null;
+  let best = null;
+  let bestLen = 0;
+  for (const fv of fleetVehicles) {
+    const title = norm((fv.titlePl || "").replace(/\([^)]*\)/g, ""));
+    const model = title.replace(/^toyota /, "");
+    const hit = name.includes(title) ? title.length : name.includes(model) ? model.length : 0;
+    if (hit > bestLen) {
+      best = fv;
+      bestLen = hit;
+    }
+  }
+  return best;
+}
+
 // Tagi dostępne w KAŻDYM szablonie (niezależnie od typu umowy) — wgrany
 // własny wzór może ich użyć w dowolnym miejscu. Patrz CONTRACT-TEMPLATES.md.
 function commonTemplateData({ tenant, vehicle, form }) {

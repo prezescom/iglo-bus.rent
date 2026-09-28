@@ -2,7 +2,10 @@ import { firebaseConfig, LESSOR_EMAIL, FUNCTIONS_REGION } from "../shared/fireba
 import { initSignatureField } from "../shared/signature.js";
 import { initDamageMap } from "../shared/damage-map.js";
 import { generateProtocolPdf, preloadPdfAssets } from "../shared/pdf.js";
-import { generateContractDocx, resolveTemplateKey, computeDailyRate, countRentalDays } from "./contracts.js";
+import {
+  generateContractDocx, resolveTemplateKey, computeDailyRate, countRentalDays,
+  suggestRentFromPricing, matchPricingVehicle
+} from "./contracts.js";
 
 const DAMAGE_MAP_DIAGRAM_URL = "/panel-najmu/img/van-diagram.png";
 
@@ -1084,6 +1087,24 @@ async function renderContractForm() {
   } catch (e) {
     // Brak dostępu do bazy pojazdów nie powinien blokować reszty formularza.
   }
+  // Cennik ze strony głównej — do podpowiedzi czynszu (bez niego formularz
+  // działa jak dotąd, czynsz wpisuje się ręcznie).
+  let fleetPricing = [];
+  try {
+    const snap = await getDocs(collection(db, "fleetVehicles"));
+    fleetPricing = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  } catch (e) {
+    // jak wyżej — brak cennika nie blokuje formularza
+  }
+  const pricingSelect = document.getElementById("contractPricingVehicleSelect");
+  fleetPricing.forEach((fv) => {
+    const opt = document.createElement("option");
+    opt.value = fv.id;
+    opt.textContent = fv.titlePl || fv.id;
+    pricingSelect.appendChild(opt);
+  });
 
   wireAutocomplete(tenantSearchInput, () =>
     knownTenants.map((t) => ({
@@ -1126,6 +1147,11 @@ async function renderContractForm() {
     }
     vehicleSummaryEl.textContent = `${[selectedVehicle.make, selectedVehicle.model].filter(Boolean).join(" ")} · VIN ${selectedVehicle.vin || "-"}`;
     vehicleSummaryEl.hidden = false;
+    const matched = matchPricingVehicle(fleetPricing, selectedVehicle);
+    if (matched) {
+      pricingSelect.value = matched.id;
+      updateRentSuggestion();
+    }
   });
 
   function updateConditionalFieldsVisibility() {
@@ -1150,6 +1176,50 @@ async function renderContractForm() {
   }
   ["periodFrom", "periodTo", "rentAmount"].forEach((name) =>
     form.elements[name].addEventListener("input", updateDailyRateHint)
+  );
+
+  // Podpowiedź czynszu z cennika: wpisuje się sama w pole "Czynsz najmu",
+  // dopóki pracownik nie wpisze tam własnej kwoty — od tego momentu jego
+  // wartość zostaje, a podpowiedź widać obok z przyciskiem "Użyj podpowiedzi".
+  const rentInput = form.elements["rentAmount"];
+  const suggestionEl = document.getElementById("contractRentSuggestion");
+  const suggestionTextEl = document.getElementById("contractRentSuggestionText");
+  const suggestionApplyBtn = document.getElementById("contractRentSuggestionApply");
+  let rentManuallyEdited = false;
+  let suggestedRent = null;
+
+  function applySuggestedRent() {
+    rentInput.value = String(suggestedRent);
+    rentManuallyEdited = false;
+    suggestionApplyBtn.hidden = true;
+    updateDailyRateHint();
+  }
+
+  function updateRentSuggestion() {
+    const fv = fleetPricing.find((v) => v.id === pricingSelect.value);
+    const days = countRentalDays(form.elements["periodFrom"].value, form.elements["periodTo"].value);
+    const s = fv ? suggestRentFromPricing(fv.pricingTiers, days) : null;
+    suggestedRent = s ? s.total : null;
+    suggestionEl.hidden = !s;
+    if (!s) return;
+    const label = s.tier.labelPl || `${s.tier.minDays}${s.tier.maxDays ? `–${s.tier.maxDays}` : "+"} dni`;
+    suggestionTextEl.textContent =
+      `Z cennika (${fv.titlePl}, ${label}): ${s.dailyRate} zł × ${days} dób = ${s.total} zł netto.`;
+    if (rentManuallyEdited && rentInput.value !== String(s.total)) {
+      suggestionApplyBtn.hidden = false;
+    } else {
+      applySuggestedRent();
+    }
+  }
+
+  rentInput.addEventListener("input", () => {
+    rentManuallyEdited = rentInput.value !== "" && rentInput.value !== String(suggestedRent);
+    suggestionApplyBtn.hidden = !(rentManuallyEdited && suggestedRent != null);
+  });
+  suggestionApplyBtn.addEventListener("click", applySuggestedRent);
+  pricingSelect.addEventListener("change", updateRentSuggestion);
+  ["periodFrom", "periodTo"].forEach((name) =>
+    form.elements[name].addEventListener("input", updateRentSuggestion)
   );
 
   wireContractTemplateManager();

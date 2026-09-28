@@ -51,7 +51,10 @@ export function calculateRental<T extends PricingTierNumbers>(tiers: T[], days: 
     tier,
     days,
     dailyRate,
-    totalCost: dailyRate * days,
+    // Cena miesięczna: suma przed zaokrągleniem (30 dób = pełna cena
+    // z cennika, a nie 30 × zaokrąglona stawka dobowa). Ta sama zasada
+    // jest w panelu: suggestRentFromPricing w panel-najmu/js/contracts.js.
+    totalCost: tier.maxDays == null ? Math.round((tier.pricePln * days) / 30) : dailyRate * days,
     mileagePerDay,
     mileageLimitKm: mileagePerDay * days
   };
