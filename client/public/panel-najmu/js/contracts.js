@@ -135,17 +135,24 @@ function normalizeTagName(name) {
     .toLowerCase();
 }
 
-function tolerantParser(tag) {
-  return {
+// `unknownTags` (Set) zbiera tagi ze wzoru, dla których nie ma żadnych danych
+// (literówka / inna nazwa niż w CONTRACT-TEMPLATES.md) — panel pokazuje je
+// po wygenerowaniu umowy, zamiast cicho zostawiać puste pole.
+function makeTolerantParser(unknownTags) {
+  return (tag) => ({
     get(scope) {
       if (tag === ".") return scope;
       if (scope == null) return undefined;
       if (Object.prototype.hasOwnProperty.call(scope, tag)) return scope[tag];
       const wanted = normalizeTagName(tag);
       const key = Object.keys(scope).find((k) => normalizeTagName(k) === wanted);
-      return key === undefined ? undefined : scope[key];
+      if (key === undefined) {
+        unknownTags.add(tag);
+        return undefined;
+      }
+      return scope[key];
     }
-  };
+  });
 }
 
 function streetLine(tenant) {
@@ -287,6 +294,7 @@ function buildTemplateData(templateKey, { tenant, vehicle, form }) {
 // najpierw próbuje własnego, wgranego przez pracownika szablonu; brak
 // (jeszcze nigdy nie podmieniony, albo błąd odczytu) cicho wraca do
 // wbudowanego pliku statycznego z TEMPLATE_FILES.
+// Zwraca { blob, unknownTags } — unknownTags to tagi ze wzoru bez danych.
 export async function generateContractDocx(templateKey, ctx, storage) {
   const builtinUrl = TEMPLATE_FILES[templateKey];
   if (!builtinUrl) throw new Error(`Nieznany typ szablonu: ${templateKey}`);
@@ -320,18 +328,20 @@ export async function generateContractDocx(templateKey, ctx, storage) {
     zip.file(xmlPath, xml.replace("<w:t>kod_pocztowy]</w:t>", "<w:t>[kod_pocztowy]</w:t>"));
   }
 
+  const unknownTags = new Set();
   const doc = new window.Docxtemplater(zip, {
     paragraphLoop: true,
     linebreaks: true,
     delimiters: { start: "[", end: "]" },
-    parser: tolerantParser,
+    parser: makeTolerantParser(unknownTags),
     nullGetter: () => ""
   });
 
   doc.render({ ...commonTemplateData(ctx), ...buildTemplateData(templateKey, ctx) });
 
-  return doc.getZip().generate({
+  const blob = doc.getZip().generate({
     type: "blob",
     mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
   });
+  return { blob, unknownTags: [...unknownTags] };
 }

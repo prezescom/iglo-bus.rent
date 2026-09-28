@@ -1271,7 +1271,7 @@ async function renderContractForm() {
     submitBtn.disabled = true;
     submitBtn.textContent = "Generowanie…";
     try {
-      const blob = await generateContractDocx(templateKey, {
+      const { blob, unknownTags } = await generateContractDocx(templateKey, {
         tenant: selectedTenant,
         vehicle: selectedVehicle,
         form: formData
@@ -1279,6 +1279,13 @@ async function renderContractForm() {
       const fileName = `Umowa_${selectedVehicle.plate}_${fd.get("contractDate") || ""}.docx`;
       downloadBlob(blob, fileName);
       showToast("Wygenerowano umowę.");
+      if (unknownTags.length) {
+        errorEl.textContent =
+          `Umowa wygenerowana, ale we wzorze są tagi, których generator nie zna — zostały puste: ` +
+          unknownTags.map((t) => `[${t}]`).join(", ") +
+          `. Popraw nazwy we wzorze (lista tagów: CONTRACT-TEMPLATES.md).`;
+        errorEl.hidden = false;
+      }
     } catch (err) {
       errorEl.textContent = "Błąd generowania umowy: " + err.message;
       errorEl.hidden = false;
