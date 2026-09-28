@@ -1098,6 +1098,11 @@ async function renderContractForm() {
   } catch (e) {
     // jak wyżej — brak cennika nie blokuje formularza
   }
+  // Widok bywa renderowany dwa razy pod rząd (DOMContentLoaded + zalogowanie
+  // w onAuthStateChanged). Jeśli w trakcie powyższych await formularz został
+  // już zastąpiony nowszym, kończymy — inaczej getElementById poniżej trafi
+  // w elementy nowszego renderu i np. lista cennika wypełni się dwa razy.
+  if (!form.isConnected) return;
   const pricingSelect = document.getElementById("contractPricingVehicleSelect");
   fleetPricing.forEach((fv) => {
     const opt = document.createElement("option");
