@@ -65,12 +65,43 @@ export function computeDailyRate(rentAmount, isoFrom, isoTo) {
 
 // Tagi dostępne w KAŻDYM szablonie (niezależnie od typu umowy) — wgrany
 // własny wzór może ich użyć w dowolnym miejscu. Patrz CONTRACT-TEMPLATES.md.
-function commonTemplateData(form) {
+function commonTemplateData({ tenant, vehicle, form }) {
   return {
+    // Aliasy nazwy firmy/modelu — różne wzory używają różnych nazw tagów.
+    firma: tenant.name,
+    "nazwa firmy": tenant.name,
+    model: vehicle.model,
+    "model samochodu": vehicle.model,
     kaucja: form.depositAmount,
     "stawka dobowa": form.dailyRate,
     "limit km": form.mileageLimitKm,
     wyjazd_zagraniczny: form.foreignTravel
+  };
+}
+
+// Word przy pisaniu zamienia proste cudzysłowy na drukarskie („…”, “…”)
+// i potrafi wstawić twardą spację, więc tag ["nazwa firmy"] we wgranym
+// wzorze często nie jest znak w znak taki jak klucz danych. Porównujemy
+// nazwy tagów po normalizacji: bez cudzysłowów, spacje/podkreślenia jako
+// jedna spacja, bez wielkości liter ([nazwa_firmy] = ["Nazwa firmy"]).
+function normalizeTagName(name) {
+  return String(name)
+    .replace(/["'„”“‟«»‘’‚]/g, "")
+    .replace(/[\s_]+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function tolerantParser(tag) {
+  return {
+    get(scope) {
+      if (tag === ".") return scope;
+      if (scope == null) return undefined;
+      if (Object.prototype.hasOwnProperty.call(scope, tag)) return scope[tag];
+      const wanted = normalizeTagName(tag);
+      const key = Object.keys(scope).find((k) => normalizeTagName(k) === wanted);
+      return key === undefined ? undefined : scope[key];
+    }
   };
 }
 
@@ -250,10 +281,11 @@ export async function generateContractDocx(templateKey, ctx, storage) {
     paragraphLoop: true,
     linebreaks: true,
     delimiters: { start: "[", end: "]" },
+    parser: tolerantParser,
     nullGetter: () => ""
   });
 
-  doc.render({ ...commonTemplateData(ctx.form), ...buildTemplateData(templateKey, ctx) });
+  doc.render({ ...commonTemplateData(ctx), ...buildTemplateData(templateKey, ctx) });
 
   return doc.getZip().generate({
     type: "blob",

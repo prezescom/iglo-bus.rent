@@ -1,10 +1,13 @@
 # Szablony umów — wymagane tagi
 
 Generowanie umów (`client/public/panel-najmu/js/contracts.js`) używa silnika **docxtemplater**
-z ogranicznikami `[` `]` (NIE `{{ }}` jak w domyślnej konfiguracji docxtemplater). Każdy tag w
-pliku Word musi wyglądać dokładnie tak: `[nazwa_tagu]` — łącznie z wielkością liter i polskimi
-znakami. Brakujący tag zostaje po prostu pusty (nic się nie wywali), ale literówka w nazwie tagu
-sprawi, że pole nigdy się nie podstawi.
+z ogranicznikami `[` `]` (NIE `{{ }}` jak w domyślnej konfiguracji docxtemplater). Tag w pliku
+Word wygląda tak: `[nazwa_tagu]`, z polskimi znakami. Przy dopasowaniu nie mają znaczenia
+wielkość liter, cudzysłowy (także drukarskie „…” wstawiane przez Worda) ani to, czy między
+słowami jest spacja, twarda spacja czy podkreślenie — `[nazwa firmy]`, `["Nazwa firmy"]`
+i `[nazwa_firmy]` to ten sam tag (patrz `tolerantParser` w `contracts.js`). Brakujący tag
+zostaje po prostu pusty (nic się nie wywali), ale literówka w nazwie tagu sprawi, że pole nigdy
+się nie podstawi.
 
 ## Podmiana szablonu z panelu
 
@@ -63,17 +66,16 @@ dokumencie.
 
 ### `firma_scalona_elektroniczna` — Firma, Umowa scalona (e-podpis)
 ```
-[data_zawarcia] ["nazwa firmy"] [NIP] [KRS] [ulica] [kod_pocztowy] [Miejscowość]
-[reprezentant] ["model samochodu"] [nr_rejestracyjny] [VIN] [czynsz]
+[data_zawarcia] [nazwa firmy] [NIP] [KRS] [ulica] [kod_pocztowy] [Miejscowość]
+[reprezentant] [model samochodu] [nr_rejestracyjny] [VIN] [czynsz]
 [umowa_od] [umowa_do]
 ```
-Uwaga: `["nazwa firmy"]` i `["model samochodu"]` to tagi z dosłownym cudzysłowem i spacją w nazwie
-— skopiuj je dokładnie tak, jak tu zapisane.
+Nazwa firmy działa też jako `[firma]`, a model jako `[model]` — w każdym typie umowy.
 
 ### `firma_scalona_papierowa` — Firma, Umowa scalona (papierowa)
 ```
-[data_zawarcia] ["nazwa firmy"] [NIP] [KRS] [ulica] [kod_pocztowy] [Miejscowość]
-[reprezentant] ["model samochodu"] [nr_rejestracyjny] [VIN] [czynsz]
+[data_zawarcia] [nazwa firmy] [NIP] [KRS] [ulica] [kod_pocztowy] [Miejscowość]
+[reprezentant] [model samochodu] [nr_rejestracyjny] [VIN] [czynsz]
 [kaucja] [umowa_od] [umowa_do]
 ```
 
