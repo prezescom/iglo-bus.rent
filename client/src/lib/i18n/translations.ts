@@ -318,7 +318,7 @@ const pl: Dictionary = {
     items: [
       {
         question: "Czy są limity kilometrów?",
-        answer: "Standardowo limit wynosi 300km na dobę. Ważne, że przy dłuższym najmie, limity dzienne podlegają sumowaniu tj. w 10 dni możesz przejechać nawet 3000km w ramach umowy.",
+        answer: "Limit przebiegu jest różnicowany względem klasy pojazdu — klasy S oraz M mają limit 200 km na dobę, w klasie L obowiązuje limit 300 km na dobę. Ważne, że przy dłuższym najmie, limity dzienne podlegają sumowaniu tj. w 10 dni możesz przejechać nawet 3000 km w ramach umowy.",
       },
       {
         question: "Czy auto utrzyma -20°C na postoju?",
@@ -552,7 +552,7 @@ const en: Dictionary = {
     items: [
       {
         question: "Is there a mileage limit?",
-        answer: "The standard limit is 300 km per day. Importantly, for longer rentals the daily limits add up — e.g. over 10 days you can drive up to 3,000 km under the contract.",
+        answer: "The mileage limit depends on the vehicle class — classes S and M have a limit of 200 km per day, class L has a limit of 300 km per day. Importantly, for longer rentals the daily limits add up — e.g. over 10 days you can drive up to 3,000 km under the contract.",
       },
       {
         question: "Will the vehicle hold -20°C while parked?",
@@ -786,7 +786,7 @@ const cs: Dictionary = {
     items: [
       {
         question: "Existuje limit najetých kilometrů?",
-        answer: "Standardní limit je 300 km na den. Důležité je, že u delšího pronájmu se denní limity sčítají — např. za 10 dní můžete v rámci smlouvy najet až 3 000 km.",
+        answer: "Limit najetých kilometrů se liší podle třídy vozidla — třídy S a M mají limit 200 km na den, ve třídě L platí limit 300 km na den. Důležité je, že u delšího pronájmu se denní limity sčítají — např. za 10 dní můžete v rámci smlouvy najet až 3 000 km.",
       },
       {
         question: "Udrží vozidlo -20 °C i při stání?",
