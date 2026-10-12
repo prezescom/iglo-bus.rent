@@ -19,7 +19,7 @@ import { generateProtocolPdf, preloadPdfAssets } from "../shared/pdf.js";
 import {
   escapeHtml, fileToDataUrl, wireTenantTypeToggle, prefillForm, normalizePlateId,
   uploadPhotoFiles, uploadSignatureBlob, uploadDamageMapBlob, uploadPdfBlob,
-  vehicleDamagePhotosToDataUrls
+  vehicleDamagePhotosToDataUrls, mergeDamageMarks, urlsToDataUrls, renderPhotoUrlStrip
 } from "../shared/protocol-actions.js";
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -276,18 +276,29 @@ async function renderGuestHandover(rentalId, existingRecord) {
   // verifyProtocolPassword w functions/index.js) — reszta bazy pojazdów
   // pozostaje niedostępna.
   let vehicleDamagePhotos = [];
+  let vehicleMarks = [];
   if (existingRecord.vehiclePlate) {
     try {
       const vehicleSnap = await getDoc(doc(db, "vehicles", normalizePlateId(existingRecord.vehiclePlate)));
       if (vehicleSnap.exists()) {
         const v = vehicleSnap.data();
-        damageMap.setMarks(v.lastDamageMapMarks || []);
+        vehicleMarks = v.lastDamageMapMarks || [];
         vehicleDamagePhotos = v.damagePhotoUrls || [];
       }
     } catch (e) {
       // Brak dostępu/danych nie powinien blokować wydania — po prostu
       // zacznie się od pustej mapy, bez wcześniej udokumentowanych zdjęć.
     }
+  }
+  // Zdjęcia i zaznaczenia dodane przez pracownika do szkicu (panel:
+  // renderNewProtocol / renderDraftMedia) — najemca je widzi, a swoje
+  // zdjęcia i zaznaczenia dodaje obok. Wszystko trafia do protokołu.
+  const draftPhotoUrls = existingRecord.draftPhotoUrls || [];
+  const draftDamageMarks = existingRecord.draftDamageMarks || [];
+  damageMap.setMarks(mergeDamageMarks(vehicleMarks, draftDamageMarks));
+  if (draftPhotoUrls.length) {
+    document.getElementById("draftPhotosFieldset").hidden = false;
+    renderPhotoUrlStrip(document.getElementById("draftPhotoStrip"), draftPhotoUrls);
   }
 
   const form = document.getElementById("handoverForm");
@@ -382,6 +393,9 @@ async function renderGuestHandover(rentalId, existingRecord) {
       // panelu, z możliwością dołożenia zdjęć, wysyła protokół (patrz
       // renderSendProtocol w js/app.js).
       handoverEmailSent: false,
+      // Zachowane ze szkicu (setDoc poniżej nadpisuje cały dokument).
+      draftPhotoUrls,
+      draftDamageMarks,
       id: rentalId,
       status: "wydany"
     };
@@ -390,22 +404,23 @@ async function renderGuestHandover(rentalId, existingRecord) {
     submitBtn.textContent = "Zapisywanie…";
     try {
       const docRef = doc(db, "rentals", rentalId);
-      const [, photoUrls, sigUrl, damageMapUrl, photoDataUrls, vehicleDamagePhotoDataUrls] = await Promise.all([
+      const [, photoUrls, sigUrl, damageMapUrl, photoDataUrls, vehicleDamagePhotoDataUrls, draftPhotoDataUrls] = await Promise.all([
         setDoc(docRef, record),
         uploadPhotoFiles(storage, rentalId, "wydanie", record.vehiclePlate, record.handoverTimestamp, currentPhotos),
         (async () => uploadSignatureBlob(storage, rentalId, "wydanie", record.vehiclePlate, record.handoverTimestamp, await sigPad.toBlob()))(),
         (async () => uploadDamageMapBlob(storage, rentalId, "wydanie", record.vehiclePlate, record.handoverTimestamp, await damageMap.toBlob()))(),
         Promise.all(currentPhotos.map(fileToDataUrl)),
-        vehicleDamagePhotosToDataUrls(vehicleDamagePhotos)
+        vehicleDamagePhotosToDataUrls(vehicleDamagePhotos),
+        urlsToDataUrls(draftPhotoUrls)
       ]);
       const sigDataUrl = sigPad.toDataUrl();
       const damageMapDataUrl = damageMap.toDataUrl();
-      const pdfBlob = await generateProtocolPdf(record, "wydanie", sigDataUrl, damageMapDataUrl, photoDataUrls, vehicleDamagePhotoDataUrls);
+      const pdfBlob = await generateProtocolPdf(record, "wydanie", sigDataUrl, damageMapDataUrl, [...draftPhotoDataUrls, ...photoDataUrls], vehicleDamagePhotoDataUrls);
       const pdfUrl = await uploadPdfBlob(storage, rentalId, "wydanie", record.vehiclePlate, record.handoverTimestamp, pdfBlob);
 
       const finalRecord = {
         ...record,
-        handoverPhotoUrls: photoUrls,
+        handoverPhotoUrls: [...draftPhotoUrls, ...photoUrls],
         handoverSignatureUrl: sigUrl,
         handoverDamageMapUrl: damageMapUrl,
         handoverProtocolPdfUrl: pdfUrl

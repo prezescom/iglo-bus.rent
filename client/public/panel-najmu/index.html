@@ -121,6 +121,30 @@
       </fieldset>
 
       <fieldset>
+        <legend>Schemat uszkodzeń (opcjonalnie)</legend>
+        <p class="muted">Najemca zobaczy te zaznaczenia w protokole z linku i będzie mógł dodać własne. Po wybraniu pojazdu z bazy podpowiedzą się uszkodzenia zapisane przy pojeździe.</p>
+        <div class="damage-map-wrap">
+          <canvas id="damageMap" class="damage-map" width="600" height="400"></canvas>
+          <div class="damage-map-overlay" id="damageMapOverlay">Dotknij, aby zaznaczyć uszkodzenie</div>
+        </div>
+        <div class="damage-map-pending-actions" id="damageMapPendingActions" hidden>
+          <button type="button" class="btn btn-secondary" id="damageMapDiscardBtn">Odrzuć</button>
+          <button type="button" class="btn btn-primary" id="damageMapConfirmBtn">Zatwierdź zaznaczenie</button>
+        </div>
+        <button type="button" class="btn btn-text" data-action="clear-damage-map">Wyczyść wszystkie zaznaczenia</button>
+      </fieldset>
+
+      <fieldset>
+        <legend>Zdjęcia (opcjonalnie)</legend>
+        <p class="muted">Najemca zobaczy te zdjęcia w protokole z linku i będzie mógł dodać własne. Trafią też do protokołu (PDF).</p>
+        <div id="photoStrip" class="photo-strip"></div>
+        <label class="btn btn-secondary btn-block file-btn">
+          + Dodaj zdjęcie
+          <input type="file" accept="image/*" multiple id="photoInput" hidden />
+        </label>
+      </fieldset>
+
+      <fieldset>
         <legend>Dostęp najemcy</legend>
         <label class="checkbox-label">
           <input type="checkbox" name="lockFieldsForTenant" /> Zablokuj powyższe dane (pojazd, najemca, adres, wyposażenie) przed edycją przez najemcę — zobaczy je, ale nie zmieni. Przebieg i paliwo najemca zawsze wpisuje sam.
@@ -154,6 +178,45 @@
     <div id="draftsList" class="rental-list">
       <p class="muted">Wczytywanie…</p>
     </div>
+  </section>
+</template>
+
+<template id="tpl-draft-media">
+  <section class="view">
+    <div id="draftMediaHeader" class="return-header muted">Wczytywanie…</div>
+    <p class="muted">Zdjęcia i zaznaczone uszkodzenia zobaczy najemca w protokole z linku (będzie mógł dodać własne). Trafią też do protokołu (PDF).</p>
+    <form id="draftMediaForm" class="form" hidden>
+      <fieldset>
+        <legend>Schemat uszkodzeń</legend>
+        <div class="damage-map-wrap">
+          <canvas id="damageMap" class="damage-map" width="600" height="400"></canvas>
+          <div class="damage-map-overlay" id="damageMapOverlay">Dotknij, aby zaznaczyć uszkodzenie</div>
+        </div>
+        <div class="damage-map-pending-actions" id="damageMapPendingActions" hidden>
+          <button type="button" class="btn btn-secondary" id="damageMapDiscardBtn">Odrzuć</button>
+          <button type="button" class="btn btn-primary" id="damageMapConfirmBtn">Zatwierdź zaznaczenie</button>
+        </div>
+        <button type="button" class="btn btn-text" data-action="clear-damage-map">Wyczyść wszystkie zaznaczenia</button>
+      </fieldset>
+
+      <fieldset>
+        <legend>Zdjęcia już w szkicu</legend>
+        <div id="draftMediaExistingStrip" class="photo-strip"></div>
+        <p class="muted" id="draftMediaExistingEmpty" hidden>Brak zdjęć w tym szkicu.</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>Dodaj zdjęcia</legend>
+        <div id="photoStrip" class="photo-strip"></div>
+        <label class="btn btn-secondary btn-block file-btn">
+          + Dodaj zdjęcie
+          <input type="file" accept="image/*" multiple id="photoInput" hidden />
+        </label>
+      </fieldset>
+
+      <p id="draftMediaError" class="error" hidden></p>
+      <button type="submit" class="btn btn-primary btn-block" id="draftMediaSubmitBtn">Zapisz zdjęcia i uszkodzenia</button>
+    </form>
   </section>
 </template>
 
@@ -853,6 +916,12 @@
       <fieldset>
         <legend>Uwagi</legend>
         <textarea name="notes" rows="3"></textarea>
+      </fieldset>
+
+      <fieldset id="draftPhotosFieldset" hidden>
+        <legend>Zdjęcia dodane do szkicu</legend>
+        <p class="muted">Dodane wcześniej do szkicu (w panelu) — trafią do protokołu razem ze zdjęciami poniżej.</p>
+        <div id="draftPhotoStrip" class="photo-strip"></div>
       </fieldset>
 
       <fieldset>

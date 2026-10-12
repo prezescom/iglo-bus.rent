@@ -3,6 +3,9 @@ import { initSignatureField } from "../shared/signature.js";
 import { initDamageMap } from "../shared/damage-map.js";
 import { generateProtocolPdf, preloadPdfAssets } from "../shared/pdf.js";
 import {
+  uploadDraftPhotoFiles, mergeDamageMarks, urlsToDataUrls, renderPhotoUrlStrip
+} from "../shared/protocol-actions.js";
+import {
   generateContractDocx, resolveTemplateKey, computeDailyRate, countRentalDays,
   suggestRentFromPricing, matchPricingVehicle
 } from "./contracts.js";
@@ -126,6 +129,9 @@ async function render() {
   } else if (view === "drafts") {
     pageTitle.textContent = "Szkice protokołów";
     renderDrafts();
+  } else if (view === "draft-media") {
+    pageTitle.textContent = "Zdjęcia i uszkodzenia w szkicu";
+    renderDraftMedia(param);
   } else if (view === "return") {
     pageTitle.textContent = "Zwrot pojazdu";
     renderReturn(param);
@@ -282,6 +288,19 @@ async function renderNewProtocol() {
   const submitBtn = document.getElementById("newProtocolSubmitBtn");
   const resultEl = document.getElementById("newProtocolResult");
 
+  // ---- Zdjęcia i schemat uszkodzeń szkicu — najemca zobaczy je w protokole
+  // z linku (protokol.js: renderGuestHandover) i dopisze własne ----
+  wirePhotoStrip();
+  damageMap = initDamageMap({
+    canvas: document.getElementById("damageMap"),
+    overlay: document.getElementById("damageMapOverlay"),
+    confirmBtn: document.getElementById("damageMapConfirmBtn"),
+    discardBtn: document.getElementById("damageMapDiscardBtn"),
+    pendingActions: document.getElementById("damageMapPendingActions"),
+    diagramUrl: DAMAGE_MAP_DIAGRAM_URL
+  });
+  appEl.querySelector('[data-action="clear-damage-map"]').addEventListener("click", () => damageMap.clear());
+
   // ---- Pojazd: podpowiedź nr rejestracyjnego z bazy pojazdów ----
   const plateInput = document.getElementById("newProtocolPlateInput");
   const modelInput = form.elements["vehicleModel"];
@@ -299,11 +318,18 @@ async function renderNewProtocol() {
       sub: [v.make, v.model].filter(Boolean).join(" ")
     }))
   );
-  plateInput.addEventListener("change", () => {
+  plateInput.addEventListener("change", async () => {
     const match = knownVehicles.find((v) => normalizePlateId(v.plate) === normalizePlateId(plateInput.value));
     if (match) {
       modelInput.value = `${match.make || ""} ${match.model || ""}`.trim();
       vinInput.value = match.vin || "";
+    }
+    // Uszkodzenia zapisane przy pojeździe jako punkt wyjścia — dodane już
+    // ręcznie w tym formularzu zaznaczenia zostają (mergeDamageMarks).
+    try {
+      damageMap.setMarks(mergeDamageMarks(await fetchVehicleDamageMarks(plateInput.value), damageMap.getMarks()));
+    } catch (e) {
+      // Brak zapisanego schematu nie blokuje zakładania szkicu.
     }
   });
 
@@ -408,10 +434,20 @@ async function renderNewProtocol() {
         returnDamageMapUrl: "",
         handoverProtocolPdfUrl: "",
         returnProtocolPdfUrl: "",
+        // Materiał przygotowany przez pracownika przed wydaniem — najemca
+        // widzi go pod linkiem i dopisuje własne zdjęcia/zaznaczenia; przy
+        // zapisie wydania trafia do handoverPhotoUrls/handoverDamageMarks.
+        draftPhotoUrls: [],
+        draftDamageMarks: damageMap.getMarks(),
         id: rentalId,
         status: "szkic"
       };
       await setDoc(doc(db, "rentals", rentalId), record);
+      if (currentPhotos.length) {
+        submitBtn.textContent = "Wysyłanie zdjęć…";
+        const draftPhotoUrls = await uploadDraftPhotoFiles(storage, rentalId, plate, currentPhotos);
+        await setDoc(doc(db, "rentals", rentalId), { draftPhotoUrls }, { merge: true });
+      }
       const passwordResult = await httpsCallable(functions, "setProtocolPassword")({ rentalId, password, phase: "wydanie" });
 
       const link = `${location.origin}/panel-najmu/protokol/#${passwordResult.data.token}`;
@@ -462,11 +498,13 @@ async function renderDrafts() {
           Zablokuj dane pojazdu/najemcy przed edycją przez najemcę
         </label>
         <button class="btn-text" data-action="show-link">Pokaż link</button>
+        <button class="btn-text" data-action="media">Zdjęcia i uszkodzenia (${(r.draftPhotoUrls || []).length} zdj., ${(r.draftDamageMarks || []).length} zazn.)</button>
         <button class="btn btn-secondary" data-action="finish">Dokończ z panelu</button>
         <button class="btn-text" data-action="password">Ustaw nowe hasło</button>
         <button class="btn-text" data-action="delete">Usuń szkic</button>
       `;
       card.querySelector('[data-action="finish"]').addEventListener("click", () => navigate(`handover/${d.id}`));
+      card.querySelector('[data-action="media"]').addEventListener("click", () => navigate(`draft-media/${d.id}`));
       card.querySelector('[data-action="show-link"]').addEventListener("click", async () => {
         if (!r.activeProtocolToken) {
           showToast("Brak aktywnego linku — najpierw ustaw hasło.");
@@ -519,6 +557,86 @@ async function renderDrafts() {
   } catch (e) {
     listEl.innerHTML = `<p class="error">Błąd wczytywania: ${escapeHtml(e.message)}</p>`;
   }
+}
+
+// ---------- ZDJĘCIA I USZKODZENIA W ISTNIEJĄCYM SZKICU ----------
+// Uzupełnianie szkicu już po wysłaniu linku najemcy — dopóki najemca nie
+// potwierdził wydania (status "szkic"), zobaczy zmiany po (ponownym)
+// otwarciu linku.
+async function renderDraftMedia(rentalId) {
+  const tpl = document.getElementById("tpl-draft-media");
+  appEl.replaceChildren(tpl.content.cloneNode(true));
+  const headerEl = document.getElementById("draftMediaHeader");
+  const form = document.getElementById("draftMediaForm");
+  const errorEl = document.getElementById("draftMediaError");
+  const submitBtn = document.getElementById("draftMediaSubmitBtn");
+  const existingStrip = document.getElementById("draftMediaExistingStrip");
+  const existingEmpty = document.getElementById("draftMediaExistingEmpty");
+
+  let record = null;
+  try {
+    const snap = await getDoc(doc(db, "rentals", rentalId));
+    if (snap.exists()) record = snap.data();
+  } catch (e) {
+    headerEl.textContent = "Błąd wczytywania szkicu: " + e.message;
+    return;
+  }
+  if (!form.isConnected) return; // nowszy render tego widoku już przejął ekran
+  if (!record) {
+    headerEl.textContent = "Nie znaleziono szkicu.";
+    return;
+  }
+  if (record.status !== "szkic") {
+    headerEl.textContent = "Ten protokół nie jest już szkicem (najemca potwierdził wydanie) — zdjęcia dodasz przy wysyłce protokołu.";
+    return;
+  }
+  headerEl.textContent = `${record.vehicleModel || "?"} • ${record.vehiclePlate} — najemca: ${record.tenantName || "— (jeszcze nie wypełnione)"}`;
+  form.hidden = false;
+
+  wirePhotoStrip();
+  damageMap = initDamageMap({
+    canvas: document.getElementById("damageMap"),
+    overlay: document.getElementById("damageMapOverlay"),
+    confirmBtn: document.getElementById("damageMapConfirmBtn"),
+    discardBtn: document.getElementById("damageMapDiscardBtn"),
+    pendingActions: document.getElementById("damageMapPendingActions"),
+    diagramUrl: DAMAGE_MAP_DIAGRAM_URL
+  });
+  appEl.querySelector('[data-action="clear-damage-map"]').addEventListener("click", () => damageMap.clear());
+  damageMap.setMarks(record.draftDamageMarks || []);
+
+  let keptUrls = [...(record.draftPhotoUrls || [])];
+  function renderExisting() {
+    renderPhotoUrlStrip(existingStrip, keptUrls, (index) => {
+      keptUrls.splice(index, 1);
+      renderExisting();
+    });
+    existingEmpty.hidden = keptUrls.length > 0;
+  }
+  renderExisting();
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errorEl.hidden = true;
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Zapisywanie…";
+    try {
+      const uploaded = currentPhotos.length
+        ? await uploadDraftPhotoFiles(storage, rentalId, record.vehiclePlate, currentPhotos)
+        : [];
+      await setDoc(doc(db, "rentals", rentalId), {
+        draftPhotoUrls: [...keptUrls, ...uploaded],
+        draftDamageMarks: damageMap.getMarks()
+      }, { merge: true });
+      showToast("Zapisano zdjęcia i uszkodzenia w szkicu.");
+      navigate("drafts");
+    } catch (err) {
+      errorEl.textContent = "Błąd zapisu: " + err.message;
+      errorEl.hidden = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Zapisz zdjęcia i uszkodzenia";
+    }
+  });
 }
 
 // ---------- HISTORY VIEW (zakończone wynajmy) ----------
@@ -2159,6 +2277,27 @@ async function renderHandover(draftRentalId) {
     handoverForm.elements["tenantType"].dispatchEvent(new Event("change"));
   }
 
+  // Zdjęcia i zaznaczenia dodane do szkicu (renderNewProtocol /
+  // renderDraftMedia) — widoczne tu i dołączane do protokołu wydania, tak
+  // samo jak pod linkiem najemcy. Do mapy dokładamy też uszkodzenia
+  // zapisane przy pojeździe (jak przy zwykłym wydaniu po wyborze pojazdu).
+  const draftPhotoUrls = draftRecord?.draftPhotoUrls || [];
+  if (draftPhotoUrls.length) {
+    document.getElementById("draftPhotosFieldset").hidden = false;
+    renderPhotoUrlStrip(document.getElementById("draftPhotoStrip"), draftPhotoUrls);
+  }
+  if (draftRecord) {
+    const draftVehicle = knownVehicles.find((v) => normalizePlateId(v.plate) === normalizePlateId(draftRecord.vehiclePlate));
+    selectedVehicleDamagePhotos = draftVehicle?.damagePhotoUrls || [];
+    let vehicleMarks = [];
+    try {
+      vehicleMarks = await fetchVehicleDamageMarks(draftRecord.vehiclePlate);
+    } catch (e) {
+      // Brak zapisanego schematu pojazdu — zostają same zaznaczenia ze szkicu.
+    }
+    damageMap.setMarks(mergeDamageMarks(vehicleMarks, draftRecord.draftDamageMarks));
+  }
+
   document.getElementById("handoverForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const form = e.target;
@@ -2238,6 +2377,9 @@ async function renderHandover(draftRentalId) {
       // (renderSendProtocolsList), gdzie operator może dodać zdjęcia i
       // dopiero wtedy wysłać.
       handoverEmailSent: false,
+      // Zachowane z szkicu (setDoc poniżej nadpisuje cały dokument).
+      draftPhotoUrls,
+      draftDamageMarks: draftRecord?.draftDamageMarks || [],
       status: "wydany"
     };
 
@@ -2266,18 +2408,19 @@ async function renderHandover(draftRentalId) {
           uploadDamageMap(docRef.id, "wydanie", record.vehiclePlate, record.handoverTimestamp)
         ]),
         (async () => {
-          const [photoDataUrls, vehicleDamagePhotoDataUrls] = await Promise.all([
+          const [draftPhotoDataUrls, photoDataUrls, vehicleDamagePhotoDataUrls] = await Promise.all([
+            urlsToDataUrls(draftPhotoUrls),
             Promise.all(currentPhotos.map(fileToDataUrl)),
             vehicleDamagePhotosToDataUrls(selectedVehicleDamagePhotos)
           ]);
-          return generateProtocolPdf(record, "wydanie", sigDataUrl, damageMapDataUrl, photoDataUrls, vehicleDamagePhotoDataUrls);
+          return generateProtocolPdf(record, "wydanie", sigDataUrl, damageMapDataUrl, [...draftPhotoDataUrls, ...photoDataUrls], vehicleDamagePhotoDataUrls);
         })()
       ]);
       const pdfUrl = await uploadPdf(docRef.id, "wydanie", pdfBlob, record.vehiclePlate, record.handoverTimestamp);
 
       await setDoc(docRef, {
         ...record,
-        handoverPhotoUrls: photoUrls,
+        handoverPhotoUrls: [...draftPhotoUrls, ...photoUrls],
         handoverSignatureUrl: sigUrl,
         handoverDamageMapUrl: damageMapUrl,
         handoverProtocolPdfUrl: pdfUrl

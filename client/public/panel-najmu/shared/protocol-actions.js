@@ -69,6 +69,70 @@ export async function uploadDamageMapBlob(storage, rentalId, phase, plate, times
   return getDownloadURL(r);
 }
 
+// Zdjęcia dodane przez pracownika do SZKICU protokołu (przed wydaniem) —
+// osobny folder "szkic" i znacznik czasu w nazwie, bo szkic można
+// uzupełniać zdjęciami kilka razy tego samego dnia (nazwy z
+// uploadPhotoFiles — prefiks + indeks — nadpisałyby wcześniejsze pliki).
+export async function uploadDraftPhotoFiles(storage, rentalId, plate, files) {
+  const prefix = `${normalizePlateId(plate)}-${Date.now()}`;
+  return Promise.all(
+    files.map(async (file, index) => {
+      const r = ref(storage, `rentals/${rentalId}/szkic/${prefix}-${index + 1}.jpg`);
+      await uploadBytes(r, file);
+      return getDownloadURL(r);
+    })
+  );
+}
+
+// Łączy zaznaczenia uszkodzeń z kilku źródeł (baza pojazdu + szkic
+// protokołu), pomijając praktycznie te same punkty (≤ 6 px na schemacie
+// 600×400) — ten sam ślad zaznaczony w obu miejscach nie zdubluje się.
+export function mergeDamageMarks(...lists) {
+  const out = [];
+  for (const list of lists) {
+    for (const m of list || []) {
+      if (!m || typeof m.x !== "number" || typeof m.y !== "number") continue;
+      if (out.some((o) => Math.hypot(o.x - m.x, o.y - m.y) <= 6)) continue;
+      out.push({ x: m.x, y: m.y });
+    }
+  }
+  return out;
+}
+
+export async function urlsToDataUrls(urls) {
+  if (!urls || !urls.length) return [];
+  const results = await Promise.all(urls.map((u) => urlToDataUrl(u)));
+  return results.filter(Boolean);
+}
+
+// Podgląd zdjęć już zapisanych (URL-e ze Storage) w pasku miniatur. Gdy
+// podane onRemove, przy każdej miniaturze jest "✕" do usunięcia z listy.
+export function renderPhotoUrlStrip(stripEl, urls, onRemove) {
+  stripEl.replaceChildren();
+  urls.forEach((url, index) => {
+    const wrap = document.createElement("div");
+    wrap.className = "photo-thumb-wrap";
+    wrap.style.position = "relative";
+    wrap.style.display = "inline-block";
+    wrap.style.flexShrink = "0";
+    const img = document.createElement("img");
+    img.className = "photo-thumb";
+    img.src = url;
+    img.alt = `Zdjęcie ${index + 1}`;
+    wrap.appendChild(img);
+    if (onRemove) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "✕";
+      btn.title = "Usuń zdjęcie ze szkicu";
+      btn.style.cssText = "position:absolute;top:2px;right:2px;border:0;border-radius:50%;width:24px;height:24px;background:rgba(0,0,0,.65);color:#fff;cursor:pointer;line-height:24px;padding:0;";
+      btn.addEventListener("click", () => onRemove(index));
+      wrap.appendChild(btn);
+    }
+    stripEl.appendChild(wrap);
+  });
+}
+
 export async function uploadPdfBlob(storage, rentalId, phase, plate, timestampMs, blob) {
   const prefix = storageFilePrefix(plate, timestampMs);
   const r = ref(storage, `rentals/${rentalId}/${phase}/${prefix}-protokol.pdf`);
