@@ -59,8 +59,13 @@
           <label>Przebieg (km)
             <input name="mileage" inputmode="numeric" required />
           </label>
-          <label>Paliwo (%)
-            <input name="fuel" inputmode="numeric" required />
+          <label>Paliwo (widoczne kreski / wszystkie podziałki)
+            <span class="fuel-fraction" style="display:flex;align-items:center;gap:6px;">
+              <input name="fuel" type="number" min="1" step="1" inputmode="numeric" required style="flex:1;min-width:0;" />
+              <span aria-hidden="true">/</span>
+              <input name="fuelDivisions" type="number" min="1" step="1" inputmode="numeric" required readonly title="Liczba podziałek z karty pojazdu" style="flex:1;min-width:0;opacity:.75;" />
+            </span>
+            <small class="muted" data-fuel-hint hidden>Brak liczby podziałek w karcie pojazdu — wpisz łączną liczbę podziałek wskaźnika paliwa.</small>
           </label>
         </div>
       </fieldset>
@@ -230,8 +235,13 @@
           <label>Przebieg (km)
             <input name="mileage" inputmode="numeric" required />
           </label>
-          <label>Paliwo (%)
-            <input name="fuel" inputmode="numeric" required />
+          <label>Paliwo (widoczne kreski / wszystkie podziałki)
+            <span class="fuel-fraction" style="display:flex;align-items:center;gap:6px;">
+              <input name="fuel" type="number" min="1" step="1" inputmode="numeric" required style="flex:1;min-width:0;" />
+              <span aria-hidden="true">/</span>
+              <input name="fuelDivisions" type="number" min="1" step="1" inputmode="numeric" required readonly title="Liczba podziałek z karty pojazdu" style="flex:1;min-width:0;opacity:.75;" />
+            </span>
+            <small class="muted" data-fuel-hint hidden>Brak liczby podziałek w karcie pojazdu — wpisz łączną liczbę podziałek wskaźnika paliwa.</small>
           </label>
         </div>
         <label>Uwagi

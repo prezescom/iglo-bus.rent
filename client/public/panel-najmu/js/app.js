@@ -5,6 +5,7 @@ import { generateProtocolPdf, preloadPdfAssets } from "../shared/pdf.js";
 import {
   uploadDraftPhotoFiles, mergeDamageMarks, urlsToDataUrls, renderPhotoUrlStrip
 } from "../shared/protocol-actions.js";
+import { wireFuelFields, fuelDivisionsForReturn } from "../shared/fuel.js";
 import {
   generateContractDocx, resolveTemplateKey, computeDailyRate, countRentalDays,
   suggestRentFromPricing, matchPricingVehicle
@@ -390,6 +391,10 @@ async function renderNewProtocol() {
         vehicleVin: fd.get("vehicleVin") || "",
         vehicleMileageAtHandover: "",
         vehicleFuelAtHandover: "",
+        // Mianownik paliwa "xx / yy" z karty pojazdu — najemca pod linkiem
+        // zobaczy go jako pole informacyjne (shared/fuel.js).
+        vehicleFuelDivisions:
+          knownVehicles.find((v) => normalizePlateId(v.plate) === normalizePlateId(plate))?.fuelGaugeDivisions || null,
         vehicleMileageAtReturn: "",
         vehicleFuelAtReturn: "",
         distanceTraveled: "",
@@ -878,6 +883,7 @@ async function renderVehicleForm(plateId) {
         form.elements["make"].value = v.make || "";
         form.elements["model"].value = v.model || "";
         form.elements["vin"].value = v.vin || "";
+        form.elements["fuelGaugeDivisions"].value = v.fuelGaugeDivisions || "";
         form.elements["lastOilServiceDate"].value = v.lastOilServiceDate || "";
         form.elements["lastOilServiceMileage"].value = v.lastOilServiceMileage || "";
         form.elements["lastCoolingServiceDate"].value = v.lastCoolingServiceDate || "";
@@ -934,6 +940,8 @@ async function renderVehicleForm(plateId) {
       make: fd.get("make") || "",
       model: fd.get("model") || "",
       vin: fd.get("vin") || "",
+      // Mianownik poziomu paliwa w protokołach ("xx / yy") — patrz shared/fuel.js.
+      fuelGaugeDivisions: Number(fd.get("fuelGaugeDivisions")) || null,
       lastOilServiceDate: fd.get("lastOilServiceDate") || "",
       lastOilServiceMileage: fd.get("lastOilServiceMileage") || "",
       lastCoolingServiceDate: fd.get("lastCoolingServiceDate") || "",
@@ -2182,6 +2190,8 @@ async function renderHandover(draftRentalId) {
   const plateInput = document.getElementById("vehiclePlateInput");
   const modelInput = document.getElementById("handoverForm").elements["vehicleModel"];
   const vinInput = document.getElementById("handoverForm").elements["vehicleVin"];
+  // Paliwo "xx / yy" — mianownik z karty pojazdu, ustawiany po wyborze pojazdu.
+  const fuel = wireFuelFields(document.getElementById("handoverForm"), null);
   // Zdjęcia uszkodzeń zapisane na stałe przy pojeździe (baza pojazdów) —
   // dołączane automatycznie do protokołu, patrz submit handler niżej.
   let selectedVehicleDamagePhotos = [];
@@ -2202,6 +2212,7 @@ async function renderHandover(draftRentalId) {
   plateInput.addEventListener("change", async () => {
     const match = knownVehicles.find((v) => normalizePlateId(v.plate) === normalizePlateId(plateInput.value));
     selectedVehicleDamagePhotos = match?.damagePhotoUrls || [];
+    fuel.setDivisions(match?.fuelGaugeDivisions);
     if (match) {
       modelInput.value = `${match.make || ""} ${match.model || ""}`.trim();
       vinInput.value = match.vin || "";
@@ -2289,6 +2300,7 @@ async function renderHandover(draftRentalId) {
   if (draftRecord) {
     const draftVehicle = knownVehicles.find((v) => normalizePlateId(v.plate) === normalizePlateId(draftRecord.vehiclePlate));
     selectedVehicleDamagePhotos = draftVehicle?.damagePhotoUrls || [];
+    fuel.setDivisions(draftVehicle?.fuelGaugeDivisions || draftRecord.vehicleFuelDivisions);
     let vehicleMarks = [];
     try {
       vehicleMarks = await fetchVehicleDamageMarks(draftRecord.vehiclePlate);
@@ -2325,7 +2337,10 @@ async function renderHandover(draftRentalId) {
       vehicleModel: fd.get("vehicleModel"),
       vehicleVin: fd.get("vehicleVin") || "",
       vehicleMileageAtHandover: fd.get("mileage"),
-      vehicleFuelAtHandover: fd.get("fuel"),
+      vehicleFuelAtHandover: fuel.read(),
+      // Mianownik zapamiętany na wynajmie — zwrot (także przez link najemcy,
+      // bez dostępu do karty pojazdu) użyje tej samej skali.
+      vehicleFuelDivisions: Number(form.elements["fuelDivisions"].value) || null,
       vehicleMileageAtReturn: "",
       vehicleFuelAtReturn: "",
       distanceTraveled: "",
@@ -2490,12 +2505,18 @@ async function renderReturn(rentalId) {
   // Zdjęcia uszkodzeń zapisane na stałe przy pojeździe (baza pojazdów) —
   // dołączane automatycznie do protokołu zwrotu, tak jak przy wydaniu.
   let selectedVehicleDamagePhotos = [];
+  let returnVehicleData = null;
   try {
     const vehicleSnap = await getDoc(doc(db, "vehicles", normalizePlateId(record.vehiclePlate)));
-    if (vehicleSnap.exists()) selectedVehicleDamagePhotos = vehicleSnap.data().damagePhotoUrls || [];
+    if (vehicleSnap.exists()) {
+      returnVehicleData = vehicleSnap.data();
+      selectedVehicleDamagePhotos = returnVehicleData.damagePhotoUrls || [];
+    }
   } catch (e) {
     // Brak wpisu pojazdu w bazie nie powinien blokować zwrotu.
   }
+  // Paliwo "xx / yy" — ta sama skala co przy wydaniu (shared/fuel.js).
+  const fuel = wireFuelFields(formEl, fuelDivisionsForReturn(record, returnVehicleData));
 
   // Zaznaczenia z wydania TEGO wynajmu (zapisane wprost na rekordzie — patrz
   // renderHandover/protokol.js) mają pierwszeństwo przed "ostatnim znanym"
@@ -2559,7 +2580,7 @@ async function renderReturn(rentalId) {
     const updated = {
       ...record,
       vehicleMileageAtReturn: mileageAtReturn,
-      vehicleFuelAtReturn: fd.get("fuel"),
+      vehicleFuelAtReturn: fuel.read(),
       distanceTraveled: Number.isFinite(distanceTraveled) ? distanceTraveled : "",
       returnNotes: fd.get("notes") || "",
       returnBodyCondition: fd.get("bodyCondition"),
@@ -2828,6 +2849,18 @@ async function renderRegenerate(phase, rentalId) {
 
   headerEl.innerHTML = `<strong>${escapeHtml(record.vehicleModel)} • ${escapeHtml(record.vehiclePlate)}</strong><br>Najemca: ${escapeHtml(record.tenantName)}`;
 
+  // Paliwo "xx / yy": skala z tego wynajmu (zapisane "xx/yy" /
+  // vehicleFuelDivisions), a dla starszych wynajmów z procentami — z karty
+  // pojazdu (shared/fuel.js).
+  let regenerateVehicleData = null;
+  try {
+    const vehicleSnap = await getDoc(doc(db, "vehicles", normalizePlateId(record.vehiclePlate)));
+    if (vehicleSnap.exists()) regenerateVehicleData = vehicleSnap.data();
+  } catch (e) {
+    // Brak karty pojazdu — mianownik wpisze się ręcznie (pole odblokowane).
+  }
+  const fuel = wireFuelFields(form, fuelDivisionsForReturn(record, regenerateVehicleData));
+
   // Całość przygotowania formularza (poniżej) w jednym try/catch — inaczej
   // nieoczekiwany wyjątek w dowolnym miejscu (np. brakujący element w DOM,
   // błąd odczytu ze Storage) po prostu zawiesza widok na samym nagłówku,
@@ -2854,7 +2887,7 @@ async function renderRegenerate(phase, rentalId) {
     form.elements["vehicleModel"].value = record.vehicleModel || "";
     form.elements["vehicleVin"].value = record.vehicleVin || "";
     form.elements["mileage"].value = record.vehicleMileageAtHandover || "";
-    form.elements["fuel"].value = record.vehicleFuelAtHandover || "";
+    fuel.setValue(record.vehicleFuelAtHandover);
     form.elements["tenantType"].value = record.tenantType || "osoba";
     form.elements["tenantPesel"].value = record.tenantPesel || "";
     form.elements["tenantNip"].value = record.tenantNip || "";
@@ -2891,7 +2924,7 @@ async function renderRegenerate(phase, rentalId) {
     });
   } else {
     form.elements["mileage"].value = record.vehicleMileageAtReturn || "";
-    form.elements["fuel"].value = record.vehicleFuelAtReturn || "";
+    fuel.setValue(record.vehicleFuelAtReturn);
     form.elements["bodyCondition"].value = record.returnBodyCondition || "czysta";
     form.elements["passengerAreaCondition"].value = record.returnPassengerAreaCondition || "czysta";
     form.elements["cargoAreaCondition"].value = record.returnCargoAreaCondition || "czysta";
@@ -2984,7 +3017,7 @@ async function renderRegenerate(phase, rentalId) {
           vehicleModel: fd.get("vehicleModel"),
           vehicleVin: fd.get("vehicleVin") || "",
           vehicleMileageAtHandover: fd.get("mileage"),
-          vehicleFuelAtHandover: fd.get("fuel"),
+          vehicleFuelAtHandover: fuel.read(),
           tenantType: fd.get("tenantType"),
           tenantNip: fd.get("tenantNip") || "",
           tenantPesel: fd.get("tenantPesel") || "",
@@ -3009,7 +3042,7 @@ async function renderRegenerate(phase, rentalId) {
         }
       : {
           vehicleMileageAtReturn: fd.get("mileage"),
-          vehicleFuelAtReturn: fd.get("fuel"),
+          vehicleFuelAtReturn: fuel.read(),
           returnNotes: fd.get("notes") || "",
           returnBodyCondition: fd.get("bodyCondition"),
           returnPassengerAreaCondition: fd.get("passengerAreaCondition"),

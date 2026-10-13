@@ -1,3 +1,5 @@
+import { formatFuel } from "./fuel.js";
+
 // Generuje protokół PDF (wydania lub zwrotu).
 // Wymaga globalnego window.jspdf (wgrywanego przez CDN w index.html).
 
@@ -81,12 +83,13 @@ export async function generateProtocolPdf(record, phase, signatureDataUrl, damag
   const infoItems = isHandover
     ? [
         ["PRZEBIEG (WYDANIE)", `${record.vehicleMileageAtHandover ?? "-"} km`],
-        ["PALIWO (WYDANIE)", `${record.vehicleFuelAtHandover ?? "-"} %`],
+        // Ułamek "xx/yy" bez "%" (shared/fuel.js); stare protokoły z procentami zostają "75 %".
+        ["PALIWO (WYDANIE)", formatFuel(record.vehicleFuelAtHandover)],
         ["DATA WYDANIA", formatDate(record.handoverTimestamp)]
       ]
     : [
         ["PRZEBIEG (ZWROT)", `${record.vehicleMileageAtReturn ?? "-"} km`],
-        ["PALIWO (ZWROT)", `${record.vehicleFuelAtReturn ?? "-"} %`],
+        ["PALIWO (ZWROT)", formatFuel(record.vehicleFuelAtReturn)],
         ["DATA ZWROTU", formatDate(record.returnTimestamp)]
       ];
   y = drawInfoStrip(doc, y, contentWidth, infoItems);

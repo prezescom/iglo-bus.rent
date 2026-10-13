@@ -21,6 +21,7 @@ import {
   uploadPhotoFiles, uploadSignatureBlob, uploadDamageMapBlob, uploadPdfBlob,
   vehicleDamagePhotosToDataUrls, mergeDamageMarks, urlsToDataUrls, renderPhotoUrlStrip
 } from "../shared/protocol-actions.js";
+import { wireFuelFields, fuelDivisionsForReturn } from "../shared/fuel.js";
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -277,6 +278,7 @@ async function renderGuestHandover(rentalId, existingRecord) {
   // pozostaje niedostępna.
   let vehicleDamagePhotos = [];
   let vehicleMarks = [];
+  let vehicleFuelDivisions = Number(existingRecord.vehicleFuelDivisions) || null;
   if (existingRecord.vehiclePlate) {
     try {
       const vehicleSnap = await getDoc(doc(db, "vehicles", normalizePlateId(existingRecord.vehiclePlate)));
@@ -284,6 +286,7 @@ async function renderGuestHandover(rentalId, existingRecord) {
         const v = vehicleSnap.data();
         vehicleMarks = v.lastDamageMapMarks || [];
         vehicleDamagePhotos = v.damagePhotoUrls || [];
+        vehicleFuelDivisions = Number(v.fuelGaugeDivisions) || vehicleFuelDivisions;
       }
     } catch (e) {
       // Brak dostępu/danych nie powinien blokować wydania — po prostu
@@ -313,6 +316,8 @@ async function renderGuestHandover(rentalId, existingRecord) {
   // (np. nr rejestracyjny pojazdu, PESEL, adres, wyposażenie) — podpowiadamy
   // je najemcy, żeby nie musiał ich przepisywać.
   prefillForm(form, existingRecord);
+  // Paliwo "xx / yy" — mianownik z karty pojazdu, tylko do odczytu.
+  const fuel = wireFuelFields(form, vehicleFuelDivisions);
   // Odśwież widoczność pól PESEL/NIP zgodnie z wczytanym typem najemcy
   // (ustawienie .value nie wywołuje samo z siebie listenera "change").
   form.elements["tenantType"].dispatchEvent(new Event("change"));
@@ -342,7 +347,8 @@ async function renderGuestHandover(rentalId, existingRecord) {
       vehicleModel: val("vehicleModel"),
       vehicleVin: val("vehicleVin"),
       vehicleMileageAtHandover: fd.get("mileage"),
-      vehicleFuelAtHandover: fd.get("fuel"),
+      vehicleFuelAtHandover: fuel.read(),
+      vehicleFuelDivisions: Number(form.elements["fuelDivisions"].value) || null,
       vehicleMileageAtReturn: "",
       vehicleFuelAtReturn: "",
       distanceTraveled: "",
@@ -474,14 +480,20 @@ async function renderGuestReturn(rentalId, record) {
   // JEDNEGO pojazdu daje claim "vehiclePlateId" (patrz renderGuestHandover
   // wyżej i verifyProtocolPassword w functions/index.js).
   let vehicleDamagePhotos = [];
+  let returnVehicleData = null;
   if (record.vehiclePlate) {
     try {
       const vehicleSnap = await getDoc(doc(db, "vehicles", normalizePlateId(record.vehiclePlate)));
-      if (vehicleSnap.exists()) vehicleDamagePhotos = vehicleSnap.data().damagePhotoUrls || [];
+      if (vehicleSnap.exists()) {
+        returnVehicleData = vehicleSnap.data();
+        vehicleDamagePhotos = returnVehicleData.damagePhotoUrls || [];
+      }
     } catch (e) {
       // Brak dostępu/danych nie powinien blokować zwrotu.
     }
   }
+  // Paliwo "xx / yy" — ta sama skala co przy wydaniu tego wynajmu.
+  const fuel = wireFuelFields(formEl, fuelDivisionsForReturn(record, returnVehicleData));
 
   const equipmentOptions = [
     { field: "equipmentShelf", label: "Półka double-deck" },
@@ -526,7 +538,7 @@ async function renderGuestReturn(rentalId, record) {
     const updated = {
       ...record,
       vehicleMileageAtReturn: mileageAtReturn,
-      vehicleFuelAtReturn: fd.get("fuel"),
+      vehicleFuelAtReturn: fuel.read(),
       distanceTraveled: Number.isFinite(distanceTraveled) ? distanceTraveled : "",
       returnNotes: fd.get("notes") || "",
       returnBodyCondition: fd.get("bodyCondition"),
