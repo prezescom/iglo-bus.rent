@@ -15,14 +15,17 @@
 import { firebaseConfig, FUNCTIONS_REGION } from "../shared/firebase-config.js";
 import { initSignatureField } from "../shared/signature.js";
 import { initDamageMap } from "../shared/damage-map.js";
-import { generateProtocolPdf, preloadPdfAssets } from "../shared/pdf.js";
 import {
-  escapeHtml, fileToDataUrl, wireTenantTypeToggle, prefillForm, normalizePlateId,
-  uploadSignatureBlob, uploadDamageMapBlob, uploadPdfBlob,
-  vehicleDamagePhotosToDataUrls, mergeDamageMarks, urlsToDataUrls, renderPhotoUrlStrip
+  escapeHtml, wireTenantTypeToggle, prefillForm, normalizePlateId,
+  uploadSignatureBlob, uploadDamageMapBlob,
+  mergeDamageMarks, renderPhotoUrlStrip, isPhaseConfirmed
 } from "../shared/protocol-actions.js";
 import { wireFuelFields, fuelDivisionsForReturn } from "../shared/fuel.js";
-import { wireProtocolPhotoQueue, uploadProgressLabel, guardUnloadWhileSaving, describeError, mapInSequence } from "../shared/photo-queue.js";
+import {
+  wireProtocolPhotoQueue, guardUnloadWhileSaving, describeError, createSaveProgress, TENANT_SAVE_STAGES
+} from "../shared/photo-queue.js";
+// PDF protokołu składa pracownik w panelu przy wysyłce (renderSendProtocol w
+// js/app.js) — strona najemcy go nie generuje, więc zapis jest szybki.
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -207,7 +210,9 @@ async function renderProtocolForPhase(rentalId) {
     return;
   }
 
-  if (record.status === "wydany" && record.handoverProtocolPdfUrl) {
+  // Wydanie zapisane do końca (PDF może jeszcze nie istnieć — składa go
+  // pracownik w panelu przy wysyłce) → link prowadzi już do zwrotu.
+  if (record.status === "wydany" && isPhaseConfirmed(record, "wydanie")) {
     renderGuestReturn(rentalId, record);
     return;
   }
@@ -251,7 +256,6 @@ function applyFieldLock(form, existingRecord) {
 }
 
 async function renderGuestHandover(rentalId, existingRecord) {
-  preloadPdfAssets();
   const tpl = document.getElementById("tpl-guest-handover");
   appEl.replaceChildren(tpl.content.cloneNode(true));
   // Zdjęcia zmniejszane i wysyłane w tle od razu po dodaniu (wynajem jest znany).
@@ -409,42 +413,41 @@ async function renderGuestHandover(rentalId, existingRecord) {
     };
 
     submitBtn.disabled = true;
-    submitBtn.textContent = "Zapisywanie…";
+    const progress = createSaveProgress(submitBtn, TENANT_SAVE_STAGES);
+    progress.set("photos", 0);
     const releaseUnloadGuard = guardUnloadWhileSaving();
     try {
       const docRef = doc(db, "rentals", rentalId);
-      const [, photoUrls, sigUrl, damageMapUrl, photoDataUrls, vehicleDamagePhotoDataUrls, draftPhotoDataUrls] = await Promise.all([
+      // PDF NIE powstaje tutaj — złoży go pracownik w panelu przy wysyłce
+      // protokołu (renderSendProtocol w js/app.js), więc najemca czeka tylko
+      // na zdjęcia (zwykle już wysłane w tle), podpis, mapę i zapis danych.
+      const [, photoUrls, sigUrl, damageMapUrl] = await Promise.all([
         setDoc(docRef, record),
-        // Większość zdjęć jest zwykle już wysłana w tle — tu czekamy na resztę.
-        photoQueue.waitForUploads(null, (p) => (submitBtn.textContent = uploadProgressLabel(p))),
+        photoQueue.waitForUploads(null, (p) => progress.set("photos", p.fraction, `${p.uploaded}/${p.total}`)),
         (async () => uploadSignatureBlob(storage, rentalId, "wydanie", record.vehiclePlate, record.handoverTimestamp, await sigPad.toBlob()))(),
-        (async () => uploadDamageMapBlob(storage, rentalId, "wydanie", record.vehiclePlate, record.handoverTimestamp, await damageMap.toBlob()))(),
-        photoQueue.getBlobs().then((blobs) => mapInSequence(blobs, fileToDataUrl)),
-        vehicleDamagePhotosToDataUrls(vehicleDamagePhotos),
-        urlsToDataUrls(draftPhotoUrls)
+        (async () => uploadDamageMapBlob(storage, rentalId, "wydanie", record.vehiclePlate, record.handoverTimestamp, await damageMap.toBlob()))()
       ]);
-      submitBtn.textContent = "Tworzenie protokołu PDF…";
-      const sigDataUrl = sigPad.toDataUrl();
-      const damageMapDataUrl = damageMap.toDataUrl();
-      const pdfBlob = await generateProtocolPdf(record, "wydanie", sigDataUrl, damageMapDataUrl, [...draftPhotoDataUrls, ...photoDataUrls], vehicleDamagePhotoDataUrls);
-      submitBtn.textContent = "Zapisywanie protokołu…";
-      const pdfUrl = await uploadPdfBlob(storage, rentalId, "wydanie", record.vehiclePlate, record.handoverTimestamp, pdfBlob);
+      progress.creep("final");
 
       const finalRecord = {
         ...record,
         handoverPhotoUrls: [...draftPhotoUrls, ...photoUrls],
         handoverSignatureUrl: sigUrl,
         handoverDamageMapUrl: damageMapUrl,
-        handoverProtocolPdfUrl: pdfUrl
+        // Znacznik udanego zapisu (zamiast istnienia PDF-u) — patrz
+        // isPhaseConfirmed w shared/protocol-actions.js.
+        handoverConfirmed: true
       };
       await setDoc(docRef, finalRecord);
       releaseUnloadGuard();
 
       showToast("Protokół wydania potwierdzony.");
       await expireAccessAndSignOut();
+      progress.finish("Potwierdzono");
       showInfoScreen("Protokół wydania potwierdzony. Wypożyczalnia go sprawdzi i wyśle Ci kopię e-mailem. Ten link jest teraz nieaktywny — do zwrotu pojazdu poproś wypożyczalnię o nowe hasło.");
     } catch (err) {
       releaseUnloadGuard();
+      progress.stop();
       errorEl.textContent = "Błąd zapisu: " + describeError(err);
       errorEl.hidden = false;
       submitBtn.disabled = false;
@@ -455,7 +458,6 @@ async function renderGuestHandover(rentalId, existingRecord) {
 
 // ---------- ZWROT (wypełniane przez najemcę, własny osobny link/hasło) ----------
 async function renderGuestReturn(rentalId, record) {
-  preloadPdfAssets();
   const tpl = document.getElementById("tpl-guest-return");
   appEl.replaceChildren(tpl.content.cloneNode(true));
   const headerEl = document.getElementById("returnHeader");
@@ -562,36 +564,33 @@ async function renderGuestReturn(rentalId, record) {
     };
 
     submitBtn.disabled = true;
-    submitBtn.textContent = "Zapisywanie…";
+    const progress = createSaveProgress(submitBtn, TENANT_SAVE_STAGES);
+    progress.set("photos", 0);
     const releaseUnloadGuard = guardUnloadWhileSaving();
     try {
-      const [photoUrls, sigUrl, damageMapUrl, photoDataUrls, vehicleDamagePhotoDataUrls] = await Promise.all([
-        photoQueue.waitForUploads(null, (p) => (submitBtn.textContent = uploadProgressLabel(p))),
+      // PDF złoży pracownik w panelu przy wysyłce (jak przy wydaniu wyżej).
+      const [photoUrls, sigUrl, damageMapUrl] = await Promise.all([
+        photoQueue.waitForUploads(null, (p) => progress.set("photos", p.fraction, `${p.uploaded}/${p.total}`)),
         (async () => uploadSignatureBlob(storage, rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp, await sigPad.toBlob()))(),
-        (async () => uploadDamageMapBlob(storage, rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp, await damageMap.toBlob()))(),
-        photoQueue.getBlobs().then((blobs) => mapInSequence(blobs, fileToDataUrl)),
-        vehicleDamagePhotosToDataUrls(vehicleDamagePhotos)
+        (async () => uploadDamageMapBlob(storage, rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp, await damageMap.toBlob()))()
       ]);
-      submitBtn.textContent = "Tworzenie protokołu PDF…";
-      const sigDataUrl = sigPad.toDataUrl();
-      const damageMapDataUrl = damageMap.toDataUrl();
-      const pdfBlob = await generateProtocolPdf(updated, "zwrot", sigDataUrl, damageMapDataUrl, photoDataUrls, vehicleDamagePhotoDataUrls);
-      submitBtn.textContent = "Zapisywanie protokołu…";
-      const pdfUrl = await uploadPdfBlob(storage, rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp, pdfBlob);
+      progress.creep("final");
 
       updated.returnPhotoUrls = photoUrls;
       updated.returnSignatureUrl = sigUrl;
       updated.returnDamageMapUrl = damageMapUrl;
-      updated.returnProtocolPdfUrl = pdfUrl;
+      updated.returnConfirmed = true;
 
       await setDoc(doc(db, "rentals", rentalId), updated);
       releaseUnloadGuard();
 
       showToast("Protokół zwrotu potwierdzony. Dziękujemy!");
       await expireAccessAndSignOut();
+      progress.finish("Potwierdzono");
       showInfoScreen("Protokół zwrotu potwierdzony. Wypożyczalnia go sprawdzi i wyśle Ci kopię e-mailem. Ten link jest teraz nieaktywny. Dziękujemy!");
     } catch (err) {
       releaseUnloadGuard();
+      progress.stop();
       errorEl.textContent = "Błąd zapisu: " + describeError(err);
       errorEl.hidden = false;
       submitBtn.disabled = false;

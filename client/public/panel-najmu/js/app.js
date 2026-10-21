@@ -3,9 +3,12 @@ import { initSignatureField } from "../shared/signature.js";
 import { initDamageMap } from "../shared/damage-map.js";
 import { generateProtocolPdf, preloadPdfAssets } from "../shared/pdf.js";
 import {
-  mergeDamageMarks, urlsToDataUrls, renderPhotoUrlStrip
+  mergeDamageMarks, urlsToDataUrls, renderPhotoUrlStrip, uploadPdfBlob, isPhaseConfirmed
 } from "../shared/protocol-actions.js";
-import { wireProtocolPhotoQueue, uploadProgressLabel, describeError, mapInSequence } from "../shared/photo-queue.js";
+import {
+  wireProtocolPhotoQueue, uploadProgressLabel, describeError, mapInSequence,
+  createSaveProgress, PROTOCOL_SAVE_STAGES, TENANT_SAVE_STAGES
+} from "../shared/photo-queue.js";
 import { wireFuelFields, fuelDivisionsForReturn } from "../shared/fuel.js";
 import {
   generateContractDocx, resolveTemplateKey, computeDailyRate, countRentalDays,
@@ -219,13 +222,18 @@ async function renderList() {
     listEl.innerHTML = "";
     snap.forEach((d) => {
       const r = d.data();
-      const missingProtocol = !r.handoverProtocolPdfUrl;
+      // Przerwany zapis wydania (brak znacznika potwierdzenia i PDF-u) — do
+      // odtworzenia awaryjnie. Potwierdzone przez najemcę pod linkiem nie mają
+      // jeszcze PDF-u celowo: powstaje przy wysyłce ("Protokoły do wysłania").
+      const missingProtocol = !isPhaseConfirmed(r, "wydanie");
+      const pdfPending = !missingProtocol && !r.handoverProtocolPdfUrl;
       const card = document.createElement("div");
       card.className = "rental-card";
       card.innerHTML = `
         <div class="plate">${escapeHtml(r.vehicleModel)} • ${escapeHtml(r.vehiclePlate)}</div>
         <div class="tenant">Najemca: ${escapeHtml(r.tenantName)}</div>
         ${missingProtocol ? '<div class="error">Brak wygenerowanego protokołu wydania (PDF)!</div>' : ""}
+        ${pdfPending ? '<div class="muted">Wydanie potwierdzone — PDF powstanie przy wysyłce („Protokoły do wysłania”).</div>' : ""}
         <button class="btn btn-secondary" data-action="return">Zarejestruj zwrot</button>
         <button class="btn-text" data-action="return-password">Ustaw hasło do samoobsługowego zwrotu</button>
         <button class="btn-text" data-action="show-return-link">Pokaż link do zwrotu</button>
@@ -689,7 +697,9 @@ async function renderHistory() {
       const returnDate = r.closedTimestamp ? formatDate(r.closedTimestamp) : "—";
       const pdfLink = r.returnProtocolPdfUrl
         ? `<a class="btn-text" href="${r.returnProtocolPdfUrl}" target="_blank" rel="noopener">Protokół zwrotu (PDF)</a>`
-        : '<div class="error">Brak wygenerowanego protokołu zwrotu (PDF)!</div><button class="btn-text" data-action="regen">Wygeneruj protokół awaryjnie</button>';
+        : isPhaseConfirmed(r, "zwrot")
+          ? '<div class="muted">Zwrot potwierdzony — PDF powstanie przy wysyłce („Protokoły do wysłania”).</div>'
+          : '<div class="error">Brak wygenerowanego protokołu zwrotu (PDF)!</div><button class="btn-text" data-action="regen">Wygeneruj protokół awaryjnie</button>';
       card.innerHTML = `
         <div class="plate">${escapeHtml(r.vehicleModel)} • ${escapeHtml(r.vehiclePlate)}</div>
         <div class="tenant">Najemca: ${escapeHtml(r.tenantName)}</div>
@@ -2417,53 +2427,36 @@ async function renderHandover(draftRentalId) {
     };
 
     submitBtn.disabled = true;
-    submitBtn.textContent = "Zapisywanie…";
+    const progress = createSaveProgress(submitBtn, TENANT_SAVE_STAGES);
+    progress.set("photos", 0);
     try {
       const rentalId = draftRentalId || await generateReadableRentalId(record.vehiclePlate, record.handoverTimestamp);
       const docRef = doc(db, "rentals", rentalId);
       record.id = docRef.id;
 
-      const sigDataUrl = sigPad.toDataUrl();
-      const damageMapDataUrl = damageMap.toDataUrl();
-
-      // Dwie niezależne grupy operacji równolegle: zapis dokumentu +
-      // wgrywanie zdjęć/podpisu/mapy do Storage z jednej strony, a z
-      // drugiej przygotowanie i wygenerowanie PDF-u. PDF nie potrzebuje
-      // adresów URL ze Storage (używa lokalnych danych — zdjęć z aparatu i
-      // zdjęć uszkodzeń pojazdu pobranych z bazy) — wcześniej czekał na
-      // zakończenie wgrywania, mimo że wcale tego nie wymagał, co sumowało
-      // czasy zamiast liczyć je równolegle.
-      const [[, photoUrls, sigUrl, damageMapUrl], pdfBlob] = await Promise.all([
-        Promise.all([
-          setDoc(docRef, record),
-          photoQueue.waitForUploads(
-            { rentalId: docRef.id, folder: "wydanie", plate: record.vehiclePlate },
-            (p) => (submitBtn.textContent = uploadProgressLabel(p))
-          ),
-          uploadSignature(docRef.id, "wydanie", record.vehiclePlate, record.handoverTimestamp),
-          uploadDamageMap(docRef.id, "wydanie", record.vehiclePlate, record.handoverTimestamp)
-        ]),
-        (async () => {
-          const [draftPhotoDataUrls, photoDataUrls, vehicleDamagePhotoDataUrls] = await Promise.all([
-            urlsToDataUrls(draftPhotoUrls),
-            photoQueue.getBlobs().then((blobs) => mapInSequence(blobs, fileToDataUrl)),
-            vehicleDamagePhotosToDataUrls(selectedVehicleDamagePhotos)
-          ]);
-          return generateProtocolPdf(record, "wydanie", sigDataUrl, damageMapDataUrl, [...draftPhotoDataUrls, ...photoDataUrls], vehicleDamagePhotoDataUrls);
-        })()
+      // PDF NIE powstaje przy podpisie — składa go "Wyślij protokół"
+      // (renderSendProtocol), tak jak dla protokołów z linku najemcy.
+      const [, photoUrls, sigUrl, damageMapUrl] = await Promise.all([
+        setDoc(docRef, record),
+        photoQueue.waitForUploads(
+          { rentalId: docRef.id, folder: "wydanie", plate: record.vehiclePlate },
+          (p) => progress.set("photos", p.fraction, `${p.uploaded}/${p.total}`)
+        ),
+        uploadSignature(docRef.id, "wydanie", record.vehiclePlate, record.handoverTimestamp),
+        uploadDamageMap(docRef.id, "wydanie", record.vehiclePlate, record.handoverTimestamp)
       ]);
-      submitBtn.textContent = "Zapisywanie protokołu…";
-      const pdfUrl = await uploadPdf(docRef.id, "wydanie", pdfBlob, record.vehiclePlate, record.handoverTimestamp);
+      progress.creep("final");
 
       await setDoc(docRef, {
         ...record,
         handoverPhotoUrls: [...draftPhotoUrls, ...photoUrls],
         handoverSignatureUrl: sigUrl,
         handoverDamageMapUrl: damageMapUrl,
-        handoverProtocolPdfUrl: pdfUrl
+        handoverConfirmed: true
       });
+      progress.finish("Potwierdzono");
 
-      showToast("Potwierdzono protokół wydania. Wyślij go z listy „Protokoły do wysłania”, gdy będzie gotowy.");
+      showToast("Potwierdzono protokół wydania. PDF powstanie przy wysyłce z listy „Protokoły do wysłania”.");
       navigate("list");
 
       // Wysyłka maila jest teraz osobnym krokiem z panelu (patrz
@@ -2474,6 +2467,7 @@ async function renderHandover(draftRentalId) {
         // Brak wpisu pojazdu w bazie nie powinien niepokoić operatora.
       });
     } catch (err) {
+      progress.stop();
       errorEl.textContent = "Błąd zapisu: " + describeError(err);
       errorEl.hidden = false;
       submitBtn.disabled = false;
@@ -2619,42 +2613,28 @@ async function renderReturn(rentalId) {
     };
 
     submitBtn.disabled = true;
-    submitBtn.textContent = "Zapisywanie…";
+    const progress = createSaveProgress(submitBtn, TENANT_SAVE_STAGES);
+    progress.set("photos", 0);
     try {
-      const sigDataUrl = sigPad.toDataUrl();
-      const damageMapDataUrl = damageMap.toDataUrl();
-
-      // Równolegle zamiast po kolei (patrz też komentarz przy wydaniu
-      // pojazdu): wgrywanie do Storage z jednej strony, przygotowanie i
-      // wygenerowanie PDF-u (dane wyłącznie lokalne) z drugiej — zamiast
-      // czekać z generowaniem PDF-u, aż wgrywanie się skończy.
-      const [[photoUrls, sigUrl, damageMapUrl], pdfBlob] = await Promise.all([
-        Promise.all([
-          // Większość zdjęć jest zwykle już wysłana w tle — tu czekamy na resztę.
-          photoQueue.waitForUploads(null, (p) => (submitBtn.textContent = uploadProgressLabel(p))),
-          uploadSignature(rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp),
-          uploadDamageMap(rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp)
-        ]),
-        (async () => {
-          const [photoDataUrls, vehicleDamagePhotoDataUrls] = await Promise.all([
-            photoQueue.getBlobs().then((blobs) => mapInSequence(blobs, fileToDataUrl)),
-            vehicleDamagePhotosToDataUrls(selectedVehicleDamagePhotos)
-          ]);
-          return generateProtocolPdf(updated, "zwrot", sigDataUrl, damageMapDataUrl, photoDataUrls, vehicleDamagePhotoDataUrls);
-        })()
+      // PDF składa "Wyślij protokół" (renderSendProtocol) — nie przy podpisie.
+      const [photoUrls, sigUrl, damageMapUrl] = await Promise.all([
+        // Większość zdjęć jest zwykle już wysłana w tle — tu czekamy na resztę.
+        photoQueue.waitForUploads(null, (p) => progress.set("photos", p.fraction, `${p.uploaded}/${p.total}`)),
+        uploadSignature(rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp),
+        uploadDamageMap(rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp)
       ]);
-      submitBtn.textContent = "Zapisywanie protokołu…";
-      const pdfUrl = await uploadPdf(rentalId, "zwrot", pdfBlob, updated.vehiclePlate, updated.returnTimestamp);
+      progress.creep("final");
 
       updated.returnPhotoUrls = photoUrls;
       updated.returnSignatureUrl = sigUrl;
       updated.returnDamageMapUrl = damageMapUrl;
-      updated.returnProtocolPdfUrl = pdfUrl;
+      updated.returnConfirmed = true;
 
       await setDoc(doc(db, "rentals", rentalId), updated);
+      progress.finish("Potwierdzono");
 
       const distanceMsg = Number.isFinite(distanceTraveled) ? ` (przejechano ${distanceTraveled} km)` : "";
-      showToast(`Potwierdzono protokół zwrotu${distanceMsg}. Wyślij go z listy „Protokoły do wysłania”, gdy będzie gotowy.`);
+      showToast(`Potwierdzono protokół zwrotu${distanceMsg}. PDF powstanie przy wysyłce z listy „Protokoły do wysłania”.`);
       navigate("list");
 
       // Wysyłka maila jest teraz osobnym krokiem z panelu (patrz
@@ -2668,6 +2648,7 @@ async function renderReturn(rentalId) {
         // Brak wpisu pojazdu w bazie nie powinien niepokoić operatora.
       });
     } catch (err) {
+      progress.stop();
       errorEl.textContent = "Błąd zapisu: " + describeError(err);
       errorEl.hidden = false;
       submitBtn.disabled = false;
@@ -2769,11 +2750,9 @@ async function uploadDamageMap(rentalId, phase, plate, timestampMs) {
   return getDownloadURL(r);
 }
 
-async function uploadPdf(rentalId, phase, blob, plate, timestampMs) {
-  const prefix = storageFilePrefix(plate, timestampMs);
-  const r = ref(storage, `rentals/${rentalId}/${phase}/${prefix}-protokol.pdf`);
-  await uploadBytes(r, blob, { contentType: "application/pdf" });
-  return getDownloadURL(r);
+async function uploadPdf(rentalId, phase, blob, plate, timestampMs, onProgress) {
+  // Wspólna implementacja z protokołem najemcy (z postępem wysyłki).
+  return uploadPdfBlob(storage, rentalId, phase, plate, timestampMs, blob, onProgress);
 }
 
 function blobToDataUrl(blob) {
@@ -3132,11 +3111,11 @@ async function renderSendProtocolsList() {
     const items = [];
     handoverSnap.forEach((d) => {
       const r = d.data();
-      if (r.handoverProtocolPdfUrl && r.handoverEmailSent === false) items.push({ id: d.id, r, phase: "wydanie" });
+      if (isPhaseConfirmed(r, "wydanie") && r.handoverEmailSent === false) items.push({ id: d.id, r, phase: "wydanie" });
     });
     returnSnap.forEach((d) => {
       const r = d.data();
-      if (r.returnProtocolPdfUrl && r.returnEmailSent === false) items.push({ id: d.id, r, phase: "zwrot" });
+      if (isPhaseConfirmed(r, "zwrot") && r.returnEmailSent === false) items.push({ id: d.id, r, phase: "zwrot" });
     });
     if (!items.length) {
       listEl.innerHTML = '<p class="muted">Brak protokołów oczekujących na wysyłkę.</p>';
@@ -3235,7 +3214,8 @@ async function renderSendProtocol(phase, rentalId) {
     e.preventDefault();
     errorEl.hidden = true;
     submitBtn.disabled = true;
-    submitBtn.textContent = "Wysyłanie…";
+    const progress = createSaveProgress(submitBtn, PROTOCOL_SAVE_STAGES);
+    progress.set("photos", 0);
     try {
       const timestamp = isHandover ? record.handoverTimestamp : record.returnTimestamp;
       const photoField = isHandover ? "handoverPhotoUrls" : "returnPhotoUrls";
@@ -3245,16 +3225,22 @@ async function renderSendProtocol(phase, rentalId) {
       let pdfUrl = record[pdfField];
       let allPhotoUrls = record[photoField] || [];
 
-      if (photoQueue.count) {
+      // PDF powstaje tutaj, gdy go jeszcze nie ma (protokół potwierdzony przez
+      // najemcę pod linkiem — strona najemcy PDF-u nie składa) albo gdy
+      // dosłano zdjęcia.
+      if (!pdfUrl || photoQueue.count) {
         // Nazwy plików z kolejki mają rosnący, unikalny numer — nie nadpiszą
         // już istniejących zdjęć w Storage.
         const [newUrls, newPhotoDataUrls] = await Promise.all([
-          photoQueue.waitForUploads(null, (p) => (submitBtn.textContent = uploadProgressLabel(p))),
-          photoQueue.getBlobs().then((blobs) => mapInSequence(blobs, fileToDataUrl))
+          photoQueue.waitForUploads(null, (p) => progress.set("photos", p.fraction, `${p.uploaded}/${p.total}`)),
+          photoQueue.getBlobs().then((blobs) =>
+            mapInSequence(blobs, fileToDataUrl, (d, t) => progress.set("prepare", 0.7 * (d / t), `${d}/${t}`))
+          )
         ]);
-        submitBtn.textContent = "Tworzenie protokołu PDF…";
+        progress.set("photos", 1);
         allPhotoUrls = [...allPhotoUrls, ...newUrls];
 
+        progress.creep("prepare");
         let vehicleDamagePhotos = [];
         try {
           const vehicleSnap = await getDoc(doc(db, "vehicles", normalizePlateId(record.vehiclePlate)));
@@ -3263,14 +3249,19 @@ async function renderSendProtocol(phase, rentalId) {
           // Brak dostępu do bazy pojazdów nie powinien blokować wysyłki.
         }
         const vehicleDamagePhotoDataUrls = await vehicleDamagePhotosToDataUrls(vehicleDamagePhotos);
+        progress.set("prepare", 1);
 
         const pdfBlob = await generateProtocolPdf(
           record, phase, recovered.sigDataUrl, recovered.damageMapDataUrl,
-          [...recovered.photoDataUrls, ...newPhotoDataUrls], vehicleDamagePhotoDataUrls
+          [...recovered.photoDataUrls, ...newPhotoDataUrls], vehicleDamagePhotoDataUrls,
+          (f) => progress.set("pdf", f)
         );
-        pdfUrl = await uploadPdf(rentalId, phase, pdfBlob, record.vehiclePlate, timestamp);
+        pdfUrl = await uploadPdf(rentalId, phase, pdfBlob, record.vehiclePlate, timestamp, (f) => progress.set("pdfUpload", f));
+      } else {
+        ["photos", "prepare", "pdf", "pdfUpload"].forEach((k) => progress.set(k, 1));
       }
 
+      progress.creep("final");
       await sendProtocolEmail(rentalId, phase, pdfUrl, record.tenantEmail, record.lessorEmail, record.vehiclePlate, timestamp);
 
       await setDoc(
@@ -3278,10 +3269,12 @@ async function renderSendProtocol(phase, rentalId) {
         { [photoField]: allPhotoUrls, [pdfField]: pdfUrl, [sentField]: true },
         { merge: true }
       );
+      progress.finish("Wysłano");
 
       showToast("Protokół wysłany.");
       navigate("send-protocols");
     } catch (err) {
+      progress.stop();
       errorEl.textContent = "Błąd wysyłki: " + describeError(err);
       errorEl.hidden = false;
       submitBtn.disabled = false;

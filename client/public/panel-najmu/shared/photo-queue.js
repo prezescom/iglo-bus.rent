@@ -59,11 +59,93 @@ export function releaseCanvas(canvas) {
 
 // Wykonuje fn(item) po kolei, nie wszystkie naraz — np. dekodowanie zdjęć
 // do PDF-u (12 jednoczesnych dekodowań potrafi wyczerpać pamięć telefonu).
-export async function mapInSequence(list, fn) {
+// onEach(done, total) — postęp; między elementami oddajemy przeglądarce
+// klatkę, żeby zdążyła odświeżyć procenty na przycisku.
+export async function mapInSequence(list, fn, onEach) {
   const out = [];
-  for (const item of list) out.push(await fn(item));
+  for (const item of list) {
+    out.push(await fn(item));
+    if (onEach) onEach(out.length, list.length);
+    await nextFrame();
+  }
   return out;
 }
+
+// Pozwala przeglądarce odmalować ekran (np. procenty) przed ciężkim krokiem.
+export function nextFrame() {
+  return new Promise((resolve) => {
+    if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => setTimeout(resolve, 0));
+    else setTimeout(resolve, 0);
+  });
+}
+
+// Postęp całego zapisu protokołu na przycisku: "Wysyłanie protokołu PDF — 82%".
+// stages: [{ key, weight, label }] — etapy mogą biec równolegle; procent to
+// ważona suma ich postępu i nigdy nie maleje. Etapy bez mierzalnego postępu
+// (zapis w bazie, generowanie PDF-u) "pełzną" do przodu (creep), żeby przy
+// dłuższej chwili klient nie myślał, że strona się zawiesiła.
+export function createSaveProgress(button, stages) {
+  const totalWeight = stages.reduce((s, st) => s + st.weight, 0);
+  const fractions = Object.fromEntries(stages.map((st) => [st.key, 0]));
+  let currentKey = stages[0].key;
+  let detail = "";
+  let shownPct = 0;
+  let creepTimer = null;
+
+  function render() {
+    const raw = stages.reduce((s, st) => s + st.weight * fractions[st.key], 0) / totalWeight;
+    shownPct = Math.max(shownPct, Math.min(99, Math.floor(raw * 100)));
+    const stage = stages.find((st) => st.key === currentKey);
+    button.textContent = `${stage.label}${detail ? ` ${detail}` : ""} — ${shownPct}%`;
+  }
+
+  function stopCreep() {
+    if (creepTimer) clearInterval(creepTimer);
+    creepTimer = null;
+  }
+
+  return {
+    // fraction 0..1 dla etapu key; detail np. "3/12".
+    set(key, fraction, stageDetail = "") {
+      if (key !== currentKey) stopCreep();
+      currentKey = key;
+      detail = stageDetail;
+      fractions[key] = Math.max(fractions[key], Math.min(1, fraction));
+      render();
+    },
+    // Powolne dochodzenie etapu do ~90%, dopóki nie przyjdzie set()/finish().
+    creep(key, stageDetail = "") {
+      stopCreep();
+      currentKey = key;
+      detail = stageDetail;
+      render();
+      creepTimer = setInterval(() => {
+        fractions[key] += (0.9 - fractions[key]) * 0.12;
+        render();
+      }, 350);
+    },
+    finish(text = "Zapisano") {
+      stopCreep();
+      button.textContent = `${text} — 100%`;
+    },
+    stop: stopCreep
+  };
+}
+
+// Zapis u najemcy (bez PDF-u — ten składa panel przy wysyłce).
+export const TENANT_SAVE_STAGES = [
+  { key: "photos", weight: 75, label: "Wysyłanie zdjęć" },
+  { key: "final", weight: 25, label: "Zapisywanie" }
+];
+
+// Zapis z PDF-em (panel; wagi ≈ udział w czasie zapisu).
+export const PROTOCOL_SAVE_STAGES = [
+  { key: "photos", weight: 35, label: "Wysyłanie zdjęć" },
+  { key: "prepare", weight: 15, label: "Przygotowanie zdjęć do protokołu" },
+  { key: "pdf", weight: 15, label: "Tworzenie protokołu PDF" },
+  { key: "pdfUpload", weight: 25, label: "Wysyłanie protokołu PDF" },
+  { key: "final", weight: 10, label: "Zapisywanie" }
+];
 
 function canvasToJpeg(canvas, quality) {
   return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));

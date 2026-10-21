@@ -5,7 +5,7 @@
 // przyjmuje gotowe instancje Storage/Functions i dane jako argumenty, żeby
 // obie strony zachowywały się identycznie i nie rozjeżdżały się z czasem.
 import {
-  ref, uploadBytes, getDownloadURL
+  ref, uploadBytes, uploadBytesResumable, getDownloadURL
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import {
   doc, getDoc
@@ -41,6 +41,17 @@ export async function generateReadableRentalId(db, plate, timestampMs) {
     const snap = await getDoc(doc(db, "rentals", candidate));
     if (!snap.exists()) return candidate;
   }
+}
+
+// Czy faza protokołu została zapisana do końca (zdjęcia, podpis, mapa, dane).
+// Protokół z linku najemcy nie ma jeszcze PDF-u — ten powstaje w panelu przy
+// wysyłce — dlatego znacznikiem jest handoverConfirmed/returnConfirmed;
+// starsze wynajmy (sprzed tego pola) rozpoznajemy po istniejącym PDF-ie.
+export function isPhaseConfirmed(record, phase) {
+  if (!record) return false;
+  return phase === "wydanie"
+    ? Boolean(record.handoverConfirmed || record.handoverProtocolPdfUrl)
+    : Boolean(record.returnConfirmed || record.returnProtocolPdfUrl);
 }
 
 // Zdjęcia protokołów (także szkiców) wysyła shared/photo-queue.js —
@@ -111,10 +122,25 @@ export function renderPhotoUrlStrip(stripEl, urls, onRemove) {
   });
 }
 
-export async function uploadPdfBlob(storage, rentalId, phase, plate, timestampMs, blob) {
+// onProgress (opcjonalny) — (0..1) w trakcie wysyłki; PDF z kilkunastoma
+// zdjęciami ma kilka MB, więc przy mobilnym internecie to zauważalna chwila.
+export async function uploadPdfBlob(storage, rentalId, phase, plate, timestampMs, blob, onProgress) {
   const prefix = storageFilePrefix(plate, timestampMs);
   const r = ref(storage, `rentals/${rentalId}/${phase}/${prefix}-protokol.pdf`);
-  await uploadBytes(r, blob, { contentType: "application/pdf" });
+  if (!onProgress) {
+    await uploadBytes(r, blob, { contentType: "application/pdf" });
+    return getDownloadURL(r);
+  }
+  await new Promise((resolve, reject) => {
+    const task = uploadBytesResumable(r, blob, { contentType: "application/pdf" });
+    task.on(
+      "state_changed",
+      (snap) => snap.totalBytes && onProgress(snap.bytesTransferred / snap.totalBytes),
+      reject,
+      resolve
+    );
+  });
+  onProgress(1);
   return getDownloadURL(r);
 }
 

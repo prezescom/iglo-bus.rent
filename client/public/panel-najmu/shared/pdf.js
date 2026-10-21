@@ -36,7 +36,16 @@ export function preloadPdfAssets() {
   getLogoDataUrl().catch(() => {});
 }
 
-export async function generateProtocolPdf(record, phase, signatureDataUrl, damageMapDataUrl, photoDataUrls, vehicleDamagePhotoDataUrls) {
+// onProgress (opcjonalny) — (0..1) po każdym zdjęciu, żeby przycisk zapisu
+// pokazywał postęp także na tym etapie (patrz createSaveProgress).
+export async function generateProtocolPdf(record, phase, signatureDataUrl, damageMapDataUrl, photoDataUrls, vehicleDamagePhotoDataUrls, onProgress) {
+  const totalPhotos = (photoDataUrls || []).length + (vehicleDamagePhotoDataUrls || []).length;
+  let photosDone = 0;
+  const photoProgress = () => {
+    photosDone++;
+    if (onProgress) onProgress(0.1 + 0.8 * (photosDone / Math.max(1, totalPhotos)));
+  };
+  if (onProgress) onProgress(0.05);
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   await useCustomFont(doc);
@@ -206,18 +215,25 @@ export async function generateProtocolPdf(record, phase, signatureDataUrl, damag
   // niezależna od bieżącego wynajmu — patrz baza pojazdów w app.js) ----
   await drawPhotoPages(
     doc, "Udokumentowane uszkodzenia pojazdu (baza pojazdu)",
-    vehicleDamagePhotoDataUrls, pageWidth, pageHeight, logoDataUrl, phaseTitle
+    vehicleDamagePhotoDataUrls, pageWidth, pageHeight, logoDataUrl, phaseTitle, photoProgress
   );
 
   // ---- Strona(y): zdjęcia zrobione przy tym protokole ----
   await drawPhotoPages(
     doc, "Dokumentacja fotograficzna",
-    photoDataUrls, pageWidth, pageHeight, logoDataUrl, phaseTitle
+    photoDataUrls, pageWidth, pageHeight, logoDataUrl, phaseTitle, photoProgress
   );
 
   addFooterToAllPages(doc, pageWidth, pageHeight, phaseTitle);
 
-  return doc.output("blob");
+  // doc.output blokuje przeglądarkę na chwilę — najpierw dajmy jej odmalować procenty.
+  if (onProgress) {
+    onProgress(0.92);
+    await new Promise((r) => setTimeout(r, 30));
+  }
+  const blob = doc.output("blob");
+  if (onProgress) onProgress(1);
+  return blob;
 }
 
 // ---------- Elementy graficzne ----------
@@ -256,7 +272,7 @@ function drawPageChrome(doc, pageWidth, logoDataUrl, phaseTitle) {
 // Wspólna dla obu galerii zdjęć w protokole (dokumentacja z bazy pojazdu i
 // zdjęcia zrobione przy tym konkretnym wydaniu/zwrocie) — każda dostaje
 // własny tytuł i własne strony, dodawane tylko jeśli jest co pokazać.
-async function drawPhotoPages(doc, title, photoDataUrls, pageWidth, pageHeight, logoDataUrl, phaseTitle) {
+async function drawPhotoPages(doc, title, photoDataUrls, pageWidth, pageHeight, logoDataUrl, phaseTitle, onPhotoDone) {
   if (!photoDataUrls || !photoDataUrls.length) return;
 
   const contentWidth = pageWidth - LEFT - RIGHT;
@@ -291,6 +307,10 @@ async function drawPhotoPages(doc, title, photoDataUrls, pageWidth, pageHeight, 
 
     doc.addImage(src, formatFromDataUrl(src), LEFT, py, w, h);
     py += h + 16;
+    if (onPhotoDone) {
+      onPhotoDone();
+      await new Promise((r) => setTimeout(r, 0)); // odmalowanie procentów
+    }
   }
 }
 
