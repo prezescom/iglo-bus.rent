@@ -22,7 +22,7 @@ import {
   vehicleDamagePhotosToDataUrls, mergeDamageMarks, urlsToDataUrls, renderPhotoUrlStrip
 } from "../shared/protocol-actions.js";
 import { wireFuelFields, fuelDivisionsForReturn } from "../shared/fuel.js";
-import { wireProtocolPhotoQueue, uploadProgressLabel, guardUnloadWhileSaving } from "../shared/photo-queue.js";
+import { wireProtocolPhotoQueue, uploadProgressLabel, guardUnloadWhileSaving, describeError, mapInSequence } from "../shared/photo-queue.js";
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -419,7 +419,7 @@ async function renderGuestHandover(rentalId, existingRecord) {
         photoQueue.waitForUploads(null, (p) => (submitBtn.textContent = uploadProgressLabel(p))),
         (async () => uploadSignatureBlob(storage, rentalId, "wydanie", record.vehiclePlate, record.handoverTimestamp, await sigPad.toBlob()))(),
         (async () => uploadDamageMapBlob(storage, rentalId, "wydanie", record.vehiclePlate, record.handoverTimestamp, await damageMap.toBlob()))(),
-        photoQueue.getBlobs().then((blobs) => Promise.all(blobs.map(fileToDataUrl))),
+        photoQueue.getBlobs().then((blobs) => mapInSequence(blobs, fileToDataUrl)),
         vehicleDamagePhotosToDataUrls(vehicleDamagePhotos),
         urlsToDataUrls(draftPhotoUrls)
       ]);
@@ -445,7 +445,7 @@ async function renderGuestHandover(rentalId, existingRecord) {
       showInfoScreen("Protokół wydania potwierdzony. Wypożyczalnia go sprawdzi i wyśle Ci kopię e-mailem. Ten link jest teraz nieaktywny — do zwrotu pojazdu poproś wypożyczalnię o nowe hasło.");
     } catch (err) {
       releaseUnloadGuard();
-      errorEl.textContent = "Błąd zapisu: " + err.message;
+      errorEl.textContent = "Błąd zapisu: " + describeError(err);
       errorEl.hidden = false;
       submitBtn.disabled = false;
       submitBtn.textContent = "Potwierdź";
@@ -569,7 +569,7 @@ async function renderGuestReturn(rentalId, record) {
         photoQueue.waitForUploads(null, (p) => (submitBtn.textContent = uploadProgressLabel(p))),
         (async () => uploadSignatureBlob(storage, rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp, await sigPad.toBlob()))(),
         (async () => uploadDamageMapBlob(storage, rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp, await damageMap.toBlob()))(),
-        photoQueue.getBlobs().then((blobs) => Promise.all(blobs.map(fileToDataUrl))),
+        photoQueue.getBlobs().then((blobs) => mapInSequence(blobs, fileToDataUrl)),
         vehicleDamagePhotosToDataUrls(vehicleDamagePhotos)
       ]);
       submitBtn.textContent = "Tworzenie protokołu PDF…";
@@ -592,7 +592,7 @@ async function renderGuestReturn(rentalId, record) {
       showInfoScreen("Protokół zwrotu potwierdzony. Wypożyczalnia go sprawdzi i wyśle Ci kopię e-mailem. Ten link jest teraz nieaktywny. Dziękujemy!");
     } catch (err) {
       releaseUnloadGuard();
-      errorEl.textContent = "Błąd zapisu: " + err.message;
+      errorEl.textContent = "Błąd zapisu: " + describeError(err);
       errorEl.hidden = false;
       submitBtn.disabled = false;
       submitBtn.textContent = "Potwierdź";

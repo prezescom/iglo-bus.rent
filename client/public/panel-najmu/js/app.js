@@ -5,7 +5,7 @@ import { generateProtocolPdf, preloadPdfAssets } from "../shared/pdf.js";
 import {
   mergeDamageMarks, urlsToDataUrls, renderPhotoUrlStrip
 } from "../shared/protocol-actions.js";
-import { wireProtocolPhotoQueue, uploadProgressLabel } from "../shared/photo-queue.js";
+import { wireProtocolPhotoQueue, uploadProgressLabel, describeError, mapInSequence } from "../shared/photo-queue.js";
 import { wireFuelFields, fuelDivisionsForReturn } from "../shared/fuel.js";
 import {
   generateContractDocx, resolveTemplateKey, computeDailyRate, countRentalDays,
@@ -642,7 +642,7 @@ async function renderDraftMedia(rentalId) {
       showToast("Zapisano zdjęcia i uszkodzenia w szkicu.");
       navigate("drafts");
     } catch (err) {
-      errorEl.textContent = "Błąd zapisu: " + err.message;
+      errorEl.textContent = "Błąd zapisu: " + describeError(err);
       errorEl.hidden = false;
       submitBtn.disabled = false;
       submitBtn.textContent = "Zapisz zdjęcia i uszkodzenia";
@@ -967,7 +967,7 @@ async function renderVehicleForm(plateId) {
       // bez tego trzeba by go odszukać ponownie na liście.
       navigate(isNewVehicle ? `vehicle/${newPlateId}` : "vehicles");
     } catch (err) {
-      errorEl.textContent = "Błąd zapisu: " + err.message;
+      errorEl.textContent = "Błąd zapisu: " + describeError(err);
       errorEl.hidden = false;
       submitBtn.disabled = false;
       submitBtn.textContent = "Zapisz pojazd";
@@ -1176,7 +1176,7 @@ async function renderTenantForm(tenantId) {
       showToast("Zapisano najemcę.");
       navigate("tenants");
     } catch (err) {
-      errorEl.textContent = "Błąd zapisu: " + err.message;
+      errorEl.textContent = "Błąd zapisu: " + describeError(err);
       errorEl.hidden = false;
       submitBtn.disabled = false;
       submitBtn.textContent = "Zapisz najemcę";
@@ -1799,7 +1799,7 @@ async function renderFleetCmsForm(vehicleId) {
       showToast("Zapisano pojazd.");
       navigate("fleet-cms");
     } catch (err) {
-      errorEl.textContent = "Błąd zapisu: " + err.message;
+      errorEl.textContent = "Błąd zapisu: " + describeError(err);
       errorEl.hidden = false;
       submitBtn.disabled = false;
       submitBtn.textContent = "Zapisz pojazd";
@@ -2146,7 +2146,7 @@ async function renderPostForm(slug) {
       );
       navigate("posts");
     } catch (err) {
-      errorEl.textContent = "Błąd zapisu: " + err.message;
+      errorEl.textContent = "Błąd zapisu: " + describeError(err);
       errorEl.hidden = false;
       submitBtn.disabled = false;
       submitBtn.textContent = "Zapisz wpis";
@@ -2446,7 +2446,7 @@ async function renderHandover(draftRentalId) {
         (async () => {
           const [draftPhotoDataUrls, photoDataUrls, vehicleDamagePhotoDataUrls] = await Promise.all([
             urlsToDataUrls(draftPhotoUrls),
-            photoQueue.getBlobs().then((blobs) => Promise.all(blobs.map(fileToDataUrl))),
+            photoQueue.getBlobs().then((blobs) => mapInSequence(blobs, fileToDataUrl)),
             vehicleDamagePhotosToDataUrls(selectedVehicleDamagePhotos)
           ]);
           return generateProtocolPdf(record, "wydanie", sigDataUrl, damageMapDataUrl, [...draftPhotoDataUrls, ...photoDataUrls], vehicleDamagePhotoDataUrls);
@@ -2474,7 +2474,7 @@ async function renderHandover(draftRentalId) {
         // Brak wpisu pojazdu w bazie nie powinien niepokoić operatora.
       });
     } catch (err) {
-      errorEl.textContent = "Błąd zapisu: " + err.message;
+      errorEl.textContent = "Błąd zapisu: " + describeError(err);
       errorEl.hidden = false;
       submitBtn.disabled = false;
       submitBtn.textContent = "Potwierdź protokół wydania";
@@ -2637,7 +2637,7 @@ async function renderReturn(rentalId) {
         ]),
         (async () => {
           const [photoDataUrls, vehicleDamagePhotoDataUrls] = await Promise.all([
-            photoQueue.getBlobs().then((blobs) => Promise.all(blobs.map(fileToDataUrl))),
+            photoQueue.getBlobs().then((blobs) => mapInSequence(blobs, fileToDataUrl)),
             vehicleDamagePhotosToDataUrls(selectedVehicleDamagePhotos)
           ]);
           return generateProtocolPdf(updated, "zwrot", sigDataUrl, damageMapDataUrl, photoDataUrls, vehicleDamagePhotoDataUrls);
@@ -2668,7 +2668,7 @@ async function renderReturn(rentalId) {
         // Brak wpisu pojazdu w bazie nie powinien niepokoić operatora.
       });
     } catch (err) {
-      errorEl.textContent = "Błąd zapisu: " + err.message;
+      errorEl.textContent = "Błąd zapisu: " + describeError(err);
       errorEl.hidden = false;
       submitBtn.disabled = false;
       submitBtn.textContent = "Potwierdź protokół zwrotu";
@@ -2708,7 +2708,11 @@ async function blobToResizedDataUrl(blob) {
       canvas.height = Math.round(bitmap.height * scale);
       canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
       bitmap.close();
-      return canvas.toDataURL("image/jpeg", 0.85);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      // Zwolnij pamięć płótna od razu (iOS ma twardy limit pamięci canvas).
+      canvas.width = 0;
+      canvas.height = 0;
+      return dataUrl;
     } catch (e) {
       // Spadamy do zwykłego odczytu pliku, jeśli dekodowanie się nie uda.
     }
@@ -2716,7 +2720,8 @@ async function blobToResizedDataUrl(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
+    // Zdarzenie błędu FileReadera nie ma .message — odrzucamy z opisem.
+    reader.onerror = () => reject(new Error("Nie można odczytać zdjęcia (" + ((reader.error && reader.error.message) || "błąd odczytu") + ")"));
     reader.readAsDataURL(blob);
   });
 }
@@ -2742,7 +2747,9 @@ async function urlToDataUrl(url) {
 
 async function vehicleDamagePhotosToDataUrls(photos) {
   if (!photos || !photos.length) return [];
-  const results = await Promise.all(photos.map((p) => urlToDataUrl(p.url)));
+  // Po kolei, nie równolegle — oszczędza pamięć telefonu przy wielu zdjęciach.
+  const results = [];
+  for (const p of photos) results.push(await urlToDataUrl(p.url));
   return results.filter(Boolean);
 }
 
@@ -2773,7 +2780,7 @@ function blobToDataUrl(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
+    reader.onerror = () => reject(new Error("Nie można odczytać pliku (" + ((reader.error && reader.error.message) || "błąd odczytu") + ")"));
     reader.readAsDataURL(blob);
   });
 }
@@ -3243,7 +3250,7 @@ async function renderSendProtocol(phase, rentalId) {
         // już istniejących zdjęć w Storage.
         const [newUrls, newPhotoDataUrls] = await Promise.all([
           photoQueue.waitForUploads(null, (p) => (submitBtn.textContent = uploadProgressLabel(p))),
-          photoQueue.getBlobs().then((blobs) => Promise.all(blobs.map(fileToDataUrl)))
+          photoQueue.getBlobs().then((blobs) => mapInSequence(blobs, fileToDataUrl))
         ]);
         submitBtn.textContent = "Tworzenie protokołu PDF…";
         allPhotoUrls = [...allPhotoUrls, ...newUrls];
@@ -3275,7 +3282,7 @@ async function renderSendProtocol(phase, rentalId) {
       showToast("Protokół wysłany.");
       navigate("send-protocols");
     } catch (err) {
-      errorEl.textContent = "Błąd wysyłki: " + err.message;
+      errorEl.textContent = "Błąd wysyłki: " + describeError(err);
       errorEl.hidden = false;
       submitBtn.disabled = false;
       submitBtn.textContent = "Wyślij protokół";

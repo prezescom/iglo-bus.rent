@@ -16,6 +16,13 @@
 // Nazwy plików: rentals/{rentalId}/{folder}/{PREFIKS}-{nr}.jpg — końcówka
 // "-{nr}.jpg" (rosnąca liczba) jest wymagana przez fetchRecoveredAssets
 // w js/app.js (protokół awaryjny), który sortuje zdjęcia po tym numerze.
+//
+// Pamięć telefonu (ważne przy kilkunastu zdjęciach): plik jest wczytywany do
+// pamięci strony od razu po wybraniu (na Androidzie zdjęcia z galerii/chmury
+// potrafią po chwili stać się nieczytelne), oryginał jest zwalniany po
+// zmniejszeniu, miniatury są małe (a nie pełne 12 Mpx), a płótna canvas są
+// zerowane po użyciu — iOS ma twardy limit łącznej pamięci canvas i po jego
+// przekroczeniu kolejne zdjęcia przestają się dać przetworzyć.
 import {
   ref, uploadBytesResumable, getDownloadURL, deleteObject
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
@@ -23,6 +30,7 @@ import { storageFilePrefix } from "./protocol-actions.js";
 
 export const PHOTO_MAX_DIMENSION = 2560;
 const PHOTO_JPEG_QUALITY = 0.85;
+const THUMB_MAX_DIMENSION = 200;
 const MAX_PARALLEL_UPLOADS = 2;
 const MAX_UPLOAD_ATTEMPTS = 3;
 
@@ -30,54 +38,110 @@ const MAX_UPLOAD_ATTEMPTS = 3;
 // linku), więc nowe zdjęcia nie nadpiszą wcześniej wysłanych.
 let fileSeq = Date.now();
 
-function canvasToJpeg(canvas) {
-  return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", PHOTO_JPEG_QUALITY));
+// Czytelny opis dowolnego błędu — także zdarzeń (FileReader/obraz), które
+// nie mają .message (wcześniej kończyło się komunikatem "Błąd zapisu: undefined").
+export function describeError(err) {
+  if (!err) return "nieznany błąd";
+  if (typeof err === "string") return err;
+  if (err.message) return err.code ? `${err.message} (${err.code})` : err.message;
+  if (err.target && err.target.error && err.target.error.message) return err.target.error.message;
+  if (err.code) return String(err.code);
+  if (err.type) return `zdarzenie „${err.type}”`;
+  return String(err);
 }
 
-function drawScaled(source, width, height) {
-  const scale = Math.min(1, PHOTO_MAX_DIMENSION / Math.max(width, height));
+// Zwalnia pamięć płótna od razu (iOS liczy ją do limitu do czasu GC).
+export function releaseCanvas(canvas) {
+  if (!canvas) return;
+  canvas.width = 0;
+  canvas.height = 0;
+}
+
+// Wykonuje fn(item) po kolei, nie wszystkie naraz — np. dekodowanie zdjęć
+// do PDF-u (12 jednoczesnych dekodowań potrafi wyczerpać pamięć telefonu).
+export async function mapInSequence(list, fn) {
+  const out = [];
+  for (const item of list) out.push(await fn(item));
+  return out;
+}
+
+function canvasToJpeg(canvas, quality) {
+  return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+}
+
+function drawScaled(source, width, height, maxDim) {
+  const scale = Math.min(1, maxDim / Math.max(width, height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, Math.round(width * scale));
   canvas.height = Math.max(1, Math.round(height * scale));
-  canvas.getContext("2d").drawImage(source, 0, 0, canvas.width, canvas.height);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    releaseCanvas(canvas);
+    throw new Error("Brak pamięci na przetworzenie zdjęcia");
+  }
+  ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
   return canvas;
 }
 
-// Zwraca zmniejszony JPEG; gdy przeglądarka nie potrafi zdekodować pliku
-// (np. HEIC w części przeglądarek) — oryginał, żeby nie blokować protokołu.
-export async function compressPhoto(file) {
-  let canvas = null;
+async function decodeImage(blob) {
   if (typeof createImageBitmap === "function") {
     try {
-      const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-      canvas = drawScaled(bitmap, bitmap.width, bitmap.height);
-      bitmap.close();
+      const bitmap = await createImageBitmap(blob, { imageOrientation: "from-image" });
+      return { source: bitmap, width: bitmap.width, height: bitmap.height, close: () => bitmap.close() };
     } catch (e) {
-      canvas = null;
+      // spróbujemy przez <img>
     }
   }
-  if (!canvas) {
-    // Starsze przeglądarki / słabsze telefony: dekodowanie przez <img>
-    // (nowoczesne przeglądarki same stosują przy tym obrót z EXIF).
-    try {
-      const url = URL.createObjectURL(file);
-      try {
-        const img = new Image();
-        img.decoding = "async";
-        img.src = url;
-        await img.decode();
-        canvas = drawScaled(img, img.naturalWidth, img.naturalHeight);
-      } finally {
-        URL.revokeObjectURL(url);
-      }
-    } catch (e) {
-      return file;
-    }
+  // Starsze przeglądarki: dekodowanie przez <img> (nowoczesne przeglądarki
+  // same stosują przy tym obrót z EXIF).
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.decoding = "async";
+  img.src = url;
+  try {
+    await img.decode();
+  } catch (e) {
+    URL.revokeObjectURL(url);
+    throw new Error("Nie można odczytać obrazu");
   }
-  const blob = await canvasToJpeg(canvas);
-  if (!blob) return file;
-  // Zdjęcie już wcześniej małe — nie powiększamy go ponownym zapisem.
-  return blob.size < file.size || !/jpe?g/i.test(file.type) ? blob : file;
+  return { source: img, width: img.naturalWidth, height: img.naturalHeight, close: () => URL.revokeObjectURL(url) };
+}
+
+// Zwraca { blob, thumbUrl }: zmniejszony JPEG (lub oryginał, gdy przeglądarka
+// nie potrafi zdekodować pliku — np. HEIC w części przeglądarek) i małą
+// miniaturę (data URL) do podglądu. Rzuca Error, gdy pliku nie da się w ogóle
+// odczytać (wtedy nie da się go też wysłać).
+export async function compressPhoto(file) {
+  let data;
+  try {
+    // Kopia w pamięci strony — niezależna od dalszej dostępności pliku w telefonie.
+    data = new Blob([await file.arrayBuffer()], { type: file.type || "image/jpeg" });
+  } catch (e) {
+    throw new Error(`Nie można odczytać pliku „${file.name || "zdjęcie"}” — dodaj je ponownie`);
+  }
+  let decoded;
+  try {
+    decoded = await decodeImage(data);
+  } catch (e) {
+    return { blob: data, thumbUrl: null };
+  }
+  let canvas = null;
+  let thumbCanvas = null;
+  try {
+    canvas = drawScaled(decoded.source, decoded.width, decoded.height, PHOTO_MAX_DIMENSION);
+    thumbCanvas = drawScaled(canvas, canvas.width, canvas.height, THUMB_MAX_DIMENSION);
+    const thumbUrl = thumbCanvas.toDataURL("image/jpeg", 0.7);
+    const blob = await canvasToJpeg(canvas, PHOTO_JPEG_QUALITY);
+    if (!blob) return { blob: data, thumbUrl };
+    // Zdjęcie już wcześniej małe — nie powiększamy go ponownym zapisem.
+    return { blob: blob.size < data.size || !/jpe?g/i.test(data.type) ? blob : data, thumbUrl };
+  } catch (e) {
+    return { blob: data, thumbUrl: null };
+  } finally {
+    decoded.close();
+    releaseCanvas(canvas);
+    releaseCanvas(thumbCanvas);
+  }
 }
 
 // Standardowe podpięcie w formularzu protokołu: pasek #photoStrip +
@@ -94,15 +158,20 @@ export function wireProtocolPhotoQueue(storage, getTarget) {
     stripEl,
     inputEl,
     getTarget,
-    onChange: ({ total, uploaded, failed }) => {
+    onChange: ({ total, uploaded, failed, unreadable, preparing }) => {
       statusEl.hidden = total === 0;
       if (!total) return;
       const willUploadLater = !(getTarget && getTarget());
-      statusEl.textContent = willUploadLater
-        ? `Zdjęcia: ${total} (zostaną wysłane przy zapisie)`
+      const problems = [
+        unreadable ? `${unreadable} nie da się odczytać — usuń (✕) i dodaj ponownie` : "",
+        failed ? `${failed} z błędem wysyłki, ponowimy przy zapisie` : ""
+      ].filter(Boolean).join("; ");
+      const main = willUploadLater
+        ? `Zdjęcia: ${total}${preparing ? ` (przygotowywanie ${preparing}…)` : ""} — zostaną wysłane przy zapisie`
         : uploaded === total
           ? `Wysłano wszystkie zdjęcia (${total}).`
-          : `Wysłano ${uploaded} z ${total} zdjęć${failed ? ` — ${failed} z błędem, ponowimy przy zapisie` : "…"}`;
+          : `Wysłano ${uploaded} z ${total} zdjęć…`;
+      statusEl.textContent = problems ? `${main} (${problems})` : main;
     }
   });
 }
@@ -127,30 +196,44 @@ export function guardUnloadWhileSaving() {
 // inputEl — <input type="file">; getTarget() → { rentalId, folder, plate }
 // albo null, gdy miejsce w Storage nie jest jeszcze znane (wtedy zdjęcia są
 // tylko zmniejszane, a wysyłka rusza w waitForUploads z podanym targetem).
+// Stany zdjęcia: compressing → queued → uploading → done; błędy: "error"
+// (wysyłka, ponawiana) albo "unreadable" (pliku nie da się odczytać).
 export function createPhotoQueue({ storage, stripEl, inputEl, getTarget, onChange }) {
   const items = [];
   let compressChain = Promise.resolve();
   let activeUploads = 0;
   let fixedTarget = null;
+  let progressListener = null;
 
   const target = () => fixedTarget || (getTarget ? getTarget() : null);
-  const notify = () => onChange && onChange(summary());
 
   function summary() {
-    const total = items.length;
-    const uploaded = items.filter((i) => i.status === "done").length;
-    const failed = items.filter((i) => i.status === "error").length;
-    return { total, uploaded, failed };
+    const count = (s) => items.filter((i) => i.status === s).length;
+    return {
+      total: items.length,
+      uploaded: count("done"),
+      failed: count("error"),
+      unreadable: count("unreadable"),
+      preparing: count("compressing")
+    };
+  }
+
+  function notify() {
+    const s = summary();
+    if (onChange) onChange(s);
+    if (progressListener) progressListener(s);
   }
 
   function renderBadge(item) {
     const b = item.badge;
     b.className = "photo-status";
+    b.title = "";
     if (item.status === "compressing") b.textContent = "…";
     else if (item.status === "queued") b.textContent = "⏳";
     else if (item.status === "uploading") b.textContent = `${Math.round(item.progress * 100)}%`;
     else if (item.status === "done") { b.textContent = "✓"; b.classList.add("ok"); }
-    else if (item.status === "error") { b.textContent = "!"; b.classList.add("err"); b.title = "Nie wysłano — spróbujemy ponownie przy zapisie"; }
+    else if (item.status === "error") { b.textContent = "!"; b.classList.add("err"); b.title = item.error || "Nie wysłano — ponowimy przy zapisie"; }
+    else if (item.status === "unreadable") { b.textContent = "✕"; b.classList.add("err"); b.title = item.error || "Nie można odczytać zdjęcia"; }
     else b.textContent = "";
   }
 
@@ -166,7 +249,15 @@ export function createPhotoQueue({ storage, stripEl, inputEl, getTarget, onChang
     if (!t || !t.rentalId) return;
     for (const item of items) {
       if (activeUploads >= MAX_PARALLEL_UPLOADS) break;
-      if (item.status === "queued") startUpload(item, t);
+      if (item.status !== "queued") continue;
+      try {
+        startUpload(item, t);
+      } catch (e) {
+        // Błąd przy samym starcie wysyłki nie może zatrzymać pozostałych zdjęć.
+        activeUploads = Math.max(0, activeUploads - 1);
+        item.error = describeError(e);
+        setStatus(item, "error");
+      }
     }
   }
 
@@ -187,10 +278,11 @@ export function createPhotoQueue({ storage, stripEl, inputEl, getTarget, onChang
             notify();
           }
         },
-        () => {
+        (err) => {
           activeUploads--;
           item.task = null;
           if (item.removed) return resolve();
+          item.error = describeError(err);
           setStatus(item, item.attempts < MAX_UPLOAD_ATTEMPTS ? "queued" : "error");
           // Ponowna próba z krótką przerwą (chwilowy brak zasięgu).
           setTimeout(pump, 1500 * item.attempts);
@@ -203,6 +295,7 @@ export function createPhotoQueue({ storage, stripEl, inputEl, getTarget, onChang
             item.url = await getDownloadURL(task.snapshot.ref);
             setStatus(item, "done", 1);
           } catch (e) {
+            item.error = describeError(e);
             setStatus(item, "error");
           }
           resolve();
@@ -212,12 +305,11 @@ export function createPhotoQueue({ storage, stripEl, inputEl, getTarget, onChang
     });
   }
 
-  async function remove(item) {
+  function remove(item) {
     item.removed = true;
     const idx = items.indexOf(item);
     if (idx >= 0) items.splice(idx, 1);
     item.wrap.remove();
-    URL.revokeObjectURL(item.previewUrl);
     if (item.task) item.task.cancel();
     if (item.url && item.path) {
       // Już wysłane — usuń też ze Storage, żeby nie trafiło do protokołu
@@ -225,17 +317,19 @@ export function createPhotoQueue({ storage, stripEl, inputEl, getTarget, onChang
       deleteObject(ref(storage, item.path)).catch(() => {});
     }
     notify();
+    pump();
   }
 
   function add(file) {
-    const item = { file, blob: null, status: "compressing", progress: 0, url: null, path: null };
-    item.previewUrl = URL.createObjectURL(file);
+    const item = { file, name: file.name, blob: null, status: "compressing", progress: 0, url: null, path: null };
     const wrap = document.createElement("div");
     wrap.className = "photo-thumb-wrap";
+    // Podgląd dopiero z małej miniatury (po zmniejszeniu) — pełne zdjęcie
+    // 12 Mpx jako <img> zajmuje kilkadziesiąt MB pamięci na każde zdjęcie.
     const img = document.createElement("img");
     img.className = "photo-thumb";
-    img.src = item.previewUrl;
-    img.alt = "Zdjęcie";
+    img.alt = "";
+    img.title = file.name || "";
     const badge = document.createElement("span");
     const del = document.createElement("button");
     del.type = "button";
@@ -251,13 +345,24 @@ export function createPhotoQueue({ storage, stripEl, inputEl, getTarget, onChang
     renderBadge(item);
     notify();
 
-    // Zmniejszanie po kolei (jedno zdjęcie naraz — oszczędza pamięć telefonu).
+    // Zmniejszanie po kolei (jedno zdjęcie naraz — oszczędza pamięć
+    // telefonu). Każde ogniwo łańcucha łapie własne błędy, żeby problem
+    // z jednym zdjęciem nie zatrzymał pozostałych.
     item.ready = compressChain = compressChain.then(async () => {
       if (item.removed) return;
-      item.blob = await compressPhoto(file).catch(() => file);
-      if (item.removed) return;
-      setStatus(item, "queued");
-      pump();
+      try {
+        const { blob, thumbUrl } = await compressPhoto(file);
+        item.blob = blob;
+        item.file = null; // oryginał niepotrzebny — zwalniamy pamięć
+        if (thumbUrl) img.src = thumbUrl;
+        else img.classList.add("photo-thumb-placeholder");
+        if (item.removed) return;
+        setStatus(item, "queued");
+        pump();
+      } catch (e) {
+        item.error = describeError(e);
+        setStatus(item, "unreadable");
+      }
     });
   }
 
@@ -274,7 +379,7 @@ export function createPhotoQueue({ storage, stripEl, inputEl, getTarget, onChang
     // Zmniejszone pliki (dla PDF-u — szybsze niż ponowne dekodowanie oryginałów).
     async getBlobs() {
       await compressChain;
-      return items.map((i) => i.blob || i.file);
+      return items.filter((i) => i.blob).map((i) => i.blob);
     },
     // Czeka na wysłanie wszystkich zdjęć (startuje te jeszcze nie wysłane,
     // ponawia błędy). onProgress({ uploaded, total, fraction }).
@@ -287,13 +392,15 @@ export function createPhotoQueue({ storage, stripEl, inputEl, getTarget, onChang
         const fraction = total ? items.reduce((s, i) => s + (i.status === "done" ? 1 : i.status === "uploading" ? i.progress : 0), 0) / total : 1;
         onProgress({ uploaded: items.filter((i) => i.status === "done").length, total, fraction });
       };
-      const prevOnChange = onChange;
-      onChange = (s) => {
-        if (prevOnChange) prevOnChange(s);
-        report();
-      };
+      progressListener = report;
       try {
         await compressChain;
+        const unreadable = items.filter((i) => i.status === "unreadable");
+        if (unreadable.length) {
+          throw new Error(
+            `Nie można odczytać ${unreadable.length} zdj. (${unreadable.map((i) => i.name || "?").join(", ")}) — usuń je (✕) i dodaj ponownie.`
+          );
+        }
         if (items.length && !(target() && target().rentalId)) {
           throw new Error("Brak miejsca docelowego dla zdjęć (rentalId).");
         }
@@ -312,14 +419,16 @@ export function createPhotoQueue({ storage, stripEl, inputEl, getTarget, onChang
           if (!pending.length) break;
           const failed = pending.filter((i) => i.status === "error");
           if (failed.length === pending.length) {
-            throw new Error(`Nie udało się wysłać ${failed.length} zdj. — sprawdź połączenie z internetem i spróbuj ponownie.`);
+            throw new Error(
+              `Nie udało się wysłać ${failed.length} zdj. — sprawdź połączenie z internetem i spróbuj ponownie (${failed[0].error || "błąd wysyłki"}).`
+            );
           }
-          await Promise.race(pending.map((i) => i.done || i.ready || new Promise((r) => setTimeout(r, 500))));
-          await new Promise((r) => setTimeout(r, 50));
+          pump();
+          await new Promise((r) => setTimeout(r, 200));
         }
         return items.map((i) => i.url);
       } finally {
-        onChange = prevOnChange;
+        progressListener = null;
       }
     }
   };

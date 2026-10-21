@@ -130,6 +130,8 @@ input:disabled, select:disabled, textarea:disabled {
 .photo-strip { display: flex; gap: 8px; overflow-x: auto; padding: 2px; }
 /* Miniatura z kolejki zdjęć (shared/photo-queue.js): stan wysyłki + usuwanie. */
 .photo-thumb-wrap { position: relative; flex-shrink: 0; }
+/* Zanim powstanie mała miniatura (albo gdy pliku nie da się podejrzeć). */
+.photo-thumb-wrap .photo-thumb:not([src]), .photo-thumb-placeholder { background: #e6ebf1; display: block; }
 .photo-status {
   position: absolute; left: 4px; bottom: 4px; min-width: 22px; padding: 1px 5px;
   border-radius: 10px; background: rgba(0, 0, 0, .65); color: #fff;

@@ -77,7 +77,9 @@ export function mergeDamageMarks(...lists) {
 
 export async function urlsToDataUrls(urls) {
   if (!urls || !urls.length) return [];
-  const results = await Promise.all(urls.map((u) => urlToDataUrl(u)));
+  // Po kolei, nie równolegle — oszczędza pamięć telefonu przy wielu zdjęciach.
+  const results = [];
+  for (const u of urls) results.push(await urlToDataUrl(u));
   return results.filter(Boolean);
 }
 
@@ -135,7 +137,11 @@ async function blobToResizedDataUrl(blob) {
       canvas.height = Math.round(bitmap.height * scale);
       canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
       bitmap.close();
-      return canvas.toDataURL("image/jpeg", 0.85);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+      // Zwolnij pamięć płótna od razu (iOS ma twardy limit pamięci canvas).
+      canvas.width = 0;
+      canvas.height = 0;
+      return dataUrl;
     } catch (e) {
       // Spadamy do zwykłego odczytu pliku, jeśli dekodowanie się nie uda.
     }
@@ -143,7 +149,8 @@ async function blobToResizedDataUrl(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
+    // Zdarzenie błędu FileReadera nie ma .message — odrzucamy z opisem.
+    reader.onerror = () => reject(new Error("Nie można odczytać zdjęcia (" + ((reader.error && reader.error.message) || "błąd odczytu") + ")"));
     reader.readAsDataURL(blob);
   });
 }
@@ -173,7 +180,9 @@ export async function urlToDataUrl(url) {
 // zaznaczono w bieżącym protokole.
 export async function vehicleDamagePhotosToDataUrls(photos) {
   if (!photos || !photos.length) return [];
-  const results = await Promise.all(photos.map((p) => urlToDataUrl(p.url)));
+  // Po kolei, nie równolegle — oszczędza pamięć telefonu przy wielu zdjęciach.
+  const results = [];
+  for (const p of photos) results.push(await urlToDataUrl(p.url));
   return results.filter(Boolean);
 }
 
