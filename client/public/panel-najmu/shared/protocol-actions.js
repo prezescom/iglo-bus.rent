@@ -43,17 +43,8 @@ export async function generateReadableRentalId(db, plate, timestampMs) {
   }
 }
 
-export async function uploadPhotoFiles(storage, rentalId, phase, plate, timestampMs, files) {
-  const prefix = storageFilePrefix(plate, timestampMs);
-  return Promise.all(
-    files.map(async (file, index) => {
-      const path = `rentals/${rentalId}/${phase}/${prefix}-${index + 1}.jpg`;
-      const r = ref(storage, path);
-      await uploadBytes(r, file);
-      return getDownloadURL(r);
-    })
-  );
-}
+// Zdjęcia protokołów (także szkiców) wysyła shared/photo-queue.js —
+// zmniejszone do 2560 px, w tle, od razu po dodaniu.
 
 export async function uploadSignatureBlob(storage, rentalId, phase, plate, timestampMs, blob) {
   const prefix = storageFilePrefix(plate, timestampMs);
@@ -67,21 +58,6 @@ export async function uploadDamageMapBlob(storage, rentalId, phase, plate, times
   const r = ref(storage, `rentals/${rentalId}/${phase}/${prefix}-uszkodzenia.jpg`);
   await uploadBytes(r, blob);
   return getDownloadURL(r);
-}
-
-// Zdjęcia dodane przez pracownika do SZKICU protokołu (przed wydaniem) —
-// osobny folder "szkic" i znacznik czasu w nazwie, bo szkic można
-// uzupełniać zdjęciami kilka razy tego samego dnia (nazwy z
-// uploadPhotoFiles — prefiks + indeks — nadpisałyby wcześniejsze pliki).
-export async function uploadDraftPhotoFiles(storage, rentalId, plate, files) {
-  const prefix = `${normalizePlateId(plate)}-${Date.now()}`;
-  return Promise.all(
-    files.map(async (file, index) => {
-      const r = ref(storage, `rentals/${rentalId}/szkic/${prefix}-${index + 1}.jpg`);
-      await uploadBytes(r, file);
-      return getDownloadURL(r);
-    })
-  );
 }
 
 // Łączy zaznaczenia uszkodzeń z kilku źródeł (baza pojazdu + szkic

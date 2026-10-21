@@ -3,8 +3,9 @@ import { initSignatureField } from "../shared/signature.js";
 import { initDamageMap } from "../shared/damage-map.js";
 import { generateProtocolPdf, preloadPdfAssets } from "../shared/pdf.js";
 import {
-  uploadDraftPhotoFiles, mergeDamageMarks, urlsToDataUrls, renderPhotoUrlStrip
+  mergeDamageMarks, urlsToDataUrls, renderPhotoUrlStrip
 } from "../shared/protocol-actions.js";
+import { wireProtocolPhotoQueue, uploadProgressLabel } from "../shared/photo-queue.js";
 import { wireFuelFields, fuelDivisionsForReturn } from "../shared/fuel.js";
 import {
   generateContractDocx, resolveTemplateKey, computeDailyRate, countRentalDays,
@@ -37,7 +38,7 @@ const appEl = document.getElementById("app");
 const pageTitle = document.getElementById("pageTitle");
 const backBtn = document.getElementById("backBtn");
 
-let currentPhotos = []; // array of { blob, previewUrl }
+let photoQueue = null; // shared/photo-queue.js — zmniejszanie + wysyłka zdjęć w tle
 let sigPad = null;
 let damageMap = null;
 
@@ -115,7 +116,7 @@ function navigate(hash) {
 async function render() {
   await waitForAuthReady();
   const { view, param } = currentRoute();
-  currentPhotos = [];
+  photoQueue = null;
   backBtn.hidden = view === "list";
 
   if (view === "list") {
@@ -290,8 +291,10 @@ async function renderNewProtocol() {
   const resultEl = document.getElementById("newProtocolResult");
 
   // ---- Zdjęcia i schemat uszkodzeń szkicu — najemca zobaczy je w protokole
-  // z linku (protokol.js: renderGuestHandover) i dopisze własne ----
-  wirePhotoStrip();
+  // z linku (protokol.js: renderGuestHandover) i dopisze własne. ID szkicu
+  // nie jest jeszcze znane, więc zdjęcia są tylko zmniejszane w tle, a
+  // wysyłane przy "Utwórz protokół i link" ----
+  photoQueue = wireProtocolPhotoQueue(storage, null);
   damageMap = initDamageMap({
     canvas: document.getElementById("damageMap"),
     overlay: document.getElementById("damageMapOverlay"),
@@ -448,9 +451,13 @@ async function renderNewProtocol() {
         status: "szkic"
       };
       await setDoc(doc(db, "rentals", rentalId), record);
-      if (currentPhotos.length) {
-        submitBtn.textContent = "Wysyłanie zdjęć…";
-        const draftPhotoUrls = await uploadDraftPhotoFiles(storage, rentalId, plate, currentPhotos);
+      if (photoQueue.count) {
+        // ID szkicu powstaje dopiero teraz — zdjęcia (już zmniejszone w tle)
+        // wysyłamy w tym momencie, z postępem na przycisku.
+        const draftPhotoUrls = await photoQueue.waitForUploads(
+          { rentalId, folder: "szkic", plate },
+          (p) => (submitBtn.textContent = uploadProgressLabel(p))
+        );
         await setDoc(doc(db, "rentals", rentalId), { draftPhotoUrls }, { merge: true });
       }
       const passwordResult = await httpsCallable(functions, "setProtocolPassword")({ rentalId, password, phase: "wydanie" });
@@ -598,7 +605,8 @@ async function renderDraftMedia(rentalId) {
   headerEl.textContent = `${record.vehicleModel || "?"} • ${record.vehiclePlate} — najemca: ${record.tenantName || "— (jeszcze nie wypełnione)"}`;
   form.hidden = false;
 
-  wirePhotoStrip();
+  // Szkic istnieje — nowe zdjęcia wysyłają się w tle od razu po dodaniu.
+  photoQueue = wireProtocolPhotoQueue(storage, () => ({ rentalId, folder: "szkic", plate: record.vehiclePlate }));
   damageMap = initDamageMap({
     canvas: document.getElementById("damageMap"),
     overlay: document.getElementById("damageMapOverlay"),
@@ -626,9 +634,7 @@ async function renderDraftMedia(rentalId) {
     submitBtn.disabled = true;
     submitBtn.textContent = "Zapisywanie…";
     try {
-      const uploaded = currentPhotos.length
-        ? await uploadDraftPhotoFiles(storage, rentalId, record.vehiclePlate, currentPhotos)
-        : [];
+      const uploaded = await photoQueue.waitForUploads(null, (p) => (submitBtn.textContent = uploadProgressLabel(p)));
       await setDoc(doc(db, "rentals", rentalId), {
         draftPhotoUrls: [...keptUrls, ...uploaded],
         draftDamageMarks: damageMap.getMarks()
@@ -2171,7 +2177,19 @@ async function renderHandover(draftRentalId) {
 
   const tpl = document.getElementById("tpl-handover");
   appEl.replaceChildren(tpl.content.cloneNode(true));
-  wirePhotoStrip();
+  // Dokańczanie szkicu: wynajem znany — zdjęcia wysyłają się w tle od razu.
+  // Nowe wydanie: ID powstaje dopiero przy zapisie (z nr rej. i daty) —
+  // zdjęcia są tylko zmniejszane w tle i wysyłane przy "Potwierdź".
+  photoQueue = wireProtocolPhotoQueue(
+    storage,
+    draftRentalId
+      ? () => ({
+          rentalId: draftRentalId,
+          folder: "wydanie",
+          plate: document.getElementById("vehiclePlateInput").value || draftRecord?.vehiclePlate || ""
+        })
+      : null
+  );
   sigPad = initSignatureField({
     placeholder: document.getElementById("sigPlaceholder"),
     preview: document.getElementById("sigPreview"),
@@ -2418,19 +2436,23 @@ async function renderHandover(draftRentalId) {
       const [[, photoUrls, sigUrl, damageMapUrl], pdfBlob] = await Promise.all([
         Promise.all([
           setDoc(docRef, record),
-          uploadPhotos(docRef.id, "wydanie", record.vehiclePlate, record.handoverTimestamp),
+          photoQueue.waitForUploads(
+            { rentalId: docRef.id, folder: "wydanie", plate: record.vehiclePlate },
+            (p) => (submitBtn.textContent = uploadProgressLabel(p))
+          ),
           uploadSignature(docRef.id, "wydanie", record.vehiclePlate, record.handoverTimestamp),
           uploadDamageMap(docRef.id, "wydanie", record.vehiclePlate, record.handoverTimestamp)
         ]),
         (async () => {
           const [draftPhotoDataUrls, photoDataUrls, vehicleDamagePhotoDataUrls] = await Promise.all([
             urlsToDataUrls(draftPhotoUrls),
-            Promise.all(currentPhotos.map(fileToDataUrl)),
+            photoQueue.getBlobs().then((blobs) => Promise.all(blobs.map(fileToDataUrl))),
             vehicleDamagePhotosToDataUrls(selectedVehicleDamagePhotos)
           ]);
           return generateProtocolPdf(record, "wydanie", sigDataUrl, damageMapDataUrl, [...draftPhotoDataUrls, ...photoDataUrls], vehicleDamagePhotoDataUrls);
         })()
       ]);
+      submitBtn.textContent = "Zapisywanie protokołu…";
       const pdfUrl = await uploadPdf(docRef.id, "wydanie", pdfBlob, record.vehiclePlate, record.handoverTimestamp);
 
       await setDoc(docRef, {
@@ -2485,7 +2507,8 @@ async function renderReturn(rentalId) {
   headerEl.innerHTML = `<strong>${escapeHtml(record.vehicleModel)} • ${escapeHtml(record.vehiclePlate)}</strong><br>Najemca: ${escapeHtml(record.tenantName)}`;
   formEl.hidden = false;
 
-  wirePhotoStrip();
+  // Zdjęcia zwrotu wysyłają się w tle od razu po dodaniu.
+  photoQueue = wireProtocolPhotoQueue(storage, () => ({ rentalId, folder: "zwrot", plate: record.vehiclePlate }));
   sigPad = initSignatureField({
     placeholder: document.getElementById("sigPlaceholder"),
     preview: document.getElementById("sigPreview"),
@@ -2607,18 +2630,20 @@ async function renderReturn(rentalId) {
       // czekać z generowaniem PDF-u, aż wgrywanie się skończy.
       const [[photoUrls, sigUrl, damageMapUrl], pdfBlob] = await Promise.all([
         Promise.all([
-          uploadPhotos(rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp),
+          // Większość zdjęć jest zwykle już wysłana w tle — tu czekamy na resztę.
+          photoQueue.waitForUploads(null, (p) => (submitBtn.textContent = uploadProgressLabel(p))),
           uploadSignature(rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp),
           uploadDamageMap(rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp)
         ]),
         (async () => {
           const [photoDataUrls, vehicleDamagePhotoDataUrls] = await Promise.all([
-            Promise.all(currentPhotos.map(fileToDataUrl)),
+            photoQueue.getBlobs().then((blobs) => Promise.all(blobs.map(fileToDataUrl))),
             vehicleDamagePhotosToDataUrls(selectedVehicleDamagePhotos)
           ]);
           return generateProtocolPdf(updated, "zwrot", sigDataUrl, damageMapDataUrl, photoDataUrls, vehicleDamagePhotoDataUrls);
         })()
       ]);
+      submitBtn.textContent = "Zapisywanie protokołu…";
       const pdfUrl = await uploadPdf(rentalId, "zwrot", pdfBlob, updated.vehiclePlate, updated.returnTimestamp);
 
       updated.returnPhotoUrls = photoUrls;
@@ -2653,23 +2678,9 @@ async function renderReturn(rentalId) {
 
 // ---------- Shared helpers ----------
 // Pole "+ Dodaj zdjęcie" (bez atrybutu capture) pozwala wybrać zdjęcie
-// zrobione aparatem, ale też jedno lub wiele istniejących zdjęć z galerii
-// telefonu / dysku komputera (patrz atrybut multiple w index.html) —
-// dlatego przechodzimy po wszystkich wybranych plikach, nie tylko pierwszym.
-function wirePhotoStrip() {
-  const strip = document.getElementById("photoStrip");
-  const input = document.getElementById("photoInput");
-  input.addEventListener("change", () => {
-    for (const file of input.files) {
-      currentPhotos.push(file);
-      const img = document.createElement("img");
-      img.className = "photo-thumb";
-      img.src = URL.createObjectURL(file);
-      strip.appendChild(img);
-    }
-    input.value = "";
-  });
-}
+// zrobione aparatem, ale też jedno lub wiele istniejących zdjęć z galerii —
+// obsługę (zmniejszanie do 2560 px, wysyłka w tle, postęp) robi
+// wireProtocolPhotoQueue w shared/photo-queue.js.
 
 
 // Aparaty zapisują zdjęcie zrobione w poziomie w oryginalnej orientacji
@@ -2682,9 +2693,9 @@ function wirePhotoStrip() {
 // telefony robią zdjęcia w rozdzielczości rzędu 12 Mpx (4000+ px) — bez
 // przeskalowania każde zdjęcie w PDF-ie waży kilka MB, mimo że na stronie
 // zajmuje ułamek tej rozdzielczości. 1600px na dłuższym boku to wielokrotność
-// tego, co faktycznie widać w protokole. Oryginał (pełna rozdzielczość) i tak
-// trafia bez zmian do Firebase Storage przez uploadPhotos — ta funkcja
-// dotyczy wyłącznie kopii osadzanej w PDF-ie.
+// tego, co faktycznie widać w protokole. Do Firebase Storage trafia osobna,
+// większa kopia (2560 px, shared/photo-queue.js) — ta funkcja dotyczy
+// wyłącznie kopii osadzanej w PDF-ie.
 const PDF_PHOTO_MAX_DIMENSION = 1600;
 
 async function blobToResizedDataUrl(blob) {
@@ -2733,18 +2744,6 @@ async function vehicleDamagePhotosToDataUrls(photos) {
   if (!photos || !photos.length) return [];
   const results = await Promise.all(photos.map((p) => urlToDataUrl(p.url)));
   return results.filter(Boolean);
-}
-
-async function uploadPhotos(rentalId, phase, plate, timestampMs) {
-  const prefix = storageFilePrefix(plate, timestampMs);
-  return Promise.all(
-    currentPhotos.map(async (file, index) => {
-      const path = `rentals/${rentalId}/${phase}/${prefix}-${index + 1}.jpg`;
-      const r = ref(storage, path);
-      await uploadBytes(r, file);
-      return getDownloadURL(r);
-    })
-  );
 }
 
 async function uploadSignature(rentalId, phase, plate, timestampMs) {
@@ -3182,11 +3181,18 @@ async function renderSendProtocol(phase, rentalId) {
 
   headerEl.innerHTML = `<strong>${escapeHtml(record.vehicleModel)} • ${escapeHtml(record.vehiclePlate)}</strong><br>Najemca: ${escapeHtml(record.tenantName)} — ${isHandover ? "wydanie" : "zwrot"}`;
 
-  wirePhotoStrip();
+  // Dosyłane zdjęcia — zmniejszane i wysyłane w tle od razu po dodaniu.
+  photoQueue = wireProtocolPhotoQueue(storage, () => ({ rentalId, folder: phase, plate: record.vehiclePlate }));
+  const savedPhotoUrls = record[isHandover ? "handoverPhotoUrls" : "returnPhotoUrls"] || [];
 
   let recovered;
   try {
     recovered = await fetchRecoveredAssets(rentalId, phase);
+    // Zdjęcia protokołu bierzemy z listy zapisanej w protokole (obejmuje też
+    // zdjęcia dodane do szkicu, leżące w folderze "szkic"), a nie z zawartości
+    // folderu — tam mogą leżeć też zdjęcia wysłane w tle i porzucone przed
+    // zapisem. Folder zostaje fallbackiem dla starszych/przerwanych zapisów.
+    if (savedPhotoUrls.length) recovered.photoDataUrls = await urlsToDataUrls(savedPhotoUrls);
 
     const sigPreview = document.getElementById("sendProtocolSigPreview");
     if (recovered.sigDataUrl) sigPreview.src = recovered.sigDataUrl;
@@ -3232,21 +3238,14 @@ async function renderSendProtocol(phase, rentalId) {
       let pdfUrl = record[pdfField];
       let allPhotoUrls = record[photoField] || [];
 
-      if (currentPhotos.length) {
-        // Numerujemy dalej za już odzyskanymi zdjęciami (recovered.photoItems),
-        // żeby nie nadpisać istniejących plików w Storage tą samą nazwą.
-        const startIndex = recovered.photoItems.length;
-        const prefix = storageFilePrefix(record.vehiclePlate, timestamp);
+      if (photoQueue.count) {
+        // Nazwy plików z kolejki mają rosnący, unikalny numer — nie nadpiszą
+        // już istniejących zdjęć w Storage.
         const [newUrls, newPhotoDataUrls] = await Promise.all([
-          Promise.all(
-            currentPhotos.map(async (file, i) => {
-              const r = ref(storage, `rentals/${rentalId}/${phase}/${prefix}-${startIndex + i + 1}.jpg`);
-              await uploadBytes(r, file);
-              return getDownloadURL(r);
-            })
-          ),
-          Promise.all(currentPhotos.map(fileToDataUrl))
+          photoQueue.waitForUploads(null, (p) => (submitBtn.textContent = uploadProgressLabel(p))),
+          photoQueue.getBlobs().then((blobs) => Promise.all(blobs.map(fileToDataUrl)))
         ]);
+        submitBtn.textContent = "Tworzenie protokołu PDF…";
         allPhotoUrls = [...allPhotoUrls, ...newUrls];
 
         let vehicleDamagePhotos = [];

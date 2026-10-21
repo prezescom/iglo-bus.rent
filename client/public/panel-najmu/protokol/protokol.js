@@ -18,10 +18,11 @@ import { initDamageMap } from "../shared/damage-map.js";
 import { generateProtocolPdf, preloadPdfAssets } from "../shared/pdf.js";
 import {
   escapeHtml, fileToDataUrl, wireTenantTypeToggle, prefillForm, normalizePlateId,
-  uploadPhotoFiles, uploadSignatureBlob, uploadDamageMapBlob, uploadPdfBlob,
+  uploadSignatureBlob, uploadDamageMapBlob, uploadPdfBlob,
   vehicleDamagePhotosToDataUrls, mergeDamageMarks, urlsToDataUrls, renderPhotoUrlStrip
 } from "../shared/protocol-actions.js";
 import { wireFuelFields, fuelDivisionsForReturn } from "../shared/fuel.js";
+import { wireProtocolPhotoQueue, uploadProgressLabel, guardUnloadWhileSaving } from "../shared/photo-queue.js";
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -53,7 +54,7 @@ const functions = getFunctions(app, FUNCTIONS_REGION);
 
 const appEl = document.getElementById("app");
 
-let currentPhotos = []; // array of File
+let photoQueue = null; // shared/photo-queue.js — zmniejszanie + wysyłka zdjęć w tle
 let sigPad = null;
 let damageMap = null;
 
@@ -106,7 +107,7 @@ async function expireAccessAndSignOut() {
 }
 
 async function render() {
-  currentPhotos = [];
+  photoQueue = null;
 
   // Musi być ustawione zanim cokolwiek sprawdzi/zmieni stan logowania — w
   // przeciwnym razie sygnOut poniżej (dla sesji operatorskiej z panelu,
@@ -253,7 +254,8 @@ async function renderGuestHandover(rentalId, existingRecord) {
   preloadPdfAssets();
   const tpl = document.getElementById("tpl-guest-handover");
   appEl.replaceChildren(tpl.content.cloneNode(true));
-  wirePhotoStrip();
+  // Zdjęcia zmniejszane i wysyłane w tle od razu po dodaniu (wynajem jest znany).
+  photoQueue = wireProtocolPhotoQueue(storage, () => ({ rentalId, folder: "wydanie", plate: existingRecord.vehiclePlate }));
   sigPad = initSignatureField({
     placeholder: document.getElementById("sigPlaceholder"),
     preview: document.getElementById("sigPreview"),
@@ -408,20 +410,24 @@ async function renderGuestHandover(rentalId, existingRecord) {
 
     submitBtn.disabled = true;
     submitBtn.textContent = "Zapisywanie…";
+    const releaseUnloadGuard = guardUnloadWhileSaving();
     try {
       const docRef = doc(db, "rentals", rentalId);
       const [, photoUrls, sigUrl, damageMapUrl, photoDataUrls, vehicleDamagePhotoDataUrls, draftPhotoDataUrls] = await Promise.all([
         setDoc(docRef, record),
-        uploadPhotoFiles(storage, rentalId, "wydanie", record.vehiclePlate, record.handoverTimestamp, currentPhotos),
+        // Większość zdjęć jest zwykle już wysłana w tle — tu czekamy na resztę.
+        photoQueue.waitForUploads(null, (p) => (submitBtn.textContent = uploadProgressLabel(p))),
         (async () => uploadSignatureBlob(storage, rentalId, "wydanie", record.vehiclePlate, record.handoverTimestamp, await sigPad.toBlob()))(),
         (async () => uploadDamageMapBlob(storage, rentalId, "wydanie", record.vehiclePlate, record.handoverTimestamp, await damageMap.toBlob()))(),
-        Promise.all(currentPhotos.map(fileToDataUrl)),
+        photoQueue.getBlobs().then((blobs) => Promise.all(blobs.map(fileToDataUrl))),
         vehicleDamagePhotosToDataUrls(vehicleDamagePhotos),
         urlsToDataUrls(draftPhotoUrls)
       ]);
+      submitBtn.textContent = "Tworzenie protokołu PDF…";
       const sigDataUrl = sigPad.toDataUrl();
       const damageMapDataUrl = damageMap.toDataUrl();
       const pdfBlob = await generateProtocolPdf(record, "wydanie", sigDataUrl, damageMapDataUrl, [...draftPhotoDataUrls, ...photoDataUrls], vehicleDamagePhotoDataUrls);
+      submitBtn.textContent = "Zapisywanie protokołu…";
       const pdfUrl = await uploadPdfBlob(storage, rentalId, "wydanie", record.vehiclePlate, record.handoverTimestamp, pdfBlob);
 
       const finalRecord = {
@@ -432,11 +438,13 @@ async function renderGuestHandover(rentalId, existingRecord) {
         handoverProtocolPdfUrl: pdfUrl
       };
       await setDoc(docRef, finalRecord);
+      releaseUnloadGuard();
 
       showToast("Protokół wydania potwierdzony.");
       await expireAccessAndSignOut();
       showInfoScreen("Protokół wydania potwierdzony. Wypożyczalnia go sprawdzi i wyśle Ci kopię e-mailem. Ten link jest teraz nieaktywny — do zwrotu pojazdu poproś wypożyczalnię o nowe hasło.");
     } catch (err) {
+      releaseUnloadGuard();
       errorEl.textContent = "Błąd zapisu: " + err.message;
       errorEl.hidden = false;
       submitBtn.disabled = false;
@@ -456,7 +464,8 @@ async function renderGuestReturn(rentalId, record) {
   headerEl.innerHTML = `<strong>${escapeHtml(record.vehicleModel)} • ${escapeHtml(record.vehiclePlate)}</strong>`;
   formEl.hidden = false;
 
-  wirePhotoStrip();
+  // Zdjęcia zmniejszane i wysyłane w tle od razu po dodaniu.
+  photoQueue = wireProtocolPhotoQueue(storage, () => ({ rentalId, folder: "zwrot", plate: record.vehiclePlate }));
   sigPad = initSignatureField({
     placeholder: document.getElementById("sigPlaceholder"),
     preview: document.getElementById("sigPreview"),
@@ -554,17 +563,20 @@ async function renderGuestReturn(rentalId, record) {
 
     submitBtn.disabled = true;
     submitBtn.textContent = "Zapisywanie…";
+    const releaseUnloadGuard = guardUnloadWhileSaving();
     try {
       const [photoUrls, sigUrl, damageMapUrl, photoDataUrls, vehicleDamagePhotoDataUrls] = await Promise.all([
-        uploadPhotoFiles(storage, rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp, currentPhotos),
+        photoQueue.waitForUploads(null, (p) => (submitBtn.textContent = uploadProgressLabel(p))),
         (async () => uploadSignatureBlob(storage, rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp, await sigPad.toBlob()))(),
         (async () => uploadDamageMapBlob(storage, rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp, await damageMap.toBlob()))(),
-        Promise.all(currentPhotos.map(fileToDataUrl)),
+        photoQueue.getBlobs().then((blobs) => Promise.all(blobs.map(fileToDataUrl))),
         vehicleDamagePhotosToDataUrls(vehicleDamagePhotos)
       ]);
+      submitBtn.textContent = "Tworzenie protokołu PDF…";
       const sigDataUrl = sigPad.toDataUrl();
       const damageMapDataUrl = damageMap.toDataUrl();
       const pdfBlob = await generateProtocolPdf(updated, "zwrot", sigDataUrl, damageMapDataUrl, photoDataUrls, vehicleDamagePhotoDataUrls);
+      submitBtn.textContent = "Zapisywanie protokołu…";
       const pdfUrl = await uploadPdfBlob(storage, rentalId, "zwrot", updated.vehiclePlate, updated.returnTimestamp, pdfBlob);
 
       updated.returnPhotoUrls = photoUrls;
@@ -573,11 +585,13 @@ async function renderGuestReturn(rentalId, record) {
       updated.returnProtocolPdfUrl = pdfUrl;
 
       await setDoc(doc(db, "rentals", rentalId), updated);
+      releaseUnloadGuard();
 
       showToast("Protokół zwrotu potwierdzony. Dziękujemy!");
       await expireAccessAndSignOut();
       showInfoScreen("Protokół zwrotu potwierdzony. Wypożyczalnia go sprawdzi i wyśle Ci kopię e-mailem. Ten link jest teraz nieaktywny. Dziękujemy!");
     } catch (err) {
+      releaseUnloadGuard();
       errorEl.textContent = "Błąd zapisu: " + err.message;
       errorEl.hidden = false;
       submitBtn.disabled = false;
@@ -588,20 +602,6 @@ async function renderGuestReturn(rentalId, record) {
 
 // ---------- Pomocnicze (zdjęcia) ----------
 // Pole "+ Dodaj zdjęcie" (bez atrybutu capture) pozwala wybrać zdjęcie
-// zrobione aparatem, ale też jedno lub wiele istniejących zdjęć z galerii
-// telefonu / dysku komputera (patrz atrybut multiple w protokol/index.html)
-// — dlatego przechodzimy po wszystkich wybranych plikach, nie tylko pierwszym.
-function wirePhotoStrip() {
-  const strip = document.getElementById("photoStrip");
-  const input = document.getElementById("photoInput");
-  input.addEventListener("change", () => {
-    for (const file of input.files) {
-      currentPhotos.push(file);
-      const img = document.createElement("img");
-      img.className = "photo-thumb";
-      img.src = URL.createObjectURL(file);
-      strip.appendChild(img);
-    }
-    input.value = "";
-  });
-}
+// zrobione aparatem, ale też jedno lub wiele istniejących zdjęć z galerii —
+// obsługę (zmniejszanie, wysyłka w tle, postęp) robi wireProtocolPhotoQueue
+// w shared/photo-queue.js.

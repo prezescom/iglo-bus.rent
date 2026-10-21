@@ -128,6 +128,22 @@ input:disabled, select:disabled, textarea:disabled {
 .checkbox-label input[type="checkbox"]:disabled { cursor: default; }
 
 .photo-strip { display: flex; gap: 8px; overflow-x: auto; padding: 2px; }
+/* Miniatura z kolejki zdjęć (shared/photo-queue.js): stan wysyłki + usuwanie. */
+.photo-thumb-wrap { position: relative; flex-shrink: 0; }
+.photo-status {
+  position: absolute; left: 4px; bottom: 4px; min-width: 22px; padding: 1px 5px;
+  border-radius: 10px; background: rgba(0, 0, 0, .65); color: #fff;
+  font-size: 11px; line-height: 16px; text-align: center; pointer-events: none;
+}
+.photo-status:empty { display: none; }
+.photo-status.ok { background: #1E8C4E; }
+.photo-status.err { background: #C0392B; }
+.photo-remove {
+  position: absolute; top: 2px; right: 2px; width: 24px; height: 24px; padding: 0;
+  border: 0; border-radius: 50%; background: rgba(0, 0, 0, .65); color: #fff;
+  font-size: 13px; line-height: 24px; cursor: pointer;
+}
+.upload-progress { font-size: 13px; margin: 6px 0 0; }
 .photo-thumb {
   width: 72px; height: 72px; border-radius: 8px; object-fit: cover;
   border: 1px solid var(--line); flex-shrink: 0;
