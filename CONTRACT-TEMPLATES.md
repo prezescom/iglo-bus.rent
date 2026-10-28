@@ -12,8 +12,9 @@ się nie podstawi.
 ## Podmiana szablonu z panelu
 
 W panelu → **Wygeneruj umowę** → **Zarządzaj szablonami umów** można wgrać własny plik `.docx` dla
-każdego z 6 typów umowy — trafia do Firebase Storage i jest używany zamiast wbudowanego, dopóki
-ktoś nie kliknie „Przywróć domyślny". Wgrywany plik musi zawierać **dokładnie te same tagi**
+każdego z 7 typów umowy — trafia do Firebase Storage i jest używany zamiast wbudowanego, dopóki
+ktoś nie kliknie „Przywróć domyślny". Wyjątek: `firma_en` (wersja angielska) nie ma wzoru
+wbudowanego — działa dopiero po wgraniu pliku. Wgrywany plik musi zawierać **dokładnie te same tagi**
 (z listy poniżej, dla danego typu) — inaczej dane się nie podstawią albo generowanie zwróci błąd.
 
 ## Tagi wspólne — dostępne w KAŻDYM szablonie
@@ -78,6 +79,18 @@ Nazwa firmy działa też jako `[firma]`, a model jako `[model]` — w każdym ty
 [reprezentant] [model samochodu] [nr_rejestracyjny] [VIN] [czynsz]
 [kaucja] [umowa_od] [umowa_do]
 ```
+
+### `firma_en` — Firma, Umowa (wersja angielska)
+Wybierana polem **Język umowy → English** (widocznym dla strony „Firma”) — jeden wzór niezależnie od
+rodzaju umowy i formy podpisu. Bez wzoru wbudowanego: wgraj plik w „Zarządzaj szablonami umów”.
+Dostępne tagi (te same nazwy co w polskich wzorach firmowych + tagi wspólne z tabeli wyżej):
+```
+[data_zawarcia] [nazwa firmy] [firma] [NIP] [KRS] [reprezentant] [ulica] [kod_pocztowy]
+[Miejscowość] [Miasto] [model samochodu] [model] [nr_rejestracyjny] [VIN] [czynsz] [kaucja]
+[umowa_od] [umowa_do] [data_od] [data_do] [stawka dobowa] [limit km] [wyjazd_zagraniczny]
+```
+W tej wersji `[wyjazd_zagraniczny]` daje `YES` / `NO` (zamiast `TAK` / `NIE`). Daty mają format
+`DD.MM.RRRR`, kwoty — jak w formularzu (np. `5500`), stawka dobowa z kropką (`183.33`).
 
 ## Wybór typu umowy dla Firmy
 

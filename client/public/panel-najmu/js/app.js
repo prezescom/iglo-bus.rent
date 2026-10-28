@@ -12,7 +12,7 @@ import {
 import { wireFuelFields, fuelDivisionsForReturn } from "../shared/fuel.js";
 import {
   generateContractDocx, resolveTemplateKey, computeDailyRate, countRentalDays,
-  suggestRentFromPricing, matchPricingVehicle
+  suggestRentFromPricing, matchPricingVehicle, hasBuiltinTemplate
 } from "./contracts.js";
 
 const DAMAGE_MAP_DIAGRAM_URL = "/panel-najmu/img/van-diagram.png";
@@ -1301,15 +1301,25 @@ async function renderContractForm() {
     }
   });
 
+  const languageWrap = document.getElementById("contractLanguageWrap");
+  const languageSelect = document.getElementById("contractLanguageSelect");
+
   function updateConditionalFieldsVisibility() {
+    const isFirma = partyTypeSelect.value === "firma";
+    // Wersja angielska jest tylko dla Firmy (jeden wzór "firma_en",
+    // niezależnie od rodzaju umowy — patrz resolveTemplateKey w contracts.js).
+    languageWrap.hidden = !isFirma;
+    const isEnglish = isFirma && languageSelect.value === "en";
     jednostkowaFieldset.hidden = !(partyTypeSelect.value === "konsument" && contractTypeSelect.value === "jednostkowa");
     // Dla Firmy zarówno "Umowa" jak i "Umowa najmu jednostkowego" korzystają
     // z tego samego dokumentu (osobna umowa ramowa ma własny szablon), więc
-    // forma podpisu dotyczy obu tych wyborów, nie tylko "Umowa".
-    signatureFormWrap.hidden = !(partyTypeSelect.value === "firma" && contractTypeSelect.value !== "ramowa");
+    // forma podpisu dotyczy obu tych wyborów, nie tylko "Umowa". Wersja
+    // angielska ma jeden wzór, więc forma podpisu jej nie dotyczy.
+    signatureFormWrap.hidden = !(isFirma && !isEnglish && contractTypeSelect.value !== "ramowa");
   }
   partyTypeSelect.addEventListener("change", updateConditionalFieldsVisibility);
   contractTypeSelect.addEventListener("change", updateConditionalFieldsVisibility);
+  languageSelect.addEventListener("change", updateConditionalFieldsVisibility);
   updateConditionalFieldsVisibility();
 
   // Podgląd [stawka dobowa] = czynsz / liczba dób — ta sama wartość trafi do umowy.
@@ -1390,7 +1400,8 @@ async function renderContractForm() {
     const partyType = fd.get("contractPartyType");
     const contractType = fd.get("contractType");
     const signatureForm = fd.get("contractSignatureForm");
-    const templateKey = resolveTemplateKey(partyType, contractType, signatureForm);
+    const language = partyType === "firma" ? fd.get("contractLanguage") || "pl" : "pl";
+    const templateKey = resolveTemplateKey(partyType, contractType, signatureForm, language);
 
     const formData = {
       contractDate: formatDatePl(fd.get("contractDate")),
@@ -1405,9 +1416,10 @@ async function renderContractForm() {
       returnPlace: fd.get("returnPlace") || "",
       vatAmount: fd.get("vatAmount") || "",
       grossRentAmount: fd.get("grossRentAmount") || "",
-      dailyRate: computeDailyRate(fd.get("rentAmount"), fd.get("periodFrom"), fd.get("periodTo")),
+      dailyRate: computeDailyRate(fd.get("rentAmount"), fd.get("periodFrom"), fd.get("periodTo"), language),
       mileageLimitKm: fd.get("mileageLimitKm") || "",
-      foreignTravel: fd.get("foreignTravel") || "NIE"
+      foreignTravel: fd.get("foreignTravel") || "NIE",
+      language
     };
 
     submitBtn.disabled = true;
@@ -1418,7 +1430,7 @@ async function renderContractForm() {
         vehicle: selectedVehicle,
         form: formData
       }, storage);
-      const fileName = `Umowa_${selectedVehicle.plate}_${fd.get("contractDate") || ""}.docx`;
+      const fileName = `${language === "en" ? "Contract" : "Umowa"}_${selectedVehicle.plate}_${fd.get("contractDate") || ""}.docx`;
       downloadBlob(blob, fileName);
       showToast("Wygenerowano umowę.");
       if (unknownTags.length) {
@@ -1450,7 +1462,8 @@ const CONTRACT_TEMPLATE_LABELS = {
   konsument_jednostkowa: "Konsument — Umowa najmu jednostkowego",
   firma_ramowa: "Firma — Umowa ramowa",
   firma_scalona_elektroniczna: "Firma — Umowa scalona (e-podpis)",
-  firma_scalona_papierowa: "Firma — Umowa scalona (papierowa)"
+  firma_scalona_papierowa: "Firma — Umowa scalona (papierowa)",
+  firma_en: "Firma — Umowa (wersja angielska)"
 };
 
 async function wireContractTemplateManager() {
@@ -1470,16 +1483,18 @@ async function wireContractTemplateManager() {
   Object.entries(CONTRACT_TEMPLATE_LABELS).forEach(([key, label]) => {
     const fileName = `${key}.docx`;
     const isCustom = existing.has(fileName);
+    // Wzory bez wersji wbudowanej (np. firma_en) działają tylko po wgraniu pliku.
+    const builtin = hasBuiltinTemplate(key);
     const row = document.createElement("div");
     row.className = "rental-card";
     row.innerHTML = `
       <div class="plate">${escapeHtml(label)}</div>
-      <div class="tenant">${isCustom ? "Własny szablon (wgrany)" : "Szablon wbudowany"}</div>
+      <div class="tenant">${isCustom ? "Własny szablon (wgrany)" : builtin ? "Szablon wbudowany" : '<span class="error">Brak szablonu — wgraj plik .docx</span>'}</div>
       <label class="btn btn-secondary btn-block file-btn">
-        Podmień szablon (.docx)
+        ${builtin || isCustom ? "Podmień szablon (.docx)" : "Wgraj szablon (.docx)"}
         <input type="file" accept=".docx" hidden data-role="upload" />
       </label>
-      ${isCustom ? '<button type="button" class="btn-text" data-role="restore">Przywróć domyślny</button>' : ""}
+      ${isCustom ? `<button type="button" class="btn-text" data-role="restore">${builtin ? "Przywróć domyślny" : "Usuń wgrany szablon"}</button>` : ""}
     `;
     row.querySelector('[data-role="upload"]').addEventListener("change", async (e) => {
       const file = e.target.files[0];
@@ -1498,10 +1513,10 @@ async function wireContractTemplateManager() {
     const restoreBtn = row.querySelector('[data-role="restore"]');
     if (restoreBtn) {
       restoreBtn.addEventListener("click", async () => {
-        if (!confirm(`Przywrócić wbudowany szablon dla „${label}"?`)) return;
+        if (!confirm(builtin ? `Przywrócić wbudowany szablon dla „${label}"?` : `Usunąć wgrany szablon „${label}"? Generowanie tej umowy przestanie działać, dopóki nie wgrasz nowego.`)) return;
         try {
           await deleteObject(ref(storage, `contract-templates/${fileName}`));
-          showToast("Przywrócono wbudowany szablon.");
+          showToast(builtin ? "Przywrócono wbudowany szablon." : "Usunięto wgrany szablon.");
           wireContractTemplateManager();
         } catch (err) {
           showToast("Błąd: " + err.message);

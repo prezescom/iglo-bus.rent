@@ -19,8 +19,15 @@ const TEMPLATE_FILES = {
   konsument_jednostkowa: "/panel-najmu/contracts/templates/umowa-najmu-jednostkowego-konsument.docx",
   firma_ramowa: "/panel-najmu/contracts/templates/umowa-ramowa-firma.docx",
   firma_scalona_elektroniczna: "/panel-najmu/contracts/templates/umowa-najmu-scalona-epodpis.docx",
-  firma_scalona_papierowa: "/panel-najmu/contracts/templates/umowa-najmu-scalona-papierowa.docx"
+  firma_scalona_papierowa: "/panel-najmu/contracts/templates/umowa-najmu-scalona-papierowa.docx",
+  // Umowa z firmą — wersja angielska. Bez wzoru wbudowanego: działa po
+  // wgraniu pliku w panelu (Wygeneruj umowę → Zarządzaj szablonami umów).
+  firma_en: null
 };
+
+export function hasBuiltinTemplate(templateKey) {
+  return Boolean(TEMPLATE_FILES[templateKey]);
+}
 
 // Szablony, w których w oryginalnym pliku Word brakuje otwierającego "["
 // przed "kod_pocztowy]" (literówka źródłowa) — patrz generateContractDocx.
@@ -31,7 +38,10 @@ const TEMPLATES_NEEDING_KOD_POCZTOWY_FIX = new Set(["firma_scalona_elektroniczna
 // zarówno "Umowa" jak i "Umowa najmu jednostkowego" prowadzą do tego samego
 // dokumentu dla Firmy — w wersji do podpisu elektronicznego lub papierowej,
 // zależnie od signatureForm.
-export function resolveTemplateKey(partyType, contractType, signatureForm) {
+// language "en" (tylko Firma) — jeden angielski wzór niezależnie od rodzaju
+// umowy i formy podpisu.
+export function resolveTemplateKey(partyType, contractType, signatureForm, language = "pl") {
+  if (partyType === "firma" && language === "en") return "firma_en";
   if (partyType === "firma") {
     if (contractType === "ramowa") return "firma_ramowa";
     return signatureForm === "papierowa" ? "firma_scalona_papierowa" : "firma_scalona_elektroniczna";
@@ -53,11 +63,12 @@ export function countRentalDays(isoFrom, isoTo) {
 
 // [stawka dobowa] = czynsz / liczba dób, zaokrąglone do grosza, format PL
 // ("183,33"). Pusty tekst, gdy brakuje czynszu albo okres jest niepoprawny.
-export function computeDailyRate(rentAmount, isoFrom, isoTo) {
+// language "en" — format angielski ("183.33", wersja angielska umowy).
+export function computeDailyRate(rentAmount, isoFrom, isoTo, language = "pl") {
   const rent = Number(rentAmount);
   const days = countRentalDays(isoFrom, isoTo);
   if (!rent || !days) return "";
-  return (Math.round((rent / days) * 100) / 100).toLocaleString("pl-PL", {
+  return (Math.round((rent / days) * 100) / 100).toLocaleString(language === "en" ? "en-GB" : "pl-PL", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
@@ -118,7 +129,8 @@ function commonTemplateData({ tenant, vehicle, form }) {
     kaucja: form.depositAmount,
     "stawka dobowa": form.dailyRate,
     "limit km": form.mileageLimitKm,
-    wyjazd_zagraniczny: form.foreignTravel
+    // W wersji angielskiej umowy YES/NO zamiast TAK/NIE.
+    wyjazd_zagraniczny: form.language === "en" ? (form.foreignTravel === "TAK" ? "YES" : "NO") : form.foreignTravel
   };
 }
 
@@ -285,6 +297,27 @@ function buildTemplateData(templateKey, { tenant, vehicle, form }) {
         umowa_od: form.periodFrom,
         umowa_do: form.periodTo
       };
+    case "firma_en":
+      // Wersja angielska umowy z firmą: wszystkie tagi z polskich wzorów
+      // firmowych (ramowa + scalona) — wgrany wzór może użyć dowolnych z nich
+      // (plus tagi wspólne z commonTemplateData).
+      return {
+        data_zawarcia: form.contractDate,
+        reprezentant: tenant.representative,
+        NIP: tenant.nip,
+        KRS: tenant.krs,
+        ulica: street,
+        kod_pocztowy: tenant.postalCode,
+        Miejscowość: tenant.city,
+        Miasto: tenant.city,
+        nr_rejestracyjny: vehicle.plate,
+        VIN: vehicle.vin,
+        czynsz: form.rentAmount,
+        umowa_od: form.periodFrom,
+        umowa_do: form.periodTo,
+        data_od: form.periodFrom,
+        data_do: form.periodTo
+      };
     default:
       throw new Error(`Nieznany typ szablonu: ${templateKey}`);
   }
@@ -296,8 +329,8 @@ function buildTemplateData(templateKey, { tenant, vehicle, form }) {
 // wbudowanego pliku statycznego z TEMPLATE_FILES.
 // Zwraca { blob, unknownTags } — unknownTags to tagi ze wzoru bez danych.
 export async function generateContractDocx(templateKey, ctx, storage) {
+  if (!(templateKey in TEMPLATE_FILES)) throw new Error(`Nieznany typ szablonu: ${templateKey}`);
   const builtinUrl = TEMPLATE_FILES[templateKey];
-  if (!builtinUrl) throw new Error(`Nieznany typ szablonu: ${templateKey}`);
 
   let url = builtinUrl;
   let isCustomTemplate = false;
@@ -308,6 +341,13 @@ export async function generateContractDocx(templateKey, ctx, storage) {
     } catch (e) {
       // Brak własnego szablonu dla tego typu umowy — zostajemy przy wbudowanym.
     }
+  }
+  if (!url) {
+    // Typ bez wzoru wbudowanego (np. firma_en), dla którego nikt jeszcze
+    // nie wgrał pliku.
+    throw new Error(
+      "Brak wgranego wzoru tej umowy — wgraj plik .docx w „Zarządzaj szablonami umów” (poniżej formularza)."
+    );
   }
 
   const buffer = await fetch(url).then((r) => {
